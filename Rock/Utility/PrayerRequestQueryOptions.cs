@@ -104,5 +104,17 @@ namespace Rock.Utility
         /// The list of group unique identifiers to limit results to.
         /// </value>
         public List<Guid> GroupGuids { get; set; }
+
+        /// <summary>
+        /// Gets or sets the minutes to filter out.
+        /// </summary>
+        /// <value>The minutes to filter.</value>
+        public int MinutesToFilter { get; set; }
+
+        /// <summary>
+        /// Gets or sets the person Id.
+        /// </summary>
+        /// <value>The person Id.</value>
+        public int PersonId { get; set; }
     }
 }
