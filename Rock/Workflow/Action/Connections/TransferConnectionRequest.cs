@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -72,6 +72,12 @@ namespace Rock.Workflow.Action
             if ( opportunity == null )
             {
                 errorMessages.Add( "Invalid Connection Opportunity Attribute or Value!" );
+                return false;
+            }
+
+            if ( opportunity.ConnectionTypeId != request.ConnectionTypeId )
+            {
+                errorMessages.Add( "Connection Opportunity to which request has to transferred belongs to different connection type." );
                 return false;
             }
 
