@@ -141,13 +141,21 @@ namespace Rock.Blocks.Types.Mobile.Prayer
         IsRequired = false,
         Order = 11 )]
 
+    [BooleanField( "Include Group Requests",
+        Description = "Includes prayer requests that are attached to a group.",
+        IsRequired = false,
+        DefaultBooleanValue = false,
+        ControlType = Field.Types.BooleanFieldType.BooleanControlType.Toggle,
+        Key = AttributeKey.IncludeGroupRequests,
+        Order = 12 )]
+
     [IntegerField(
         "Prayed For in Last x Minutes Filter",
         Description = "An integer (minutes) that you can use to filter out recently prayed for items. Uses interaction data. 0 to disable.",
         IsRequired = true,
         DefaultIntegerValue = 0,
         Key = AttributeKey.MinutesToFilter,
-        Order = 12 )]
+        Order = 13 )]
 
     #endregion
 
