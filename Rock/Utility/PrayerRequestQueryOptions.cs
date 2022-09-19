@@ -106,15 +106,18 @@ namespace Rock.Utility
         public List<Guid> GroupGuids { get; set; }
 
         /// <summary>
-        /// Gets or sets the minutes to filter out.
+        /// Gets or sets the minutes (a positive integer) to filter out of prayer requests. For example,
+        /// passing in a value of 5 would filter out prayer requests from 5 minutes ago until the time of the request.
+        ///  If the value is zero, this filter is ignored.
         /// </summary>
-        /// <value>The minutes to filter.</value>
+        /// <value>The amount of recent minutes to filter out of the list of prayer requests that have been prayed for.</value>
         public int MinutesToFilter { get; set; }
 
         /// <summary>
-        /// Gets or sets the person Id.
+        /// Gets or sets the CurrentPersonId. If not null and filter by x minutes is enabled,
+        /// it will use this in the filtering query.
         /// </summary>
         /// <value>The person Id.</value>
-        public int PersonId { get; set; }
+        public int? CurrentPersonId { get; set; }
     }
 }

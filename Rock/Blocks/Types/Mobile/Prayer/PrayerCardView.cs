@@ -454,7 +454,7 @@ namespace Rock.Blocks.Types.Mobile.Prayer
                 IncludeGroupRequests = IncludeGroupRequests,
                 Categories = new List<Guid> { CategoryGuid ?? Guid.Empty },
                 MinutesToFilter = GetAttributeValue( AttributeKey.MinutesToFilter ).AsInteger(),
-                PersonId = RequestContext.CurrentPerson.Id
+                CurrentPersonId = RequestContext.CurrentPerson?.Id
             };
 
             // If we have been requested to show only prayer requests attached
