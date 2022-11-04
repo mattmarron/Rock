@@ -182,7 +182,7 @@ namespace Rock.Tests.UnitTests.Lava
             if ( tz.Id == TimeZoneInfo.Local.Id )
             {
                 // Set to UCT-07:00.
-                tz = TimeZoneInfo.FindSystemTimeZoneById( "Hawaii Standard Time" );
+                tz = TimeZoneInfo.FindSystemTimeZoneById( "Hawaiian Standard Time" );
                 Assert.That.IsNotNull( tz, "Timezone 'MST' is not available in this environment." );
             }
 
@@ -222,7 +222,7 @@ namespace Rock.Tests.UnitTests.Lava
         /// * negative UTC offset
         /// * daylight saving time.
         /// </remarks>
-        public static void ExecuteForTimeZones( Action<TimeZoneInfo> testMethod )
+        public static void ExecuteForTimeZones( Action testMethod )
         {
             var timeZones = new List<TimeZoneInfo>
             {
@@ -239,7 +239,7 @@ namespace Rock.Tests.UnitTests.Lava
         /// </summary>
         /// <param name="testMethod"></param>
         /// <param name="timeZones"></param>
-        public static void ExecuteForTimeZones( Action<TimeZoneInfo> testMethod, List<TimeZoneInfo> timeZones )
+        public static void ExecuteForTimeZones( Action testMethod, List<TimeZoneInfo> timeZones )
         {
             // Get the current timezone.
             var tzCurrent = RockDateTime.OrgTimeZoneInfo;
@@ -253,7 +253,7 @@ namespace Rock.Tests.UnitTests.Lava
 
                     try
                     {
-                        testMethod( timeZone );
+                        testMethod();
                     }
                     catch ( Exception ex )
                     {

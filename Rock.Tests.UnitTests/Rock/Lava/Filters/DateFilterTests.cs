@@ -771,7 +771,7 @@ namespace Rock.Tests.UnitTests.Lava
         [TestMethod]
         public void DatesFromICal_SingleDayEventWithInfiniteRecurrencePattern_ReturnsRequestedOccurrences()
         {
-            LavaTestHelper.ExecuteForTimeZones( ( timeZone ) =>
+            LavaTestHelper.ExecuteForTimeZones( () =>
             {
                 // Create a new schedule starting at 11am today Rock time.
                 var now = RockDateTime.Now;
@@ -789,7 +789,7 @@ namespace Rock.Tests.UnitTests.Lava
         [TestMethod]
         public void DatesFromICal_DailyEventWithPastOccurrenceOnSameDay_ReturnsNextDayAsFirstDate()
         {
-            LavaTestHelper.ExecuteForTimeZones( ( timeZone ) =>
+            LavaTestHelper.ExecuteForTimeZones( () =>
             {
                 var eventDuration = new TimeSpan( 1, 0, 0 );
 
@@ -810,7 +810,7 @@ namespace Rock.Tests.UnitTests.Lava
         [TestMethod]
         public void DatesFromICal_DailyEventWithFutureOccurrenceOnSameDay_ReturnsSameDayAsFirstDate()
         {
-            LavaTestHelper.ExecuteForTimeZones( ( timeZone ) =>
+            LavaTestHelper.ExecuteForTimeZones( () =>
             {
                 var eventDuration = new TimeSpan( 1, 0, 0 );
 
@@ -831,7 +831,7 @@ namespace Rock.Tests.UnitTests.Lava
         [TestMethod]
         public void DatesFromICal_DailyEventWithActiveOccurrenceOnSameDay_ReturnsSameDayAsFirstDate()
         {
-            LavaTestHelper.ExecuteForTimeZones( ( timeZone ) =>
+            LavaTestHelper.ExecuteForTimeZones( () =>
             {
                 var eventDuration = new TimeSpan( 2, 0, 0 );
 
@@ -855,7 +855,7 @@ namespace Rock.Tests.UnitTests.Lava
         [TestMethod]
         public void DatesFromICal_Saturday430ServiceScheduleNextDate_ReturnsNextSaturday()
         {
-            LavaTestHelper.ExecuteForTimeZones( ( timeZone ) =>
+            LavaTestHelper.ExecuteForTimeZones( () =>
             {
                 var now = RockDateTime.Now;
                 int daysUntilSaturday = ( ( int ) DayOfWeek.Saturday - ( int ) now.DayOfWeek + 7 ) % 7;
@@ -876,7 +876,7 @@ namespace Rock.Tests.UnitTests.Lava
         [TestMethod]
         public void DatesFromICal_WithEndDateTimeParameter_ReturnsEndDateTimeOfEvent()
         {
-            LavaTestHelper.ExecuteForTimeZones( ( timeZone ) =>
+            LavaTestHelper.ExecuteForTimeZones( () =>
             {
                 var today = RockDateTime.Today;
                 int daysUntilSaturday = ( ( int ) DayOfWeek.Saturday - ( int ) today.DayOfWeek + 7 ) % 7;
@@ -897,7 +897,7 @@ namespace Rock.Tests.UnitTests.Lava
         [TestMethod]
         public void DatesFromICal_Saturday430ServiceScheduleNextYearDate_ReturnsSaturdayNextYear()
         {
-            LavaTestHelper.ExecuteForTimeZones( ( timeZone ) =>
+            LavaTestHelper.ExecuteForTimeZones( () =>
             {
                 // Next year's Saturday (from last month). iCal can only get 12 months of data starting from the current month.
                 // So 12 months from now would be the previous month next year.
@@ -1745,7 +1745,7 @@ namespace Rock.Tests.UnitTests.Lava
         [TestMethod]
         public void ToMidnight_InputDateHasTimeComponent_YieldsMidnight()
         {
-            LavaTestHelper.ExecuteForTimeZones( tz =>
+            LavaTestHelper.ExecuteForTimeZones( () =>
             {
                 TestHelper.AssertTemplateOutputDate( "1-May-2018 12:00 AM",
                     "{{ '1-May-2018 3:00 PM' | ToMidnight }}" );
@@ -1758,7 +1758,7 @@ namespace Rock.Tests.UnitTests.Lava
         [TestMethod]
         public void ToMidnight_Now()
         {
-            LavaTestHelper.ExecuteForTimeZones( tz =>
+            LavaTestHelper.ExecuteForTimeZones( () =>
             {
                 var now = RockDateTime.Now;
                 var midnightUtc = LavaDateTime.NewDateTimeOffset( now.Year, now.Month, now.Day, 0, 0, 0 );
@@ -1774,7 +1774,7 @@ namespace Rock.Tests.UnitTests.Lava
         [TestMethod]
         public void ToMidnight_WithDateTimeOffsetAsInput_PreservesOffset()
         {
-            LavaTestHelper.ExecuteForTimeZones( tz =>
+            LavaTestHelper.ExecuteForTimeZones( () =>
             {
                 // Get an input time of 10:00+04:00.
                 var datetimeInput = new DateTimeOffset( 2018, 5, 1, 10, 0, 0, new TimeSpan( 2, 0, 0 ) );
@@ -1798,8 +1798,11 @@ namespace Rock.Tests.UnitTests.Lava
         [TestMethod]
         public void SundayDate_WithDateTimeStringAsInput_YieldsNextSundayDate()
         {
-            TestHelper.AssertTemplateOutput( "2021-10-17",
+            LavaTestHelper.ExecuteForTimeZones( () =>
+            {
+                TestHelper.AssertTemplateOutput( "2021-10-17",
                 "{{ '2021-10-11' | SundayDate | Date:'yyyy-MM-dd' }}" );
+            } );
         }
 
         /// <summary>
@@ -1813,8 +1816,11 @@ namespace Rock.Tests.UnitTests.Lava
             // Add the input DateTimeOffset object to the Lava context.
             var mergeValues = new LavaDataDictionary() { { "dateTimeInput", datetimeInput } };
 
-            TestHelper.AssertTemplateOutput( "2021-10-17",
+            LavaTestHelper.ExecuteForTimeZones( () =>
+            {
+                TestHelper.AssertTemplateOutput( "2021-10-10",
                 "{{ dateTimeInput | SundayDate | Date:'yyyy-MM-dd' }}", mergeValues );
+            } );
         }
 
         #endregion
