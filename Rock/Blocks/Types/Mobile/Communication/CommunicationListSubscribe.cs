@@ -364,7 +364,7 @@ namespace Rock.Blocks.Types.Mobile.Events
                 // We're going to do two steps of filtering here.
                 viewableCommunicationLists = viewableCommunicationLists.Where( x =>
                 // 1. Filter by campus.
-                ( x.Campus?.Id == contextCampus.Id|| x.Campus == null
+                ( x.Campus?.Id == contextCampus.Id || x.Campus == null
                 // 2. OR: Include the communication lists we're already subscribed to.
                 || ( alwaysIncludeSubscribed && x.Members?.FirstOrDefault( m => m.PersonId == RequestContext.CurrentPerson.Id )?.GroupMemberStatus == GroupMemberStatus.Active ) ) ).ToList();
             }
