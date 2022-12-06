@@ -1324,6 +1324,7 @@ btnCopyToClipboard.ClientID );
             {
                 // sort the occurrenceColumns so the selected Group is in the first column, then order by Group.Order/Name
                 occurrenceColumnDataList = attendanceOccurrencesOrderedList
+                    .Where( a => a.ScheduledDateTime.HasValue )
                     .GroupBy( a => a.Group.Id )
                     .Select( a =>
                     {
@@ -1351,6 +1352,7 @@ btnCopyToClipboard.ClientID );
                 var group = authorizedListedGroups.FirstOrDefault();
 
                 occurrenceColumnDataList = attendanceOccurrencesOrderedList
+                    .Where( a => a.ScheduledDateTime.HasValue )
                     .GroupBy( a => new { ScheduleId = a.Schedule.Id, a.OccurrenceDate } )
                     .Select( a =>
                     {
