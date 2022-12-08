@@ -47,6 +47,9 @@
                             <div id="divPersonFilter" runat="server" class="js-person-filter" style="display: none;">
                                 <Rock:PersonPicker ID="ppPersonFilter" runat="server" Label="Recipient" OnSelectPerson="ppPersonFilter_SelectPerson" FormGroupCssClass="mt-2 mb-0" />
                             </div>
+                            <div class="js-person-filter mt-2" style="display: none; width:225px;">
+                                <Rock:RockDropDownList runat="server" ID="ddlMessageFilter" FormGroupCssClass="mt-2 mb-0" OnSelectedIndexChanged="ddlMessageFilter_SelectedIndexChanged" AutoPostBack="true" />
+                            </div>
                         </div>
                         <asp:UpdatePanel ID="upRecipients" runat="server" class="overflow-scroll">
                             <ContentTemplate>
