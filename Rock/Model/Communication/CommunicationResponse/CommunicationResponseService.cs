@@ -122,7 +122,7 @@ namespace Rock.Model
                 && r.CreatedDateTime >= startDateTime
                 && r.Status == CommunicationRecipientStatus.Delivered );
 
-            if ( !showReadMessages )
+            if ( !showReadMessages || filter == CommunicationMessageFilter.ShowUnreadReplies )
             {
                 communicationResponseQuery = communicationResponseQuery.Where( r => r.IsRead == false );
             }
@@ -130,15 +130,16 @@ namespace Rock.Model
             switch ( filter )
             {
                 case CommunicationMessageFilter.ShowUnreadReplies:
-                    communicationResponseQuery = communicationResponseQuery.Where( cr => !cr.IsRead );
-                    communicationRecipientQuery = from r in communicationRecipientQuery 
-                                                  join cr in communicationResponseQuery on r.PersonAliasId equals cr.ToPersonAliasId
-                                                  select r;
+                    communicationRecipientQuery = communicationRecipientQuery.Join( communicationResponseQuery,
+                       communicationRecipient => communicationRecipient.PersonAliasId,
+                       communicationResponse => communicationResponse.ToPersonAliasId,
+                       ( communicationRecipient, communicationResponse ) => communicationRecipient );
                     break;
                 case CommunicationMessageFilter.ShowAllReplies:
-                    communicationRecipientQuery = from r in communicationRecipientQuery
-                                                  join cr in communicationResponseQuery on r.PersonAliasId equals cr.ToPersonAliasId
-                                                  select r;
+                    communicationRecipientQuery = communicationRecipientQuery.Join( communicationResponseQuery,
+                        communicationRecipient => communicationRecipient.PersonAliasId,
+                        communicationResponse => communicationResponse.ToPersonAliasId,
+                        ( communicationRecipient, communicationResponse ) => communicationRecipient );
                     break;
             }
 
