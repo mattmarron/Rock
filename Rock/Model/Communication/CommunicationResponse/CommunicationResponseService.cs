@@ -130,11 +130,6 @@ namespace Rock.Model
             switch ( filter )
             {
                 case CommunicationMessageFilter.ShowUnreadReplies:
-                    communicationRecipientQuery = communicationRecipientQuery.Join( communicationResponseQuery,
-                       communicationRecipient => communicationRecipient.PersonAliasId,
-                       communicationResponse => communicationResponse.ToPersonAliasId,
-                       ( communicationRecipient, communicationResponse ) => communicationRecipient );
-                    break;
                 case CommunicationMessageFilter.ShowAllReplies:
                     communicationRecipientQuery = communicationRecipientQuery.Join( communicationResponseQuery,
                         communicationRecipient => communicationRecipient.PersonAliasId,
