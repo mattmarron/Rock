@@ -123,7 +123,8 @@ namespace Rock.Model
                     cr.CommunicationId,
                     CommunicationSMSMessage = cr.Communication.SMSMessage,
                     SentMessage = cr.SentMessage,
-                    PersonAliasId = cr.PersonAliasId
+                    PersonAliasId = cr.PersonAliasId,
+                    PersonAliasGuid = cr.PersonAlias.Guid
                 };
 
             var mostRecentCommunicationRecipientQuery = communicationRecipientJoinQuery
@@ -137,7 +138,8 @@ namespace Rock.Model
                         s.CommunicationId,
                         s.Communication,
                         s.SentMessage,
-                        s.PersonAliasId
+                        s.PersonAliasId,
+                        s.PersonAliasGuid
                     } ).OrderByDescending( s => s.CreatedDateTime ).FirstOrDefault()
                 );
 
@@ -157,6 +159,7 @@ namespace Rock.Model
                     MessageKey = mostRecentCommunicationResponse.MessageKey,
                     IsOutbound = false,
                     RecipientPersonAliasId = mostRecentCommunicationResponse.FromPersonAliasId,
+                    RecipientPersonAliasGuid = mostRecentCommunicationResponse.FromPersonAlias.Guid,
                     SMSMessage = mostRecentCommunicationResponse.Response,
                     CommunicationResponseId = mostRecentCommunicationResponse.Id
                 };
@@ -178,6 +181,7 @@ namespace Rock.Model
                     IsRead = true,
                     MessageKey = null, // communication recipients just need to show their name, not their number
                     RecipientPersonAliasId = mostRecentCommunicationRecipient.PersonAliasId,
+                    RecipientPersonAliasGuid = mostRecentCommunicationRecipient.PersonAliasGuid,
                     SMSMessage = mostRecentCommunicationRecipient.SentMessage.IsNullOrWhiteSpace() ? mostRecentCommunicationRecipient.CommunicationSMSMessage : mostRecentCommunicationRecipient.SentMessage,
                     CommunicationId = mostRecentCommunicationRecipient.CommunicationId
                 };
@@ -262,6 +266,7 @@ namespace Rock.Model
                     MessageKey = communicationResponse.MessageKey,
                     IsOutbound = false,
                     RecipientPersonAliasId = communicationResponse.FromPersonAliasId,
+                    RecipientPersonAliasGuid = communicationResponse.FromPersonAlias?.Guid,
                     SMSMessage = communicationResponse.Response,
                     MessageStatus = CommunicationRecipientStatus.Delivered, // We are just going to call these delivered because we have them. Setting this will tell the UI to not display the status.
                     CommunicationResponseId = communicationResponse.Id,
@@ -284,6 +289,7 @@ namespace Rock.Model
                 a.Communication.SenderPersonAlias.Person,
                 a.Communication,
                 PersonAliasId = a.Communication.SenderPersonAliasId,
+                PersonAliasGuid = a.Communication.SenderPersonAlias.Guid,
                 a.SentMessage,
                 a.Status
             } ).ToList();
@@ -298,6 +304,7 @@ namespace Rock.Model
                     IsRead = true,
                     IsOutbound = true,
                     RecipientPersonAliasId = communicationRecipient.PersonAliasId,
+                    RecipientPersonAliasGuid = communicationRecipient.PersonAliasGuid,
                     SMSMessage = communicationRecipient.SentMessage,
                     MessageStatus = communicationRecipient.Status,
                     CommunicationId = communicationRecipient.Communication?.Id,

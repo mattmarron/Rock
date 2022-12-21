@@ -77,6 +77,14 @@ namespace Rock.Model
         public int? RecipientPersonAliasId { get; set; }
 
         /// <summary>
+        /// Gets or sets the recipient person alias unique identifier.
+        /// </summary>
+        /// <value>
+        /// The recipient person alias unique identifier.
+        /// </value>
+        public Guid? RecipientPersonAliasGuid { get; set; }
+
+        /// <summary>
         /// Gets or sets the message key.
         /// </summary>
         /// <value>

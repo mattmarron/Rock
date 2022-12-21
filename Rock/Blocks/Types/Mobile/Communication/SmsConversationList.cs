@@ -15,17 +15,23 @@
 // </copyright>
 //
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.Entity;
 using System.Linq;
 using System.Text;
 
+using DocumentFormat.OpenXml.Wordprocessing;
+
 using Rock.Attribute;
 using Rock.Common.Mobile.Blocks.Content;
 using Rock.Data;
 using Rock.Model;
+using Rock.Reporting;
+using Rock.ViewModels.Utility;
 using Rock.Web.Cache;
+using Rock.Web.UI.Controls;
 
 namespace Rock.Blocks.Types.Mobile.Events
 {
@@ -41,6 +47,52 @@ namespace Rock.Blocks.Types.Mobile.Events
 
     #region Block Attributes
 
+    [DefinedValueField( "Allowed SMS Numbers",
+        DefinedTypeGuid = Rock.SystemGuid.DefinedType.COMMUNICATION_SMS_FROM,
+        Description = "Set the allowed FROM numbers to appear when in SMS mode (if none are selected all numbers will be included). ",
+        IsRequired = false,
+        AllowMultiple = true,
+        Key = AttributeKey.AllowedSMSNumbers,
+        Order = 0 )]
+
+    [BooleanField( "Show only personal SMS number",
+        Description = "Only SMS Numbers tied to the current individual will be shown. Those with ADMIN rights will see all SMS Numbers.",
+        DefaultBooleanValue = false,
+        Key = AttributeKey.ShowOnlyPersonalSmsNumber,
+        Order = 1 )]
+
+    [BooleanField( "Hide personal SMS numbers",
+        Description = "Only SMS Numbers that are not associated with a person. The numbers without a 'ResponseRecipient' attribute value.",
+        DefaultBooleanValue = false,
+        Key = AttributeKey.HidePersonalSmsNumbers,
+        Order = 2 )]
+
+    [IntegerField( "Show Conversations From Months Ago",
+        Description = "Limits the conversations shown in the left pane to those of X months ago or newer.",
+        DefaultIntegerValue = 6,
+        Key = AttributeKey.ShowConversationsFromMonthsAgo,
+        Order = 3 )]
+
+    [IntegerField( "Max Conversations",
+        Description = "Limits the number of conversations shown in the left pane.",
+        DefaultIntegerValue = 100,
+        Key = AttributeKey.MaxConversations,
+        Order = 4
+         )]
+
+    [IntegerField( "Database Timeout",
+        Description = "The number of seconds to wait before reporting a database timeout.",
+        IsRequired = false,
+        DefaultIntegerValue = 180,
+        Key = AttributeKey.DatabaseTimeoutSeconds,
+        Order = 5 )]
+
+    [LinkedPage( "Conversation Page",
+        Description = "The page that the person will be pushed to when selecting a conversation.",
+        IsRequired = false,
+        Key = AttributeKey.ConversationPage,
+        Order = 6 )]
+
     #endregion
 
     [Rock.SystemGuid.EntityTypeGuid( "77701BE2-1335-45F3-93B3-F06466CA391F" )]
@@ -52,8 +104,15 @@ namespace Rock.Blocks.Types.Mobile.Events
         /// <summary>
         /// The block setting attribute keys for the <see cref="SmsConversationList"/> block.
         /// </summary>
-        public static class AttributeKeys
+        private static class AttributeKey
         {
+            public const string AllowedSMSNumbers = "AllowedSMSNumbers";
+            public const string ShowOnlyPersonalSmsNumber = "ShowOnlyPersonalSmsNumber";
+            public const string HidePersonalSmsNumbers = "HidePersonalSmsNumbers";
+            public const string ShowConversationsFromMonthsAgo = "ShowConversationsFromMonthsAgo";
+            public const string MaxConversations = "MaxConversations";
+            public const string DatabaseTimeoutSeconds = "DatabaseTimeoutSeconds";
+            public const string ConversationPage = "ConversationPage";
         }
 
         #endregion
@@ -86,6 +145,7 @@ namespace Rock.Blocks.Types.Mobile.Events
         {
             return new
             {
+                ConversationPageGuid = GetAttributeValue( AttributeKey.ConversationPage ).AsGuidOrNull()
             };
         }
 
@@ -93,9 +153,223 @@ namespace Rock.Blocks.Types.Mobile.Events
 
         #region Methods
 
+        /// <summary>
+        /// Loads the phone numbers that the current person is allowed to access.
+        /// </summary>
+        /// <returns>A collection of objects representing the SMS phone numbers.</returns>
+        private IEnumerable LoadPhoneNumbers()
+        {
+            // First load up all of the available numbers
+            var smsNumbers = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.COMMUNICATION_SMS_FROM.AsGuid() )
+                .DefinedValues
+                .Where( a => a.IsAuthorized( Rock.Security.Authorization.VIEW, RequestContext.CurrentPerson ) );
+
+            var selectedNumberGuids = GetAttributeValue( AttributeKey.AllowedSMSNumbers ).SplitDelimitedValues( true ).AsGuidList();
+            if ( selectedNumberGuids.Any() )
+            {
+                smsNumbers = smsNumbers.Where( v => selectedNumberGuids.Contains( v.Guid ) );
+            }
+
+            // filter personal numbers (any that have a response recipient) if the hide personal option is enabled
+            if ( GetAttributeValue( AttributeKey.HidePersonalSmsNumbers ).AsBoolean() )
+            {
+                smsNumbers = smsNumbers.Where( v => v.GetAttributeValue( "ResponseRecipient" ).IsNullOrWhiteSpace() );
+            }
+
+            // Show only numbers 'tied to the current' individual...unless they have 'Admin rights'.
+            if ( GetAttributeValue( AttributeKey.ShowOnlyPersonalSmsNumber ).AsBoolean() && !BlockCache.IsAuthorized( Rock.Security.Authorization.ADMINISTRATE, RequestContext.CurrentPerson ) )
+            {
+                smsNumbers = smsNumbers.Where( v => RequestContext.CurrentPerson.Aliases.Any( a => a.Guid == v.GetAttributeValue( "ResponseRecipient" ).AsGuid() ) );
+            }
+
+            return smsNumbers
+                .Select( n => new
+                {
+                    n.Guid,
+                    PhoneNumber = n.Value,
+                    n.Description
+                } )
+                .ToList();
+        }
+
         #endregion
 
         #region Action Methods
+
+        [BlockAction]
+        public BlockActionResult GetPhoneNumbers()
+        {
+            return ActionOk( LoadPhoneNumbers() );
+        }
+
+        [BlockAction]
+        public BlockActionResult GetConversations( Guid phoneNumberGuid )
+        {
+            var phoneNumberId = DefinedValueCache.GetId( phoneNumberGuid );
+
+            if ( !phoneNumberId.HasValue )
+            {
+                return ActionBadRequest( "Invalid Rock phone number specified." );
+            }
+
+            try
+            {
+                using ( var rockContext = new RockContext() )
+                {
+                    rockContext.Database.CommandTimeout = GetAttributeValue( AttributeKey.DatabaseTimeoutSeconds ).AsIntegerOrNull() ?? 180;
+
+                    var publicUrl = GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" );
+                    var months = GetAttributeValue( AttributeKey.ShowConversationsFromMonthsAgo ).AsInteger();
+                    var startDateTime = RockDateTime.Now.AddMonths( -months );
+                    var showRead = true;// tglShowRead.Checked;
+                    var maxConversations = GetAttributeValue( AttributeKey.MaxConversations ).AsIntegerOrNull() ?? 1000;
+                    int? personId = null;
+
+                    var communicationResponseService = new CommunicationResponseService( rockContext );
+                    var responseListItems = communicationResponseService.GetCommunicationResponseRecipients( phoneNumberId.Value, startDateTime, showRead, maxConversations, personId );
+
+                    var personAliasIds = responseListItems
+                        .Where( ri => ri.RecipientPersonAliasId.HasValue )
+                        .Select( ri => ri.RecipientPersonAliasId.Value )
+                        .ToList();
+
+                    var personPhotoIds = new PersonAliasService( rockContext )
+                        .Queryable()
+                        .Where( pa => personAliasIds.Contains( pa.Id ) && pa.Person.PhotoId.HasValue )
+                        .Select( pa => new
+                        {
+                            pa.Id,
+                            PhotoId = pa.Person.PhotoId.Value
+                        } )
+                        .ToList()
+                        .ToDictionary( pa => pa.Id, pa => pa.PhotoId );
+
+                    var conversations = responseListItems
+                        .Select( ri =>
+                        {
+                            string photoUrl = null;
+
+                            if ( ri.RecipientPersonAliasId.HasValue && personPhotoIds.ContainsKey( ri.RecipientPersonAliasId.Value ) )
+                            {
+                                photoUrl = $"{publicUrl}GetImage.ashx?Id={personPhotoIds[ri.RecipientPersonAliasId.Value]}&maxwidth=512&maxheight=512";
+                            }
+
+                            return new RealTimeConversationBag
+                            {
+                                ConversationKey = $"{phoneNumberGuid}:{Utility.IdHasher.Instance.GetHash( ri.RecipientPersonAliasId ?? 0 )}",
+                                PhotoUrl = photoUrl,
+                                MessageKey = ri.MessageKey,
+                                PersonAliasGuid = ri.RecipientPersonAliasGuid.Value,
+                                FullName = ri.FullName,
+                                MessageDateTime = ri.CreatedDateTime,
+                                IsNamelessPerson = ri.IsNamelessPerson,
+                                IsOutbound = ri.IsOutbound,
+                                Message = ri.SMSMessage,
+                                IsRead = ri.IsRead
+                            };
+                        } )
+                        .ToList();
+
+                    return ActionOk( conversations );
+                }
+            }
+            catch ( Exception ex )
+            {
+                ExceptionLogService.LogException( ex );
+
+                if ( ReportingHelper.FindSqlTimeoutException( ex ) != null )
+                {
+                    return ActionInternalServerError( "Unable to load SMS responses in a timely manner. You can try again or adjust the timeout setting of this block." );
+                }
+                else
+                {
+                    return ActionInternalServerError( "An error occurred when loading SMS responses." );
+                }
+            }
+        }
+
+        #endregion
+
+        #region Support Classes
+
+        private class RealTimeConversationBag
+        {
+            /// <summary>
+            /// Gets or sets the key that identifies this conversation.
+            /// </summary>
+            /// <value>
+            /// The key that identifiers this conversation.
+            /// </value>
+            public string ConversationKey { get; set; }
+
+            /// <summary>
+            /// Gets or sets the message key. This is the e-mail address or phone
+            /// number being communicated with.
+            /// </summary>
+            /// <value>
+            /// The message key.
+            /// </value>
+            public string MessageKey { get; set; }
+
+            /// <summary>
+            /// Gets or sets the unique identifier of the person alias being
+            /// communicated with.
+            /// </summary>
+            /// <value>The person alias unique identifier.</value>
+            public Guid PersonAliasGuid { get; set; }
+
+            /// <summary>
+            /// Gets or sets the full name of the person being communicated with.
+            /// </summary>
+            /// <value>
+            /// The full name of the person being communicated with.
+            /// </value>
+            public string FullName { get; set; }
+
+            /// <summary>
+            /// Gets or sets the photo URL for the person. Value will be <c>null</c>
+            /// if no photo is available.
+            /// </summary>
+            /// <value>The photo URL of the person.</value>
+            public string PhotoUrl { get; set; }
+
+            /// <summary>
+            /// Gets or sets the created date time of the most recent message.
+            /// </summary>
+            /// <value>
+            /// The created date time of the most recent message.
+            /// </value>
+            public DateTime? MessageDateTime { get; set; }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether the recipient is a nameless person.
+            /// </summary>
+            /// <value><c>true</c> if the recipient is a nameless person; otherwise, <c>false</c>.</value>
+            public bool IsNamelessPerson { get; set; }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether the message was sent from Rock.
+            /// </summary>
+            /// <value>
+            ///   <c>true</c> if message was sent from Rock; otherwise, <c>false</c>.
+            /// </value>
+            public bool IsOutbound { get; set; }
+
+            /// <summary>
+            /// Gets or sets the content of the most recent message.
+            /// </summary>
+            /// <value>The content of the most recent message.</value>
+            public string Message { get; set; }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether the most recent
+            /// message has been read.
+            /// </summary>
+            /// <value>
+            ///   <c>true</c> if the most recent message has been read; otherwise, <c>false</c>.
+            /// </value>
+            public bool IsRead { get; set; }
+        }
 
         #endregion
     }
