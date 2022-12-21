@@ -22,8 +22,8 @@ namespace RockWeb.Blocks.SignUp
 {
 
     [DisplayName( "Sign-Up Detail" )]
-    [Category( "Groups" )]
-    [Description( "Displays details about the scheduled opportunities for a given project group" )]
+    [Category( "Sign-Up" )]
+    [Description( "Displays details about the scheduled opportunities for a given project group." )]
 
     [Rock.SystemGuid.BlockTypeGuid( "69F5C6BD-7A22-42FE-8285-7C8E586E746A" )]
     public partial class SignUpDetail : RockBlock

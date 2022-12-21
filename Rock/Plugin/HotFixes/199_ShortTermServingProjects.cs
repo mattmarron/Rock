@@ -111,7 +111,11 @@ namespace Rock.Plugin.HotFixes
         /// </summary>
         private void AddBlocks()
         {
-            RockMigrationHelper.UpdateBlockType( "Sign-Up Detail", "Displays details about the scheduled opportunities for a given project group.", "~/Blocks/SignUp/SignUpDetail.ascx", "Groups", "69F5C6BD-7A22-42FE-8285-7C8E586E746A" );
+            RockMigrationHelper.UpdateBlockType( "Sign-Up Overview", "Displays an overview of sign-up projects with upcoming and recently-occurred opportunities.", "~/Blocks/SignUp/SignUpOverview.ascx", "Sign-Up", "B539F3B5-01D3-4325-B32A-85AFE2A9D18B" );
+
+            RockMigrationHelper.UpdateBlockType( "Sign-Up Detail", "Displays details about the scheduled opportunities for a given project group.", "~/Blocks/SignUp/SignUpDetail.ascx", "Sign-Up", "69F5C6BD-7A22-42FE-8285-7C8E586E746A" );
+
+            RockMigrationHelper.UpdateBlockType( "Sign-Up Opportunity Attendee List", "Lists all the group members for the selected group, location and schedule.", "~/Blocks/SignUp/SignUpOpportunityAttendeeList.ascx", "Sign-Up", "EE652767-5070-4EAB-8BB7-BB254DD01B46" );
         }
 
         /// <summary>
