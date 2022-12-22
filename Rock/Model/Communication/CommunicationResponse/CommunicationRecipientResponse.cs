@@ -118,6 +118,14 @@ namespace Rock.Model
         public string FullName { get; set; }
 
         /// <summary>
+        /// Gets or sets the recipient person photo identifier.
+        /// </summary>
+        /// <value>
+        /// The recipient person photo identifier.
+        /// </value>
+        public int? PhotoId { get; set; }
+
+        /// <summary>
         /// Gets or sets the created date time.
         /// </summary>
         /// <value>

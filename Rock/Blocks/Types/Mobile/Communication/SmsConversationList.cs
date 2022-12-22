@@ -25,6 +25,8 @@ using Rock.Model;
 using Rock.Reporting;
 using Rock.Web.Cache;
 
+using ConversationMessageBag = Rock.Blocks.Types.Mobile.Communication.SmsConversation.ConversationMessageBag;
+
 namespace Rock.Blocks.Types.Mobile.Communication
 {
     /// <summary>
@@ -239,41 +241,8 @@ namespace Rock.Blocks.Types.Mobile.Communication
                         .Select( ri => ri.RecipientPersonAliasId.Value )
                         .ToList();
 
-                    var personPhotoIds = new PersonAliasService( rockContext )
-                        .Queryable()
-                        .Where( pa => personAliasIds.Contains( pa.Id ) && pa.Person.PhotoId.HasValue )
-                        .Select( pa => new
-                        {
-                            pa.Id,
-                            PhotoId = pa.Person.PhotoId.Value
-                        } )
-                        .ToList()
-                        .ToDictionary( pa => pa.Id, pa => pa.PhotoId );
-
                     var conversations = responseListItems
-                        .Select( ri =>
-                        {
-                            string photoUrl = null;
-
-                            if ( ri.RecipientPersonAliasId.HasValue && personPhotoIds.ContainsKey( ri.RecipientPersonAliasId.Value ) )
-                            {
-                                photoUrl = $"{publicUrl}GetImage.ashx?Id={personPhotoIds[ri.RecipientPersonAliasId.Value]}&maxwidth=512&maxheight=512";
-                            }
-
-                            return new RealTimeConversationBag
-                            {
-                                ConversationKey = $"{phoneNumberGuid}:{Utility.IdHasher.Instance.GetHash( ri.RecipientPersonAliasId ?? 0 )}",
-                                PhotoUrl = photoUrl,
-                                MessageKey = ri.MessageKey,
-                                PersonAliasGuid = ri.RecipientPersonAliasGuid.Value,
-                                FullName = ri.FullName,
-                                MessageDateTime = ri.CreatedDateTime,
-                                IsNamelessPerson = ri.IsNamelessPerson,
-                                IsOutbound = ri.IsOutbound,
-                                Message = ri.SMSMessage,
-                                IsRead = ri.IsRead
-                            };
-                        } )
+                        .Select( ri => SmsConversation.ToMessageBag( ri ) )
                         .ToList();
 
                     return ActionOk( conversations );
@@ -292,89 +261,6 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     return ActionInternalServerError( "An error occurred when loading SMS responses." );
                 }
             }
-        }
-
-        #endregion
-
-        #region Support Classes
-
-        private class RealTimeConversationBag
-        {
-            /// <summary>
-            /// Gets or sets the key that identifies this conversation.
-            /// </summary>
-            /// <value>
-            /// The key that identifiers this conversation.
-            /// </value>
-            public string ConversationKey { get; set; }
-
-            /// <summary>
-            /// Gets or sets the message key. This is the e-mail address or phone
-            /// number being communicated with.
-            /// </summary>
-            /// <value>
-            /// The message key.
-            /// </value>
-            public string MessageKey { get; set; }
-
-            /// <summary>
-            /// Gets or sets the unique identifier of the person alias being
-            /// communicated with.
-            /// </summary>
-            /// <value>The person alias unique identifier.</value>
-            public Guid PersonAliasGuid { get; set; }
-
-            /// <summary>
-            /// Gets or sets the full name of the person being communicated with.
-            /// </summary>
-            /// <value>
-            /// The full name of the person being communicated with.
-            /// </value>
-            public string FullName { get; set; }
-
-            /// <summary>
-            /// Gets or sets the photo URL for the person. Value will be <c>null</c>
-            /// if no photo is available.
-            /// </summary>
-            /// <value>The photo URL of the person.</value>
-            public string PhotoUrl { get; set; }
-
-            /// <summary>
-            /// Gets or sets the created date time of the most recent message.
-            /// </summary>
-            /// <value>
-            /// The created date time of the most recent message.
-            /// </value>
-            public DateTime? MessageDateTime { get; set; }
-
-            /// <summary>
-            /// Gets or sets a value indicating whether the recipient is a nameless person.
-            /// </summary>
-            /// <value><c>true</c> if the recipient is a nameless person; otherwise, <c>false</c>.</value>
-            public bool IsNamelessPerson { get; set; }
-
-            /// <summary>
-            /// Gets or sets a value indicating whether the message was sent from Rock.
-            /// </summary>
-            /// <value>
-            ///   <c>true</c> if message was sent from Rock; otherwise, <c>false</c>.
-            /// </value>
-            public bool IsOutbound { get; set; }
-
-            /// <summary>
-            /// Gets or sets the content of the most recent message.
-            /// </summary>
-            /// <value>The content of the most recent message.</value>
-            public string Message { get; set; }
-
-            /// <summary>
-            /// Gets or sets a value indicating whether the most recent
-            /// message has been read.
-            /// </summary>
-            /// <value>
-            ///   <c>true</c> if the most recent message has been read; otherwise, <c>false</c>.
-            /// </value>
-            public bool IsRead { get; set; }
         }
 
         #endregion
