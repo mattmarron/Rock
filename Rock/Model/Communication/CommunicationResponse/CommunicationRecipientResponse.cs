@@ -85,12 +85,29 @@ namespace Rock.Model
         public Guid? RecipientPersonAliasGuid { get; set; }
 
         /// <summary>
-        /// Gets or sets the message key.
+        /// Gets or sets the conversation key. All messages that are part of the
+        /// same conversation will share a common ConversationKey.
+        /// </summary>
+        /// <value>
+        /// The conversation key.
+        /// </value>
+        public string ConversationKey { get; set; }
+
+        /// <summary>
+        /// Gets or sets the message key. This uniquely identifiers a single message.
         /// </summary>
         /// <value>
         /// The message key.
         /// </value>
         public string MessageKey { get; set; }
+
+        /// <summary>
+        /// Gets or sets the contact key of the recipient. This would contain
+        /// a phone number, e-mail address, or other transport specific key
+        /// to allow communication.
+        /// </summary>
+        /// <value>The contact key of the recipient.</value>
+        public string ContactKey { get; set; }
 
         /// <summary>
         /// Gets or sets the full name.

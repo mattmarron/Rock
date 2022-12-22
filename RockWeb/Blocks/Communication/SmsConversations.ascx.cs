@@ -172,8 +172,6 @@ namespace RockWeb.Blocks.Communication
         {
             base.OnLoad( e );
 
-            string postbackArgs = Request.Params["__EVENTARGUMENT"] ?? string.Empty;
-
             nbAddPerson.Visible = false;
 
             if ( ppPersonFilter.PersonId != null )
@@ -288,7 +286,7 @@ namespace RockWeb.Blocks.Communication
             // This is the person lava field, we want to clear it because reloading this list will deselect the user.
             litSelectedRecipientDescription.Text = string.Empty;
             hfSelectedRecipientPersonAliasId.Value = string.Empty;
-            hfSelectedMessageKey.Value = string.Empty;
+            hfSelectedConversationKey.Value = string.Empty;
             tbNewMessage.Visible = false;
             btnSend.Visible = false;
             btnEditNote.Visible = false;
@@ -423,10 +421,9 @@ namespace RockWeb.Blocks.Communication
         /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
         private void PopulatePersonLava( RowEventArgs e )
         {
-            var hfRecipientPersonAliasId = ( HiddenField ) e.Row.FindControl( "hfRecipientPersonAliasId" );
             int? recipientPersonAliasId = hfSelectedRecipientPersonAliasId.Value.AsIntegerOrNull();
 
-            var hfMessageKey = ( HiddenField ) e.Row.FindControl( "hfMessageKey" );
+            var hfPhoneNumber = ( HiddenField ) e.Row.FindControl( "hfPhoneNumber" );
             var lblName = ( Label ) e.Row.FindControl( "lblName" );
             string html = lblName.Text;
             string unknownPerson = " (Unknown Person)";
@@ -435,7 +432,7 @@ namespace RockWeb.Blocks.Communication
             if ( !recipientPersonAliasId.HasValue || recipientPersonAliasId.Value == -1 )
             {
                 // We don't have a person to do the lava merge so just display the formatted phone number
-                html = PhoneNumber.FormattedNumber( string.Empty, hfMessageKey.Value ) + unknownPerson;
+                html = PhoneNumber.FormattedNumber( string.Empty, hfPhoneNumber.Value ) + unknownPerson;
                 litSelectedRecipientDescription.Text = html;
             }
             else
@@ -531,8 +528,8 @@ namespace RockWeb.Blocks.Communication
                     continue;
                 }
 
-                var messageKeyHiddenField = ( HiddenFieldWithClass ) row.FindControl( "hfMessageKey" );
-                if ( messageKeyHiddenField.Value == hfSelectedMessageKey.Value )
+                var conversationKeyHiddenField = ( HiddenFieldWithClass ) row.FindControl( "hfConversationKey" );
+                if ( conversationKeyHiddenField.Value == hfSelectedConversationKey.Value )
                 {
                     Literal literal = ( Literal ) row.FindControl( "litMessagePart" );
 
@@ -573,7 +570,7 @@ namespace RockWeb.Blocks.Communication
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void lbLinkConversation_Click( object sender, EventArgs e )
         {
-            mdLinkToPerson.Title = string.Format( "Link Phone Number {0} to Person ", PhoneNumber.FormattedNumber( PhoneNumber.DefaultCountryCode(), hfSelectedMessageKey.Value, false ) );
+            mdLinkToPerson.Title = string.Format( "Link Phone Number {0} to Person ", PhoneNumber.FormattedNumber( PhoneNumber.DefaultCountryCode(), hfSelectedPhoneNumber.Value, false ) );
             ppPerson.SetValue( null );
             newPersonEditor.SetFromPerson( null );
             mdLinkToPerson.Show();
@@ -726,16 +723,17 @@ namespace RockWeb.Blocks.Communication
             }
 
             var hfRecipientPersonAliasId = ( HiddenField ) e.Row.FindControl( "hfRecipientPersonAliasId" );
-            var hfMessageKey = ( HiddenField ) e.Row.FindControl( "hfMessageKey" );
+            var hfConversationKey = ( HiddenField ) e.Row.FindControl( "hfConversationKey" );
+            var hfPhoneNumber = ( HiddenField ) e.Row.FindControl( "hfPhoneNumber" );
 
             // Since we can get newer messages when a selected let's also update the message part on the response recipients grid.
             var litMessagePart = ( Literal ) e.Row.FindControl( "litMessagePart" );
 
             int? recipientPersonAliasId = hfRecipientPersonAliasId.Value.AsIntegerOrNull();
-            string messageKey = hfMessageKey.Value;
 
             hfSelectedRecipientPersonAliasId.Value = recipientPersonAliasId.ToString();
-            hfSelectedMessageKey.Value = hfMessageKey.Value;
+            hfSelectedConversationKey.Value = hfConversationKey.Value;
+            hfSelectedPhoneNumber.Value = hfPhoneNumber.Value;
 
             var rockContext = new RockContext();
 
@@ -814,17 +812,19 @@ namespace RockWeb.Blocks.Communication
             }
 
             var hfRecipientPersonAliasId = e.Row.FindControl( "hfRecipientPersonAliasId" ) as HiddenField;
-            var hfMessageKey = e.Row.FindControl( "hfMessageKey" ) as HiddenField;
+            var hfConversationKey = e.Row.FindControl( "hfConversationKey" ) as HiddenField;
+            var hfPhoneNumber = e.Row.FindControl( "hfPhoneNumber" ) as HiddenField;
             var lblName = e.Row.FindControl( "lblName" ) as Label;
             var litDateTime = e.Row.FindControl( "litDateTime" ) as Literal;
             var litMessagePart = e.Row.FindControl( "litMessagePart" ) as Literal;
 
             var responseListItem = e.Row.DataItem as CommunicationRecipientResponse;
             hfRecipientPersonAliasId.Value = responseListItem.RecipientPersonAliasId.ToString();
-            hfMessageKey.Value = responseListItem.MessageKey;
+            hfConversationKey.Value = responseListItem.ConversationKey;
+            hfPhoneNumber.Value = responseListItem.ContactKey;
             if ( responseListItem.IsNamelessPerson )
             {
-                lblName.Text = PhoneNumber.FormattedNumber( null, responseListItem.MessageKey );
+                lblName.Text = PhoneNumber.FormattedNumber( null, responseListItem.ContactKey );
             }
             else
             {
@@ -860,8 +860,8 @@ namespace RockWeb.Blocks.Communication
                 var hfCommunicationRecipientPersonAliasId = ( HiddenFieldWithClass ) e.Item.FindControl( "hfCommunicationRecipientPersonAliasId" );
                 hfCommunicationRecipientPersonAliasId.Value = communicationRecipientResponse.RecipientPersonAliasId.ToString();
 
-                var hfCommunicationMessageKey = ( HiddenFieldWithClass ) e.Item.FindControl( "hfCommunicationMessageKey" );
-                hfCommunicationMessageKey.Value = communicationRecipientResponse.MessageKey;
+                var hfCommunicationConversationKey = ( HiddenFieldWithClass ) e.Item.FindControl( "hfCommunicationConversationKey" );
+                hfCommunicationConversationKey.Value = communicationRecipientResponse.ConversationKey;
 
                 var lSMSMessage = ( Literal ) e.Item.FindControl( "lSMSMessage" );
                 if ( communicationRecipientResponse.SMSMessage.IsNullOrWhiteSpace() )
