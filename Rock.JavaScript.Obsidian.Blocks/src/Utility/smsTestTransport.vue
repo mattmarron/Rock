@@ -1,31 +1,47 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-    <div class="d-flex">
-        <div class="mr-2">
-            <TextBox v-model="fromNumber" label="From" />
-        </div>
-        <div class="mr-2">
-            <TextBox v-model="toNumber" label="To" />
-        </div>
-        <div class="flex-grow-1 mr-2">
-            <TextBox v-model="body" label="Body" />
-        </div>
-        <div style="margin-top: 26px;">
-            <RockButton :btnType="primaryButtonType" @click="onSubmitMessage">Submit</RockButton>
-        </div>
-    </div>
+    <Block title="SMS Test Transport">
+        <div class="d-flex flex-column outer-container">
+            <div class="flex-grow-1 message-container">
+                <div v-for="msg in messages" :class="getMessageClass(msg)">
+                    From: {{ msg.fromNumber }}<br />
+                    To: {{ msg.toNumber }}<br />
+                    <br />
+                    {{ msg.body }}
+                </div>
+            </div>
 
-    <div>
-        <div v-for="msg in messages" :class="getMessageClass(msg)">
-            From: {{ msg.fromNumber }}<br />
-            To: {{ msg.toNumber }}<br />
-            <br />
-            {{ msg.body }}
+            <div class="d-flex footer">
+                <div class="mr-2">
+                    <TextBox v-model="fromNumber" label="From" />
+                </div>
+                <div class="mr-2">
+                    <TextBox v-model="toNumber" label="To" />
+                </div>
+                <div class="flex-grow-1 mr-2">
+                    <TextBox v-model="body" label="Body" />
+                </div>
+                <div style="margin-top: 26px;">
+                    <RockButton :btnType="primaryButtonType" @click="onSubmitMessage">Submit</RockButton>
+                </div>
+            </div>
         </div>
-    </div>
+    </Block>
 </template>
 
 <style scoped>
+.outer-container {
+    height: 100%;
+}
+
+.footer {
+    border-top: 1px solid #eee;
+}
+
+.message-container {
+    overflow-y: auto;
+}
+
 .message-bubble {
     width: 35%;
     padding: 8px;
@@ -43,6 +59,7 @@
 </style>
 
 <script setup lang="ts">
+    import Block from "@Obsidian/Templates/block";
     import TextBox from "@Obsidian/Controls/textBox";
     import RockButton from "@Obsidian/Controls/rockButton";
     import { BtnType } from "@Obsidian/Enums/Controls/buttonOptions";
@@ -105,7 +122,7 @@
             body: body.value
         });
 
-        messages.value.splice(0, 0, {
+        messages.value.push({
             fromNumber: fromNumber.value,
             toNumber: toNumber.value,
             body: body.value,
@@ -120,7 +137,7 @@
     // #region Event Handlers
 
     function onSmsMessageSent(message: SmsMessage): void {
-        messages.value.splice(0, 0, {
+        messages.value.push({
             ...message,
             incoming: false
         });
