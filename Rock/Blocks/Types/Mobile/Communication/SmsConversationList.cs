@@ -16,24 +16,16 @@
 //
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data.Entity;
 using System.Linq;
-using System.Text;
-
-using DocumentFormat.OpenXml.Wordprocessing;
 
 using Rock.Attribute;
-using Rock.Common.Mobile.Blocks.Content;
 using Rock.Data;
 using Rock.Model;
 using Rock.Reporting;
-using Rock.ViewModels.Utility;
 using Rock.Web.Cache;
-using Rock.Web.UI.Controls;
 
-namespace Rock.Blocks.Types.Mobile.Events
+namespace Rock.Blocks.Types.Mobile.Communication
 {
     /// <summary>
     /// Displays a list of SMS conversations that the individual can interact with.
@@ -196,20 +188,34 @@ namespace Rock.Blocks.Types.Mobile.Events
 
         #region Action Methods
 
+        /// <summary>
+        /// Gets all phone numbers available to the currently logged in person.
+        /// </summary>
+        /// <returns>A collection of phone number objects or an HTTP error.</returns>
         [BlockAction]
         public BlockActionResult GetPhoneNumbers()
         {
             return ActionOk( LoadPhoneNumbers() );
         }
 
+        /// <summary>
+        /// Gets all conversations available to the currently logged in person.
+        /// </summary>
+        /// <param name="phoneNumberGuid">The unique identifier of the phone number to retrieve conversations for.</param>
+        /// <returns>A collection of conversation objects or an HTTP error.</returns>
         [BlockAction]
         public BlockActionResult GetConversations( Guid phoneNumberGuid )
         {
-            var phoneNumberId = DefinedValueCache.GetId( phoneNumberGuid );
+            var phoneNumber = DefinedValueCache.Get( phoneNumberGuid );
 
-            if ( !phoneNumberId.HasValue )
+            if ( phoneNumber == null )
             {
                 return ActionBadRequest( "Invalid Rock phone number specified." );
+            }
+
+            if ( !phoneNumber.IsAuthorized( Rock.Security.Authorization.VIEW, RequestContext.CurrentPerson ) )
+            {
+                return ActionForbidden( "Not authorized to view conversations for this phone number." );
             }
 
             try
@@ -226,7 +232,7 @@ namespace Rock.Blocks.Types.Mobile.Events
                     int? personId = null;
 
                     var communicationResponseService = new CommunicationResponseService( rockContext );
-                    var responseListItems = communicationResponseService.GetCommunicationResponseRecipients( phoneNumberId.Value, startDateTime, showRead, maxConversations, personId );
+                    var responseListItems = communicationResponseService.GetCommunicationResponseRecipients( phoneNumber.Id, startDateTime, showRead, maxConversations, personId );
 
                     var personAliasIds = responseListItems
                         .Where( ri => ri.RecipientPersonAliasId.HasValue )
