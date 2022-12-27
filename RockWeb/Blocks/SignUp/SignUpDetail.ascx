@@ -265,7 +265,7 @@
 
                 <div class="row">
                     <div class="col-md-11">
-                        <Rock:RockTextBox ID="tbOpportunityName" runat="server" Label="Opportunity Name" Required="true" CssClass="mb-4" Help="Optional name for the opportunity. This is helpful to provide if your project will have several opportunities configured." ValidationGroup="vg_AddOpportunity" />
+                        <Rock:RockTextBox ID="tbOpportunityName" runat="server" Label="Opportunity Name" CssClass="mb-4" Help="Optional name for the opportunity. This is helpful to provide if your project will have several opportunities configured." />
                     </div>
                 </div>
 
