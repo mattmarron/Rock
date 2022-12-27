@@ -23,7 +23,7 @@
                     </h1>
 
                     <div id="pnlLabelsAndFollow" runat="server">
-                        <div id="pnlLabels" class="panel-labels">
+                        <div class="panel-labels">
                             <Rock:HighlightLabel ID="hlProjectType" runat="server" LabelType="Default" />
                             <Rock:HighlightLabel ID="hlCampus" runat="server" LabelType="Campus" />
                             <Rock:HighlightLabel ID="hlInactive" runat="server" LabelType="Danger" Text="Inactive" />
