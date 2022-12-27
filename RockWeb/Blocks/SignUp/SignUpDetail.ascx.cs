@@ -2650,6 +2650,12 @@ namespace RockWeb.Blocks.SignUp
                 gOpportunities.RowItemText = timeframe == OpportunityTimeframe.Upcoming ? "Upcoming Opportunity" : "Past Opportunity";
                 gOpportunities.Actions.ShowAdd = IsAuthorizedToEdit( group );
 
+                var nameColumn = gOpportunities.ColumnsOfType<RockBoundField>().FirstOrDefault( c => c.DataField == "Name" );
+                if ( nameColumn != null )
+                {
+                    nameColumn.Visible = timeframeOpportunities.Any( o => !string.IsNullOrWhiteSpace( o.Name ) );
+                }
+
                 gOpportunities.DataSource = timeframeOpportunities;
                 gOpportunities.DataBind();
             }
