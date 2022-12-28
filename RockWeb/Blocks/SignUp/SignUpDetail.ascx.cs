@@ -2460,7 +2460,7 @@ namespace RockWeb.Blocks.SignUp
             {
                 get
                 {
-                    var html = $@"<div class=""sign-up-slots-badge"" data-tip=""{SlotsBadgeTooltipId}"">&nbsp;";
+                    var html = $"<div class='sign-up-slots-badge' data-tip='{SlotsBadgeTooltipId}'>&nbsp;";
                     var slotsFilled = SlotsFilled.GetValueOrDefault();
                     string fillColor;
                     string thresholdColor;
@@ -2473,34 +2473,44 @@ namespace RockWeb.Blocks.SignUp
 
                     string GetFilledVisual( string color, int whole, int? partOverride = null )
                     {
-                        return $@"<div class=""sign-up-slots slots-filled-{color}"" style=""width: {GetPercentageOf( whole, partOverride ?? slotsFilled )}%"">&nbsp;</div>";
+                        return $"<div class='sign-up-slots slots-filled-{color}' style='width: {GetPercentageOf( whole, partOverride ?? slotsFilled )}%'>&nbsp;</div>";
                     }
 
                     string GetThresholdVisual( string threshold, string color, int whole, int part )
                     {
-                        return $@"<div class=""sign-up-slots slots-{threshold}-{color}"" style=""width: {GetPercentageOf( whole, part )}%"">&nbsp;</div>";
+                        return $"<div class='sign-up-slots slots-{threshold}-{color}' style='width: {GetPercentageOf( whole, part )}%'>&nbsp;</div>";
                     }
 
                     if ( SlotsMax.GetValueOrDefault() > 0 )
                     {
                         if ( slotsFilled > 0 )
                         {
-                            fillColor = SlotsMin.HasValue && slotsFilled < SlotsMin.Value
+                            fillColor = slotsFilled < SlotsMin.GetValueOrDefault()
                                 ? BadgeColor.Warning
                                 : slotsFilled < SlotsMax.Value
                                     ? BadgeColor.Success
                                     : BadgeColor.Danger;
 
-                            if ( fillColor == BadgeColor.Success && SlotsDesired.GetValueOrDefault() > 0 && slotsFilled > SlotsDesired.Value )
+                            int? partOverride = null;
+                            if ( fillColor == BadgeColor.Success )
                             {
-                                fillColor = BadgeColor.SuccessPlus;
+                                if ( SlotsDesired.GetValueOrDefault() > 0 && slotsFilled > SlotsDesired.Value )
+                                {
+                                    fillColor = BadgeColor.SuccessPlus;
+                                    partOverride = SlotsDesired;
+                                }
+                                else if ( SlotsDesired.GetValueOrDefault() <= 0 && SlotsMin.GetValueOrDefault() > 0 && slotsFilled > SlotsMin.Value )
+                                {
+                                    fillColor = BadgeColor.SuccessPlus;
+                                    partOverride = SlotsMin;
+                                }
                             }
 
                             html += GetFilledVisual( fillColor, SlotsMax.Value );
 
                             if ( fillColor == BadgeColor.SuccessPlus )
                             {
-                                html += GetFilledVisual( BadgeColor.Success, SlotsMax.Value, SlotsDesired.Value );
+                                html += GetFilledVisual( BadgeColor.Success, SlotsMax.Value, partOverride );
                             }
                         }
 
@@ -2520,8 +2530,21 @@ namespace RockWeb.Blocks.SignUp
                     {
                         if ( slotsFilled > 0 )
                         {
-                            fillColor = SlotsMin.HasValue && slotsFilled < SlotsMin.Value ? BadgeColor.Warning : BadgeColor.Success;
+                            fillColor = slotsFilled < SlotsMin.GetValueOrDefault()
+                                ? BadgeColor.Warning
+                                : BadgeColor.Success;
+
+                            if ( fillColor == BadgeColor.Success && SlotsMin.GetValueOrDefault() > 0 && slotsFilled > SlotsMin.Value )
+                            {
+                                fillColor = BadgeColor.SuccessPlus;
+                            }
+
                             html += GetFilledVisual( fillColor, SlotsDesired.Value );
+
+                            if ( fillColor == BadgeColor.SuccessPlus )
+                            {
+                                html += GetFilledVisual( BadgeColor.Success, SlotsDesired.Value, SlotsMin );
+                            }
                         }
 
                         if ( SlotsMin.GetValueOrDefault() > 0 )
@@ -2536,6 +2559,14 @@ namespace RockWeb.Blocks.SignUp
                         {
                             fillColor = slotsFilled < SlotsMin.Value ? BadgeColor.Warning : BadgeColor.Success;
                             html += GetFilledVisual( fillColor, SlotsMin.Value );
+                        }
+                    }
+                    else
+                    {
+                        if ( slotsFilled > 0 )
+                        {
+                            fillColor = BadgeColor.Success;
+                            html += GetFilledVisual( fillColor, slotsFilled, slotsFilled );
                         }
                     }
 
@@ -2555,13 +2586,13 @@ namespace RockWeb.Blocks.SignUp
             {
                 get
                 {
-                    return $@"<div id=""{SlotsBadgeTooltipId}"">
-    <div class=""sign-up-slots-badge-tooltip"">
-        <span class=""slot-counts mr-5"">Slots Filled: {SlotsFilled.GetValueOrDefault():n0}</span>
-        <span class=""slot-counts"">
-            <span>Minimum: {SlotsMin.GetValueOrDefault():n0}</span>
-            <span>Desired: {SlotsDesired.GetValueOrDefault():n0}</span>
-            <span>Maximum: {SlotsMax.GetValueOrDefault():n0}</span>
+                    return $@"<div id='{SlotsBadgeTooltipId}'>
+    <div class='sign-up-slots-badge-tooltip'>
+        <span class='slot-counts mr-5'>Slots Filled: {SlotsFilled.GetValueOrDefault():N0}</span>
+        <span class='slot-counts'>
+            <span{( SlotsMin.GetValueOrDefault() > 0 ? string.Empty : " class='hide'" )}>Minimum: {SlotsMin.GetValueOrDefault():N0}</span>
+            <span{( SlotsDesired.GetValueOrDefault() > 0 ? string.Empty : " class='hide'" )}>Desired: {SlotsDesired.GetValueOrDefault():N0}</span>
+            <span{( SlotsMax.GetValueOrDefault() > 0 ? string.Empty : " class='hide'" )}>Maximum: {SlotsMax.GetValueOrDefault():N0}</span>
         </span>
     </div>
 </div>";

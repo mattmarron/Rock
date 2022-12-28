@@ -165,7 +165,7 @@
                                             <ItemTemplate>
                                                 <li id="liRequirement" runat="server">
                                                     <asp:Literal ID="lRequirement" runat="server" />
-                                                    <Rock:Badge ID="bRequiresLogin" runat="server" BadgeType="Warning">Requires Login to Register</Rock:Badge>
+                                                    <Rock:Badge ID="bRequiresLogin" runat="server" BadgeType="warning">Requires Login to Register</Rock:Badge>
                                                 </li>
                                             </ItemTemplate>
                                         </asp:Repeater>
