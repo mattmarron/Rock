@@ -897,6 +897,7 @@
     <Compile Include="Jobs\PostV133DataMigrationsAddInteractionSessionLocationIndexToInteractionSession.cs" />
     <Compile Include="Jobs\PostV141AddMissingIndexes.cs" />
     <Compile Include="Jobs\PostV141DataMigrationsUpdateSlidingDateRangeFormat.cs" />
+    <Compile Include="Jobs\PostV141RecreateMetricAnalyticsViews.cs" />
     <Compile Include="Jobs\PostV141UpdateValueAsColumns.cs" />
     <Compile Include="Jobs\PostV14DataMigrationsCreateFKIndexes.cs" />
     <Compile Include="Jobs\RockJob.cs" />
@@ -1821,7 +1822,6 @@
     <Compile Include="SystemKey\CampaignConnectionKey.cs" />
     <Compile Include="Utility\CampaignConnectionHelper.cs" />
     <Compile Include="Utility\Enums\RockCacheablityType.cs" />
-    <Compile Include="Utility\Enums\TimeIntervalUnit.cs" />
     <Compile Include="Utility\ExtensionMethods\ICollectionExtensions.cs" />
     <Compile Include="Plugin\HotFixes\106_EnableLavaDefaultSetting.cs" />
     <Compile Include="Utility\Enums\IntervalTimeUnit.cs" />
