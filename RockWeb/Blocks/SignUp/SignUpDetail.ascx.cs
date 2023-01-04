@@ -10,6 +10,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using Newtonsoft.Json;
 using Rock;
+using Rock.Attribute;
 using Rock.Constants;
 using Rock.Data;
 using Rock.Model;
@@ -25,6 +26,16 @@ namespace RockWeb.Blocks.SignUp
     [Category( "Sign-Up" )]
     [Description( "Displays details about the scheduled opportunities for a given project group." )]
 
+    #region Block Attributes
+
+    [LinkedPage( "Sign-Up Opportunity Attendee List Page",
+        Key = AttributeKey.SignUpOpportunityAttendeeListPage,
+        Description = "Page used for viewing all the group members for the selected sign-up opportunity. If set, a view attendees button will show for each opportunity.",
+        IsRequired = false,
+        Order = 0 )]
+
+    #endregion
+
     [Rock.SystemGuid.BlockTypeGuid( "69F5C6BD-7A22-42FE-8285-7C8E586E746A" )]
     public partial class SignUpDetail : RockBlock
     {
@@ -34,12 +45,15 @@ namespace RockWeb.Blocks.SignUp
         {
             public const string ExpandedIds = "ExpandedIds";
             public const string GroupId = "GroupId";
+            public const string LocationId = "LocationId";
             public const string ParentGroupId = "ParentGroupId";
+            public const string ScheduleId = "ScheduleId";
         }
 
         private static class AttributeKey
         {
             public const string ProjectType = "ProjectType";
+            public const string SignUpOpportunityAttendeeListPage = "SignUpOpportunityAttendeeListPage";
         }
 
         private static class ViewStateKey
@@ -353,6 +367,17 @@ namespace RockWeb.Blocks.SignUp
                     ShowGroupNotFoundMessage();
                 }
             }
+        }
+
+        /// <summary>
+        /// Handles the BlockUpdated event of the Block control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        /// <exception cref="NotImplementedException"></exception>
+        protected void Block_BlockUpdated( object sender, EventArgs e )
+        {
+            NavigateToCurrentPageReference();
         }
 
         /// <summary>
@@ -916,6 +941,15 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void gOpportunities_DataBinding( object sender, EventArgs e )
         {
+            if ( string.IsNullOrWhiteSpace( GetAttributeValue( AttributeKey.SignUpOpportunityAttendeeListPage ) ) )
+            {
+                var linkButtonField = gOpportunities.ColumnsOfType<LinkButtonField>().FirstOrDefault( c => c.ID == "lbOpportunityDetail" );
+                if ( linkButtonField != null )
+                {
+                    gOpportunities.Columns.Remove( linkButtonField );
+                }
+            }
+
             if ( !_isAuthorizedToEdit )
             {
                 var editField = gOpportunities.ColumnsOfType<EditField>().FirstOrDefault( c => c.ID == "efOpportunities" );
@@ -930,6 +964,24 @@ namespace RockWeb.Blocks.SignUp
                     gOpportunities.Columns.Remove( deleteField );
                 }
             }
+        }
+
+        /// <summary>
+        /// Handles the Click event of the lbOpportunityDetail control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
+        protected void lbOpportunityDetail_Click( object sender, RowEventArgs e )
+        {
+            var keys = e.RowKeyValues;
+            var qryParams = new Dictionary<string, string>
+            {
+                { PageParameterKey.GroupId, GroupId.ToString() },
+                { PageParameterKey.LocationId, keys[nameof( Opportunity.LocationId )].ToString() },
+                { PageParameterKey.ScheduleId, keys[nameof( Opportunity.ScheduleId )].ToString() }
+            };
+
+            NavigateToLinkedPage( AttributeKey.SignUpOpportunityAttendeeListPage, qryParams );
         }
 
         /// <summary>
@@ -1568,17 +1620,6 @@ namespace RockWeb.Blocks.SignUp
         #endregion
 
         #region Internal Members
-
-        /// <summary>
-        /// Handles the BlockUpdated event of the Block control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        /// <exception cref="NotImplementedException"></exception>
-        private void Block_BlockUpdated( object sender, EventArgs e )
-        {
-
-        }
 
         /// <summary>
         /// Resets the control visibility.

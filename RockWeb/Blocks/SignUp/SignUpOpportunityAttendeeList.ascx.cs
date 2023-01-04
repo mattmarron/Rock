@@ -26,7 +26,7 @@ namespace RockWeb.Blocks.SignUp
 
     [LinkedPage( "Person Profile Page",
         Key = AttributeKey.PersonProfilePage,
-        Description = "Page used for viewing a person's profile. If set a view profile button will show for each group member.",
+        Description = "Page used for viewing a person's profile. If set, a view profile button will show for each group member.",
         IsRequired = false,
         Order = 0 )]
 
@@ -150,6 +150,10 @@ namespace RockWeb.Blocks.SignUp
 
             // Add lazyload so that person-link-popover javascript works
             RockPage.AddScriptLink( "~/Scripts/jquery.lazyload.min.js" );
+
+            // This event gets fired after block settings are updated. It's nice to repaint the screen if these settings would alter it.
+            this.BlockUpdated += Block_BlockUpdated;
+            this.AddConfigurationUpdateTrigger( upnlSignUpOpportunityAttendeeList );
         }
 
         /// <summary>
@@ -161,6 +165,17 @@ namespace RockWeb.Blocks.SignUp
             base.OnLoad( e );
 
             ShowDetails();
+        }
+
+        /// <summary>
+        /// Handles the BlockUpdated event of the Block control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        /// <exception cref="NotImplementedException"></exception>
+        protected void Block_BlockUpdated( object sender, EventArgs e )
+        {
+            NavigateToCurrentPageReference();
         }
 
         #endregion
