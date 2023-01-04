@@ -892,7 +892,7 @@ namespace RockWeb.Blocks.Communication
                 }
 
                 var lSenderName = ( Literal ) e.Item.FindControl( "lSenderName" );
-                lSenderName.Text = communicationRecipientResponse.FullName;
+                lSenderName.Text = communicationRecipientResponse.OutboundSenderFullName;
 
                 var lblMessageDateTime = ( Label ) e.Item.FindControl( "lblMessageDateTime" );
                 lblMessageDateTime.ToolTip = communicationRecipientResponse.CreatedDateTime.ToString();

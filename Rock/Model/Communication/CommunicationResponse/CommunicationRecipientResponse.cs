@@ -110,6 +110,15 @@ namespace Rock.Model
         public string ContactKey { get; set; }
 
         /// <summary>
+        /// Gets or sets the full name of the person that send the message from
+        /// Rock. This is only valid if <see cref="IsOutbound"/> is true.
+        /// </summary>
+        /// <value>
+        /// The full name of the person that sent the message from Rock.
+        /// </value>
+        public string OutboundSenderFullName { get; set; }
+
+        /// <summary>
         /// Gets or sets the full name.
         /// </summary>
         /// <value>

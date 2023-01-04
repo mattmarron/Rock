@@ -133,6 +133,7 @@ namespace Rock.Model
                     Guid = j.CommunicationRecipient.Guid,
                     PersonId = j.PersonAlias.PersonId,
                     Person = j.PersonAlias.Person,
+                    SenderPerson = j.CommunicationRecipient.Communication.SenderPersonAlias.Person,
                     CreatedDateTime = j.CommunicationRecipient.CreatedDateTime,
                     j.CommunicationRecipient.Communication,
                     j.CommunicationRecipient.CommunicationId,
@@ -149,6 +150,7 @@ namespace Rock.Model
                     a.Select( s => new
                     {
                         s.Guid,
+                        s.SenderPerson,
                         s.Person,
                         s.CreatedDateTime,
                         s.CommunicationSMSMessage,
@@ -207,6 +209,7 @@ namespace Rock.Model
                     CreatedDateTime = mostRecentCommunicationRecipient.CreatedDateTime,
                     PersonId = mostRecentCommunicationRecipient.Person.Id,
                     RecordTypeValueId = mostRecentCommunicationRecipient.Person.RecordTypeValueId,
+                    OutboundSenderFullName = mostRecentCommunicationRecipient.SenderPerson?.FullName,
                     FullName = mostRecentCommunicationRecipient.Person.FullName,
                     PhotoId = mostRecentCommunicationRecipient.Person.PhotoId,
                     IsOutbound = true,
@@ -333,9 +336,10 @@ namespace Rock.Model
                 {
                     cr.Guid,
                     cr.CreatedDateTime,
-                    cr.Communication.SenderPersonAlias.Person,
+                    SenderPerson = cr.Communication.SenderPersonAlias.Person,
                     cr.Communication,
                     cr.PersonAliasId,
+                    cr.PersonAlias.Person,
                     PersonAliasGuid = cr.PersonAlias.Guid,
                     PrimaryPersonAliasGuid = ppa.Guid,
                     cr.SentMessage,
@@ -348,6 +352,7 @@ namespace Rock.Model
                 var communicationRecipientResponse = new CommunicationRecipientResponse
                 {
                     CreatedDateTime = communicationRecipient.CreatedDateTime,
+                    OutboundSenderFullName = communicationRecipient.SenderPerson?.FullName,
                     PersonId = communicationRecipient.Person?.Id,
                     FullName = communicationRecipient.Person?.FullName,
                     PhotoId = communicationRecipient.Person?.Photo?.Id,

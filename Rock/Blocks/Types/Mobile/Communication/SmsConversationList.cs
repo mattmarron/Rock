@@ -241,9 +241,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
                         .Select( ri => ri.RecipientPersonAliasId.Value )
                         .ToList();
 
-                    var conversations = responseListItems
-                        .Select( ri => SmsConversation.ToMessageBag( ri ) )
-                        .ToList();
+                    var conversations = SmsConversation.ToMessageBags( responseListItems );
 
                     return ActionOk( conversations );
                 }
