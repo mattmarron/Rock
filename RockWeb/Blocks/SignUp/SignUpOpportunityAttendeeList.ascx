@@ -63,11 +63,19 @@
 
                 <div class="panel-body">
                     <div class="grid grid-panel">
-                        <Rock:GridFilter ID="gfAttendees" runat="server">
+                        <Rock:GridFilter ID="gfAttendees" runat="server" OnDisplayFilterValue="gfAttendees_DisplayFilterValue" OnApplyFilterClick="gfAttendees_ApplyFilterClick" OnClearFilterClick="gfAttendees_ClearFilterClick">
                             <Rock:RockTextBox ID="tbFirstName" runat="server" Label="First Name" />
                             <Rock:RockTextBox ID="tbLastName" runat="server" Label="Last Name" />
+                            <Rock:RockCheckBoxList ID="cblRole" runat="server" Label="Role" DataTextField="Name" DataValueField="Id" RepeatDirection="Horizontal" />
+                            <Rock:RockCheckBoxList ID="cblGroupMemberStatus" runat="server" Label="Group Member Status" RepeatDirection="Horizontal" />
+                            <Rock:CampusPicker ID="cpCampusFilter" runat="server" Label="Family Campus" />
+                            <Rock:RockCheckBoxList ID="cblGenderFilter" runat="server" RepeatDirection="Horizontal" Label="Gender">
+                                <asp:ListItem Text="Male" Value="Male" />
+                                <asp:ListItem Text="Female" Value="Female" />
+                                <asp:ListItem Text="Unknown" Value="Unknown" />
+                            </Rock:RockCheckBoxList>
                         </Rock:GridFilter>
-                        <Rock:Grid ID="gAttendees" runat="server" DataKeyNames="GroupMemberId" DisplayType="Full" AllowSorting="true" CssClas="js-grid-members" RowItemText="Attendee" OnRowDataBound="gAttendees_RowDataBound" OnRowSelected="gAttendees_RowSelected" ExportSource="ColumnOutput" ShowConfirmDeleteDialog="true">
+                        <Rock:Grid ID="gAttendees" runat="server" DataKeyNames="GroupMemberId" DisplayType="Full" AllowSorting="true" CssClas="js-grid-members" RowItemText="Attendee" OnRowDataBound="gAttendees_RowDataBound" OnGridRebind="gAttendees_GridRebind" OnRowSelected="gAttendees_RowSelected" ExportSource="ColumnOutput" ShowConfirmDeleteDialog="true">
                             <Columns>
                                 <Rock:SelectField></Rock:SelectField>
                                 <Rock:RockLiteralField ID="lExportFullName" HeaderText="Name" Visible="false" ExcelExportBehavior="AlwaysInclude" />

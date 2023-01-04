@@ -57,6 +57,16 @@ namespace RockWeb.Blocks.SignUp
             public const string PersonProfilePage = "PersonProfilePage";
         }
 
+        private static class GridFilterKey
+        {
+            public const string FirstName = "FirstName";
+            public const string LastName = "LastName";
+            public const string Role = "Role";
+            public const string Status = "Status";
+            public const string Campus = "Campus";
+            public const string Gender = "Gender";
+        }
+
         private int _groupId;
         private int _locationId;
         private int _scheduleId;
@@ -189,6 +199,91 @@ namespace RockWeb.Blocks.SignUp
         #endregion
 
         #region Attendees Grid Events
+
+        /// <summary>
+        /// Displays the gfAttendees filter values.
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="e">The e.</param>
+        protected void gfAttendees_DisplayFilterValue( object sender, GridFilter.DisplayFilterValueArgs e )
+        {
+            if ( e.Key == GridFilterKey.FirstName )
+            {
+                return;
+            }
+            else if ( e.Key == GridFilterKey.LastName )
+            {
+                return;
+            }
+            else if ( e.Key == GridFilterKey.Role )
+            {
+                e.Value = ResolveCheckBoxListValues( e.Value, cblRole );
+            }
+            else if ( e.Key == GridFilterKey.Status )
+            {
+                e.Value = ResolveCheckBoxListValues( e.Value, cblGroupMemberStatus );
+            }
+            else if ( e.Key == GridFilterKey.Campus )
+            {
+                var campusId = e.Value.AsIntegerOrNull();
+                if ( campusId.HasValue )
+                {
+                    var campusCache = CampusCache.Get( campusId.Value );
+                    if ( campusCache != null )
+                    {
+                        e.Value = campusCache.Name;
+                    }
+                    else
+                    {
+                        e.Value = string.Empty;
+                    }
+                }
+                else
+                {
+                    e.Value = string.Empty;
+                }
+            }
+            else if ( e.Key == GridFilterKey.Gender )
+            {
+                e.Value = ResolveCheckBoxListValues( e.Value, cblGenderFilter );
+            }
+            else
+            {
+                e.Value = string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Handles the ApplyFilterClick event of the gfAttendees control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void gfAttendees_ApplyFilterClick( object sender, EventArgs e )
+        {
+            gfAttendees.SaveUserPreference( GridFilterKey.FirstName, "First Name", tbFirstName.Text );
+            gfAttendees.SaveUserPreference( GridFilterKey.LastName, "Last Name", tbLastName.Text );
+            gfAttendees.SaveUserPreference( GridFilterKey.Role, "Role", cblRole.SelectedValues.AsDelimited( ";" ) );
+            gfAttendees.SaveUserPreference( GridFilterKey.Status, "Status", cblGroupMemberStatus.SelectedValues.AsDelimited( ";" ) );
+            gfAttendees.SaveUserPreference( GridFilterKey.Campus, "Campus", cpCampusFilter.SelectedCampusId.ToString() );
+            gfAttendees.SaveUserPreference( GridFilterKey.Gender, "Gender", cblGenderFilter.SelectedValues.AsDelimited( ";" ) );
+
+            BindAttendeesGrid();
+        }
+
+        /// <summary>
+        /// Handles the ClearFilterClick event of the gfAttendees control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void gfAttendees_ClearFilterClick( object sender, EventArgs e )
+        {
+            gfAttendees.DeleteUserPreferences();
+
+            using ( var rockContext = new RockContext() )
+            {
+                SetGridFilters( GetSharedGroup( rockContext ) );
+            }
+        }
 
         /// <summary>
         /// Handles the RowDataBound event of the gAttendees control.
@@ -352,7 +447,7 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="e">The <see cref="Rock.Web.UI.Controls.GridRebindEventArgs"/> instance containing the event data.</param>
         protected void gAttendees_GridRebind( object sender, Rock.Web.UI.Controls.GridRebindEventArgs e )
         {
-            BindMembersGrid( isExporting: e.IsExporting );
+            BindAttendeesGrid( isExporting: e.IsExporting );
         }
 
         /// <summary>
@@ -419,10 +514,12 @@ namespace RockWeb.Blocks.SignUp
         {
             var canEdit = IsUserAuthorized( Authorization.EDIT ) && group.IsAuthorized( Authorization.EDIT, this.CurrentPerson );
 
+            gfAttendees.UserPreferenceKeyPrefix = $"{_groupId}-{_locationId}-{_scheduleId}";
+
             gAttendees.PersonIdField = "PersonId";
-            gAttendees.GridRebind += gAttendees_GridRebind;
 
             AddGridRowButtons();
+            SetGridFilters( group );
         }
 
         /// <summary>
@@ -534,7 +631,7 @@ namespace RockWeb.Blocks.SignUp
 
                 InitializeSummary( opportunity );
 
-                BindMembersGrid( opportunity );
+                BindAttendeesGrid( opportunity );
             }
         }
 
@@ -722,6 +819,78 @@ namespace RockWeb.Blocks.SignUp
                     && gma.LocationId == _locationId
                     && gma.ScheduleId == _scheduleId );
 
+            // Filter by first name.
+            var firstName = tbFirstName.Text;
+            if ( !string.IsNullOrWhiteSpace( firstName ) )
+            {
+                qry = qry.Where( gma =>
+                    gma.GroupMember.Person.FirstName.StartsWith( firstName ) ||
+                    gma.GroupMember.Person.NickName.StartsWith( firstName ) );
+            }
+
+            // Filter by last name.
+            var lastName = tbLastName.Text;
+            if ( !string.IsNullOrWhiteSpace( lastName ) )
+            {
+                qry = qry.Where( gma => gma.GroupMember.Person.LastName.StartsWith( lastName ) );
+            }
+
+            // Filter by role.
+            var validGroupTypeRoles = _groupTypeCache.Roles.Select( r => r.Id ).ToList();
+            var roles = new List<int>();
+            foreach ( var roleId in cblRole.SelectedValues.AsIntegerList() )
+            {
+                if ( validGroupTypeRoles.Contains( roleId ) )
+                {
+                    roles.Add( roleId );
+                }
+            }
+
+            if ( roles.Any() )
+            {
+                qry = qry.Where( gma => roles.Contains( gma.GroupMember.GroupRoleId ) );
+            }
+
+            // Filter by GroupMemberStatus.
+            var statuses = new List<GroupMemberStatus>();
+            foreach ( var status in cblGroupMemberStatus.SelectedValues )
+            {
+                if ( !string.IsNullOrWhiteSpace( status ) )
+                {
+                    statuses.Add( status.ConvertToEnum<GroupMemberStatus>() );
+                }
+            }
+
+            if ( statuses.Any() )
+            {
+                qry = qry.Where( gma => statuses.Contains( gma.GroupMember.GroupMemberStatus ) );
+            }
+
+            // Filter by Campus.
+            if ( cpCampusFilter.SelectedCampusId.HasValue )
+            {
+                var campusId = cpCampusFilter.SelectedCampusId.Value;
+                var qryCampusMembers = new GroupMemberService( rockContext )
+                    .Queryable()
+                    .AsNoTracking()
+                    .Where( gm => gm.Group.GroupTypeId == FamilyGroupTypeId && gm.Group.CampusId == campusId );
+
+                qry = qry.Where( gma => qryCampusMembers.Any( cm => cm.PersonId == gma.GroupMember.PersonId ) );
+            }
+
+            // Filter by gender.
+            var genders = new List<Gender>();
+            foreach ( var selectedGender in cblGenderFilter.SelectedValues )
+            {
+                var gender = selectedGender.ConvertToEnum<Gender>();
+                genders.Add( gender );
+            }
+
+            if ( genders.Any() )
+            {
+                qry = qry.Where( gma => genders.Contains( gma.GroupMember.Person.Gender ) );
+            }
+
             if ( _isExporting )
             {
                 if ( !FamilyGroupTypeId.HasValue )
@@ -848,12 +1017,77 @@ namespace RockWeb.Blocks.SignUp
         }
 
         /// <summary>
-        /// Binds the members grid.
+        /// Resolves the CheckBox list values.
+        /// </summary>
+        /// <param name="values">The values.</param>
+        /// <param name="checkBoxList">The check box list.</param>
+        /// <returns></returns>
+        private string ResolveCheckBoxListValues( string values, System.Web.UI.WebControls.CheckBoxList checkBoxList )
+        {
+            var resolvedValues = new List<string>();
+
+            foreach ( var value in values.Split( ';' ) )
+            {
+                var item = checkBoxList.Items.FindByValue( value );
+                if ( item != null )
+                {
+                    resolvedValues.Add( item.Text );
+                }
+            }
+
+            return resolvedValues.AsDelimited( ", " );
+        }
+
+        /// <summary>
+        /// Sets the grid filters.
+        /// </summary>
+        /// <param name="group">The group.</param>
+        private void SetGridFilters( Group group )
+        {
+            tbFirstName.Text = gfAttendees.GetUserPreference( GridFilterKey.FirstName );
+            tbLastName.Text = gfAttendees.GetUserPreference( GridFilterKey.LastName );
+
+            if ( group != null )
+            {
+                cblRole.DataSource = group.GroupType.Roles.OrderBy( r => r.Order ).ToList();
+                cblRole.DataBind();
+            }
+
+            var roleValue = gfAttendees.GetUserPreference( GridFilterKey.Role );
+            if ( !string.IsNullOrWhiteSpace( roleValue ) )
+            {
+                cblRole.SetValues( roleValue.Split( ';' ).ToList() );
+            }
+
+            cblGroupMemberStatus.BindToEnum<GroupMemberStatus>();
+
+            var statusValue = gfAttendees.GetUserPreference( GridFilterKey.Status );
+            if ( !string.IsNullOrWhiteSpace( statusValue ) )
+            {
+                cblGroupMemberStatus.SetValues( statusValue.Split( ';' ).ToList() );
+            }
+
+            cpCampusFilter.Campuses = CampusCache.All();
+            cpCampusFilter.SelectedCampusId = gfAttendees.GetUserPreference( "Campus" ).AsIntegerOrNull();
+
+            string genderValue = gfAttendees.GetUserPreference( GridFilterKey.Gender );
+            if ( !string.IsNullOrWhiteSpace( genderValue ) )
+            {
+                cblGenderFilter.SetValues( genderValue.Split( ';' ).ToList() );
+            }
+            else
+            {
+                cblGenderFilter.ClearSelection();
+            }
+        }
+
+        /// <summary>
+        /// Binds the attendees grid.
         /// </summary>
         /// <param name="opportunity">The opportunity.</param>
         /// <param name="isCommunicating">if set to <c>true</c> [is communicating].</param>
         /// <param name="isExporting">if set to <c>true</c> [is exporting].</param>
-        private void BindMembersGrid( Opportunity opportunity = null, bool isCommunicating = false, bool isExporting = false )
+        private void BindAttendeesGrid( Opportunity opportunity = null, bool isCommunicating = false, bool isExporting = false )
         {
             _isExporting = isExporting;
 
