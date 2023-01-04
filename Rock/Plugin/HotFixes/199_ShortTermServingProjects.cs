@@ -113,7 +113,9 @@ namespace Rock.Plugin.HotFixes
             RockMigrationHelper.AddOrUpdateBlockTypeAttribute( "69F5C6BD-7A22-42FE-8285-7C8E586E746A", "BD53F9C9-EBA9-4D3F-82EA-DE5DD34A8108", "Sign-Up Opportunity Attendee List Page", "SignUpOpportunityAttendeeListPage", "Sign-Up Opportunity Attendee List Page", "Page used for viewing all the group members for the selected sign-up opportunity. If set, a view attendees button will show for each opportunity.", 0, "", "525A1D90-CF46-4710-ADC3-86552EBB1E9C" );
 
             RockMigrationHelper.UpdateBlockType( "Sign-Up Opportunity Attendee List", "Lists all the group members for the selected group, location and schedule.", "~/Blocks/SignUp/SignUpOpportunityAttendeeList.ascx", "Sign-Up", "EE652767-5070-4EAB-8BB7-BB254DD01B46" );
-            RockMigrationHelper.AddOrUpdateBlockTypeAttribute( "EE652767-5070-4EAB-8BB7-BB254DD01B46", "BD53F9C9-EBA9-4D3F-82EA-DE5DD34A8108", "Person Profile Page", "PersonProfilePage", "Person Profile Page", "Page used for viewing a person's profile. If set, a view profile button will show for each group member.", 0, "", "E1FB0EC5-F0C8-4BBE-BEB1-B2C5D7B1A1C0" );
+            RockMigrationHelper.AddOrUpdateBlockTypeAttribute( "EE652767-5070-4EAB-8BB7-BB254DD01B46", "BD53F9C9-EBA9-4D3F-82EA-DE5DD34A8108", "Group Member Detail Page", "GroupMemberDetailPage", "Group Member Detail Page", "Page used for viewing an attendee's group member detail for this Sign-Up project. Clicking a row in the grid will take you to this page.", 0, "", "E0908F51-8B7E-4D94-8972-7DDCDB3D37A6" );
+            Sql( "UPDATE [Attribute] SET [IsRequired] = 1 WHERE [Guid] = 'E0908F51-8B7E-4D94-8972-7DDCDB3D37A6';" );
+            RockMigrationHelper.AddOrUpdateBlockTypeAttribute( "EE652767-5070-4EAB-8BB7-BB254DD01B46", "BD53F9C9-EBA9-4D3F-82EA-DE5DD34A8108", "Person Profile Page", "PersonProfilePage", "Person Profile Page", "Page used for viewing a person's profile. If set, a view profile button will show for each group member.", 1, "", "E1FB0EC5-F0C8-4BBE-BEB1-B2C5D7B1A1C0" );
         }
 
         /// <summary>
@@ -147,11 +149,11 @@ namespace Rock.Plugin.HotFixes
 
             // [Page]: Sign-Up > Sign-Up Detail
             RockMigrationHelper.AddPage( true, "1941542C-21F2-4341-BDE1-996AA1E0C0A2", "0CB60906-6B74-44FD-AB25-026050EF70EB", "Sign-Up Detail", "", "34212F8E-5F14-4D92-8B19-46748EBA2727", "", null );
-            RockMigrationHelper.AddPageRoute( "34212F8E-5F14-4D92-8B19-46748EBA2727", "people/sign-up/detail", "D6AEFD09-630E-40D7-AA56-77CC904C6595" );
+            RockMigrationHelper.AddPageRoute( "34212F8E-5F14-4D92-8B19-46748EBA2727", "people/sign-up/{GroupId}", "D6AEFD09-630E-40D7-AA56-77CC904C6595" );
             // [Block]: Sign-Up Detail for [Page]: Sign-Up > Sign-Up Detail
             RockMigrationHelper.AddBlock( true, "34212F8E-5F14-4D92-8B19-46748EBA2727".AsGuidOrNull(), null, null, "69F5C6BD-7A22-42FE-8285-7C8E586E746A".AsGuidOrNull(), "Sign-Up Detail", "Main", "", "", 0, "735C2380-5E10-4EDF-91ED-4EDF9BD5C507" );
             // [Attribute Value]: Sign-Up Opportunity Attendee List Page for [Block]: Sign-Up Detail for [Page]: Sign-Up > Sign-Up Detail
-            RockMigrationHelper.AddBlockAttributeValue( "735C2380-5E10-4EDF-91ED-4EDF9BD5C507", "525A1D90-CF46-4710-ADC3-86552EBB1E9C", "aaf11844-ec6c-498b-a9d8-387390206570,ddd0a160-38bd-4d8a-9cba-ed6f15622e45" );
+            RockMigrationHelper.AddBlockAttributeValue( "735C2380-5E10-4EDF-91ED-4EDF9BD5C507", "525A1D90-CF46-4710-ADC3-86552EBB1E9C", "aaf11844-ec6c-498b-a9d8-387390206570,db9c7e0d-5ec7-4cc2-ba9e-dd398d4b9714" );
             // [Block]: Sign-Up Groups (Group Tree View) for [Page]: Sign-Up > Sign-Up Detail
             RockMigrationHelper.AddBlock( true, "34212F8E-5F14-4D92-8B19-46748EBA2727".AsGuidOrNull(), null, null, "2D26A2C4-62DC-4680-8219-A52EB2BC0F65".AsGuidOrNull(), "Sign-Up Groups", "Sidebar1", "", "", 0, "D493C133-08EE-4E78-A85D-FF8E4FF80158" );
             // [Attribute Value]: Detail Page for [Block]: Sign-Up Groups (Group Tree View) for [Page]: Sign-Up > Sign-Up Detail
@@ -173,11 +175,39 @@ namespace Rock.Plugin.HotFixes
 
             // [Page]: Sign-Up Detail > Sign-Up Opportunity Attendee List
             RockMigrationHelper.AddPage( true, "34212F8E-5F14-4D92-8B19-46748EBA2727", "D65F783D-87A9-4CC9-8110-E83466A0EADB", "Sign-Up Opportunity Attendee List", "", "AAF11844-EC6C-498B-A9D8-387390206570", "", null );
-            RockMigrationHelper.AddPageRoute( "AAF11844-EC6C-498B-A9D8-387390206570", "people/sign-up/opportunity-attendee-list", "DDD0A160-38BD-4D8A-9CBA-ED6F15622E45" );
+            RockMigrationHelper.AddPageRoute( "AAF11844-EC6C-498B-A9D8-387390206570", "people/sign-up/{GroupId}/location/{LocationId}/schedule/{ScheduleId}", "DB9C7E0D-5EC7-4CC2-BA9E-DD398D4B9714" );
             // [Block]: Sign-Up Opportunity Attendee List for [Page]: Sign-Up Detail > Sign-Up Opportunity Attendee List
             RockMigrationHelper.AddBlock( true, "AAF11844-EC6C-498B-A9D8-387390206570".AsGuidOrNull(), null, null, "EE652767-5070-4EAB-8BB7-BB254DD01B46".AsGuidOrNull(), "Sign-Up Opportunity Attendee List", "Main", "", "", 0, "54FC3FA7-2D25-4694-8DD4-647222582CEB" );
+            // [Attribute Value]: Group Member Detail Page for [Block]: Sign-Up Opportunity Attendee List for [Page]: Sign-Up Detail > Sign-Up Opportunity Attendee List
+            RockMigrationHelper.AddBlockAttributeValue( "54FC3FA7-2D25-4694-8DD4-647222582CEB", "E0908F51-8B7E-4D94-8972-7DDCDB3D37A6", "05b79031-183f-4a64-a689-56b5c8e7519f,40566dcd-ac73-4c61-95b3-8f9b2e06528c" );
             // [Attribute Value]: Person Profile Page for [Block]: Sign-Up Opportunity Attendee List for [Page]: Sign-Up Detail > Sign-Up Opportunity Attendee List
             RockMigrationHelper.AddBlockAttributeValue( "54FC3FA7-2D25-4694-8DD4-647222582CEB", "E1FB0EC5-F0C8-4BBE-BEB1-B2C5D7B1A1C0", "08dbd8a5-2c35-4146-b4a8-0f7652348b25,7e97823a-78a8-4e8e-a337-7a20f2da9e52" );
+
+            // [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.AddPage( true, "AAF11844-EC6C-498B-A9D8-387390206570", "D65F783D-87A9-4CC9-8110-E83466A0EADB", "Group Member Detail", "", "05B79031-183F-4A64-A689-56B5C8E7519F", "", null );
+            RockMigrationHelper.AddPageRoute( "05B79031-183F-4A64-A689-56B5C8E7519F", "people/sign-up/{GroupId}/location/{LocationId}/schedule/{ScheduleId}/member/{GroupMemberId}", "40566DCD-AC73-4C61-95B3-8F9B2E06528C" );
+            // [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.AddBlock( true, "05B79031-183F-4A64-A689-56B5C8E7519F".AsGuidOrNull(), null, null, "AAE2E5C3-9279-4AB0-9682-F4D19519D678".AsGuidOrNull(), "Group Member Detail", "Main", "", "", 0, "C4D268FC-17B8-4E55-B3A2-7C55F79015BD" );
+            // [Attribute Value]: Allow Selecting 'From' for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.AddBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "65FCFD8F-0BD9-4285-AC2B-6CCB6654EC20", "True" );
+            // [Attribute Value]: Append Organization Email Header/Footer for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.AddBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "A0513BD2-3A68-40A4-94F0-063AEF476048", "True" );
+            // [Attribute Value]: Are Requirements Publicly Hidden for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.AddBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "924FFC5A-FF18-4EC1-ADE6-E5E9BCD3EBA4", "False" );
+            // [Attribute Value]: Are Requirements Refreshed When Block Is Loaded for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.AddBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "78A53B17-B4BA-4345-B984-6172E03F9B0E", "False" );
+            // [Attribute Value]: Enable Communications for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.AddBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "9C78478B-A1D9-4F62-BB36-EB9F32AA3035", "True" );
+            // [Attribute Value]: Enable SMS for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.AddBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "D657F24D-565F-4F19-B6D8-CB0D9A3F3121", "True" );
+            // [Attribute Value]: Is Requirement Summary Hidden for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.AddBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "562D04DB-744C-48CC-8738-BA094F6FEA26", "False" );
+            // [Attribute Value]: Registration Page for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.AddBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "2EDA5282-EA3E-446F-9CD6-5B3F323FC245", "aaf11844-ec6c-498b-a9d8-387390206570,db9c7e0d-5ec7-4cc2-ba9e-dd398d4b9714" );
+            // [Attribute Value]: Show "Move To Another Group" Button for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.AddBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "260A458D-BC35-4A36-B966-172870AFB24B", "False" );
+            // [Attribute Value]: Workflow Entry Page for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.AddBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "75C4FE0F-58E1-4BE2-896B-9ADA0A0D4D4F", "0550d2aa-a705-4400-81ff-ab124fdf83d7" );
         }
 
         /// <summary>
@@ -185,12 +215,40 @@ namespace Rock.Plugin.HotFixes
         /// </summary>
         private void ShortTermServingProjects_DeletePagesAndBlocks()
         {
+            // [Attribute Value]: Workflow Entry Page for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.DeleteBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "75C4FE0F-58E1-4BE2-896B-9ADA0A0D4D4F" );
+            // [Attribute Value]: Show "Move To Another Group" Button for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.DeleteBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "260A458D-BC35-4A36-B966-172870AFB24B" );
+            // [Attribute Value]: Registration Page for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.DeleteBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "2EDA5282-EA3E-446F-9CD6-5B3F323FC245" );
+            // [Attribute Value]: Is Requirement Summary Hidden for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.DeleteBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "562D04DB-744C-48CC-8738-BA094F6FEA26" );
+            // [Attribute Value]: Enable SMS for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.DeleteBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "D657F24D-565F-4F19-B6D8-CB0D9A3F3121" );
+            // [Attribute Value]: Enable Communications for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.DeleteBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "9C78478B-A1D9-4F62-BB36-EB9F32AA3035" );
+            // [Attribute Value]: Are Requirements Refreshed When Block Is Loaded for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.DeleteBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "78A53B17-B4BA-4345-B984-6172E03F9B0E" );
+            // [Attribute Value]: Are Requirements Publicly Hidden for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.DeleteBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "924FFC5A-FF18-4EC1-ADE6-E5E9BCD3EBA4" );
+            // [Attribute Value]: Append Organization Email Header/Footer for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.DeleteBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "A0513BD2-3A68-40A4-94F0-063AEF476048" );
+            // [Attribute Value]: Allow Selecting 'From' for [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.DeleteBlockAttributeValue( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD", "65FCFD8F-0BD9-4285-AC2B-6CCB6654EC20" );
+            // [Block]: Group Member Detail for [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.DeleteBlock( "C4D268FC-17B8-4E55-B3A2-7C55F79015BD" );
+            // [Page]: Sign-Up Opportunity Attendee List > Group Member Detail
+            RockMigrationHelper.DeletePageRoute( "40566DCD-AC73-4C61-95B3-8F9B2E06528C" );
+            RockMigrationHelper.DeletePage( "05B79031-183F-4A64-A689-56B5C8E7519F" );
+
             // [Attribute Value]: Person Profile Page for [Block]: Sign-Up Opportunity Attendee List for [Page]: Sign-Up Detail > Sign-Up Opportunity Attendee List
             RockMigrationHelper.DeleteBlockAttributeValue( "54FC3FA7-2D25-4694-8DD4-647222582CEB", "E1FB0EC5-F0C8-4BBE-BEB1-B2C5D7B1A1C0" );
+            // [Attribute Value]: Group Member Detail Page for [Block]: Sign-Up Opportunity Attendee List for [Page]: Sign-Up Detail > Sign-Up Opportunity Attendee List
+            RockMigrationHelper.DeleteBlockAttributeValue( "54FC3FA7-2D25-4694-8DD4-647222582CEB", "E0908F51-8B7E-4D94-8972-7DDCDB3D37A6" );
             // [Block]: Sign-Up Opportunity Attendee List for [Page]: Sign-Up Detail > Sign-Up Opportunity Attendee List
             RockMigrationHelper.DeleteBlock( "54FC3FA7-2D25-4694-8DD4-647222582CEB" );
             // [Page]: Sign-Up Detail > Sign-Up Opportunity Attendee List
-            RockMigrationHelper.DeletePageRoute( "DDD0A160-38BD-4D8A-9CBA-ED6F15622E45" );
+            RockMigrationHelper.DeletePageRoute( "DB9C7E0D-5EC7-4CC2-BA9E-DD398D4B9714" );
             RockMigrationHelper.DeletePage( "AAF11844-EC6C-498B-A9D8-387390206570" );
 
             // [Attribute Value]: Treeview Title for [Block]: Sign-Up Groups (Group Tree View) for [Page]: Sign-Up > Sign-Up Detail
@@ -250,7 +308,12 @@ namespace Rock.Plugin.HotFixes
         private void ShortTermServingProjects_DeleteBlockTypes()
         {
             RockMigrationHelper.DeleteBlockType( "B539F3B5-01D3-4325-B32A-85AFE2A9D18B" );
+
+            RockMigrationHelper.DeleteBlockAttribute( "525A1D90-CF46-4710-ADC3-86552EBB1E9C" );
             RockMigrationHelper.DeleteBlockType( "69F5C6BD-7A22-42FE-8285-7C8E586E746A" );
+
+            RockMigrationHelper.DeleteBlockAttribute( "E0908F51-8B7E-4D94-8972-7DDCDB3D37A6" );
+            RockMigrationHelper.DeleteBlockAttribute( "E1FB0EC5-F0C8-4BBE-BEB1-B2C5D7B1A1C0" );
             RockMigrationHelper.DeleteBlockType( "EE652767-5070-4EAB-8BB7-BB254DD01B46" );
         }
 

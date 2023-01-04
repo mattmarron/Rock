@@ -24,11 +24,17 @@ namespace RockWeb.Blocks.SignUp
 
     #region Block Attributes
 
+    [LinkedPage( "Group Member Detail Page",
+        Key = AttributeKey.GroupMemberDetailPage,
+        Description = "Page used for viewing an attendee's group member detail for this Sign-Up project. Clicking a row in the grid will take you to this page.",
+        IsRequired = true,
+        Order = 0 )]
+
     [LinkedPage( "Person Profile Page",
         Key = AttributeKey.PersonProfilePage,
         Description = "Page used for viewing a person's profile. If set, a view profile button will show for each group member.",
         IsRequired = false,
-        Order = 0 )]
+        Order = 1 )]
 
     #endregion
 
@@ -40,12 +46,14 @@ namespace RockWeb.Blocks.SignUp
         private static class PageParameterKey
         {
             public const string GroupId = "GroupId";
+            public const string GroupMemberId = "GroupMemberId";
             public const string LocationId = "LocationId";
             public const string ScheduleId = "ScheduleId";
         }
 
         private static class AttributeKey
         {
+            public const string GroupMemberDetailPage = "GroupMemberDetailPage";
             public const string PersonProfilePage = "PersonProfilePage";
         }
 
@@ -312,6 +320,28 @@ namespace RockWeb.Blocks.SignUp
             if ( groupMember.GroupMemberStatus == GroupMemberStatus.Inactive )
             {
                 e.Row.AddCssClass( "is-inactive" );
+            }
+        }
+
+        /// <summary>
+        /// Handles the RowSelected event of the gAttendees control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
+        protected void gAttendees_RowSelected( object sender, RowEventArgs e )
+        {
+            if ( !string.IsNullOrWhiteSpace( GetAttributeValue( AttributeKey.GroupMemberDetailPage ) ) )
+            {
+                var keys = e.RowKeyValues;
+                var qryParams = new Dictionary<string, string>
+                {
+                    { PageParameterKey.GroupId, _groupId.ToString() },
+                    { PageParameterKey.LocationId, _locationId.ToString() },
+                    { PageParameterKey.ScheduleId, _scheduleId.ToString() },
+                    { PageParameterKey.GroupMemberId, keys[nameof( GroupMemberAssignment.GroupMemberId )].ToString() },
+                };
+
+                NavigateToLinkedPage( AttributeKey.GroupMemberDetailPage, qryParams );
             }
         }
 

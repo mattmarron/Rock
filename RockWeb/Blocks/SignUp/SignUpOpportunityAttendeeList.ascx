@@ -67,7 +67,7 @@
                             <Rock:RockTextBox ID="tbFirstName" runat="server" Label="First Name" />
                             <Rock:RockTextBox ID="tbLastName" runat="server" Label="Last Name" />
                         </Rock:GridFilter>
-                        <Rock:Grid ID="gAttendees" runat="server" DisplayType="Full" AllowSorting="true" CssClas="js-grid-members" RowItemText="Attendee" OnRowDataBound="gAttendees_RowDataBound" ExportSource="ColumnOutput" ShowConfirmDeleteDialog="true">
+                        <Rock:Grid ID="gAttendees" runat="server" DataKeyNames="GroupMemberId" DisplayType="Full" AllowSorting="true" CssClas="js-grid-members" RowItemText="Attendee" OnRowDataBound="gAttendees_RowDataBound" OnRowSelected="gAttendees_RowSelected" ExportSource="ColumnOutput" ShowConfirmDeleteDialog="true">
                             <Columns>
                                 <Rock:SelectField></Rock:SelectField>
                                 <Rock:RockLiteralField ID="lExportFullName" HeaderText="Name" Visible="false" ExcelExportBehavior="AlwaysInclude" />
