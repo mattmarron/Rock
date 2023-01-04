@@ -63,28 +63,29 @@
 
                 <div class="panel-body">
                     <div class="grid grid-panel">
-                        <Rock:GridFilter ID="gfMembers" runat="server">
+                        <Rock:GridFilter ID="gfAttendees" runat="server">
                             <Rock:RockTextBox ID="tbFirstName" runat="server" Label="First Name" />
                             <Rock:RockTextBox ID="tbLastName" runat="server" Label="Last Name" />
                         </Rock:GridFilter>
-                        <Rock:Grid ID="gMembers" runat="server"  DisplayType="Full" AllowSorting="true" RowItemText="Attendee" ShowConfirmDeleteDialog="true">
+                        <Rock:Grid ID="gAttendees" runat="server" DisplayType="Full" AllowSorting="true" CssClas="js-grid-members" RowItemText="Attendee" OnRowDataBound="gAttendees_RowDataBound" ExportSource="ColumnOutput" ShowConfirmDeleteDialog="true">
                             <Columns>
                                 <Rock:SelectField></Rock:SelectField>
                                 <Rock:RockLiteralField ID="lExportFullName" HeaderText="Name" Visible="false" ExcelExportBehavior="AlwaysInclude" />
-                                <Rock:RockLiteralField ID="lNameWithHtml" HeaderText="Name" SortExpression="Person.LastName,Person.NickName" ExcelExportBehavior="NeverInclude" />
-                                <Rock:RockBoundField DataField="GroupMember.GroupRole.Name" HeaderText="Role" SortExpression="GroupRole.Name" />
-                                <Rock:RockBoundField DataField="GroupMember.GroupMemberStatus" HeaderText="Member Status" SortExpression="GroupMemberStatus" />
+                                <Rock:RockLiteralField ID="lNameWithHtml" HeaderText="Name" SortExpression="GroupMember.Person.LastName,GroupMember.Person.NickName" ExcelExportBehavior="NeverInclude" />
+                                <Rock:RockBoundField DataField="GroupMember.GroupRole.Name" HeaderText="Role" SortExpression="GroupMember.GroupRole.Name" />
+                                <Rock:RockBoundField DataField="GroupMember.GroupMemberStatus" HeaderText="Member Status" SortExpression="GroupMember.GroupMemberStatus" />
 
                                 <%-- Fields that are only shown when exporting --%>
-                                <Rock:RockBoundField DataField="Person.NickName" HeaderText="Nick Name" Visible="false" ExcelExportBehavior="AlwaysInclude" />
-                                <Rock:RockBoundField DataField="Person.LastName" HeaderText="Last Name" Visible="false" ExcelExportBehavior="AlwaysInclude" />
-                                <Rock:RockBoundField DataField="Person.BirthDate" HeaderText="Birth Date" Visible="false" ExcelExportBehavior="AlwaysInclude" />
-                                <Rock:RockBoundField DataField="Person.Age" HeaderText="Age" Visible="false" ExcelExportBehavior="AlwaysInclude" />
-                                <Rock:RockBoundField DataField="Person.Email" HeaderText="Email" Visible="false" ExcelExportBehavior="AlwaysInclude" />
-                                <Rock:RockBoundField DataField="Person.RecordStatusValueId" HeaderText="RecordStatusValueId" Visible="false" ExcelExportBehavior="AlwaysInclude" />
-                                <Rock:DefinedValueField DataField="Person.RecordStatusValueId" HeaderText="Record Status" Visible="false" ExcelExportBehavior="AlwaysInclude" />
-                                <Rock:RockBoundField DataField="Person.Gender" HeaderText="Gender" Visible="false" ExcelExportBehavior="AlwaysInclude" />
-                                <Rock:RockBoundField DataField="Person.IsDeceased" HeaderText="Is Deceased" Visible="false" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:RockBoundField DataField="GroupMember.Note" HeaderText="Note" Visible="false" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:RockBoundField DataField="GroupMember.Person.NickName" HeaderText="Nick Name" Visible="false" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:RockBoundField DataField="GroupMember.Person.LastName" HeaderText="Last Name" Visible="false" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:RockBoundField DataField="GroupMember.Person.BirthDate" HeaderText="Birth Date" Visible="false" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:RockBoundField DataField="GroupMember.Person.Age" HeaderText="Age" Visible="false" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:RockBoundField DataField="GroupMember.Person.Email" HeaderText="Email" Visible="false" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:RockBoundField DataField="GroupMember.Person.RecordStatusValueId" HeaderText="RecordStatusValueId" Visible="false" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:DefinedValueField DataField="GroupMember.Person.RecordStatusValueId" HeaderText="Record Status" Visible="false" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:RockBoundField DataField="GroupMember.Person.Gender" HeaderText="Gender" Visible="false" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:RockBoundField DataField="GroupMember.Person.IsDeceased" HeaderText="Is Deceased" Visible="false" ExcelExportBehavior="AlwaysInclude" />
 
                                 <Rock:RockLiteralField ID="lExportHomePhone" HeaderText="Home Phone" Visible="false" ExcelExportBehavior="AlwaysInclude" />
                                 <Rock:RockLiteralField ID="lExportCellPhone" HeaderText="Cell Phone" Visible="false" ExcelExportBehavior="AlwaysInclude" />
@@ -99,6 +100,75 @@
             </div>
 
         </asp:Panel>
+
+        <script>
+
+            Sys.Application.add_load(function () {
+                var $thisBlock = $('#<%= upnlSignUpOpportunityAttendeeList.ClientID %>');
+
+                $thisBlock.find('div.photo-icon').lazyload({
+                    effect: 'fadeIn'
+                });
+
+                // person-link-popover
+                $thisBlock.find('.js-person-popover').popover({
+                    placement: 'right',
+                    trigger: 'manual',
+                    delay: 500,
+                    html: true,
+                    content: function () {
+                        var dataUrl = Rock.settings.get('baseUrl') + 'api/People/PopupHtml/' + $(this).attr('personid') + '/false';
+
+                        var result = $.ajax({
+                            type: 'GET',
+                            url: dataUrl,
+                            dataType: 'json',
+                            contentType: 'application/json; charset=utf-8',
+                            async: false
+                        }).responseText;
+
+                        var resultObject = JSON.parse(result);
+
+                        return resultObject.PickerItemDetailsHtml;
+
+                    }
+                }).on('mouseenter', function () {
+                    var _this = this;
+                    $(this).popover('show');
+                    $(this).siblings('.popover').on('mouseleave', function () {
+                        $(_this).popover('hide');
+                    });
+                }).on('mouseleave', function () {
+                    var _this = this;
+                    setTimeout(function () {
+                        if (!$thisBlock.find('.popover:hover').length) {
+                            $(_this).popover('hide')
+                        }
+                    }, 100);
+                });
+
+                // delete/archive prompt
+                $thisBlock.find('table.js-grid-members a.grid-delete-button').on('click', function (e) {
+                    var $btn = $(this);
+                    var $row = $btn.closest('tr');
+                    var actionName = 'delete';
+
+                    if ($row.hasClass('js-has-grouphistory')) {
+                        var actionName = 'archive';
+                    }
+
+                    var confirmMessage = 'Are you sure you want to ' + actionName + ' this group member?';
+
+                    e.preventDefault();
+                    Rock.dialogs.confirm(confirmMessage, function (result) {
+                        if (result) {
+                            window.location = e.target.href ? e.target.href : e.target.parentElement.href;
+                        }
+                    });
+                });
+            });
+
+        </script>
 
     </ContentTemplate>
 </asp:UpdatePanel>

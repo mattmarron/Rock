@@ -305,7 +305,7 @@
         <script>
 
             Sys.Application.add_load(function () {
-                var $thisBlock = $('#<%= pnlDetails.ClientID %>');
+                var $thisBlock = $('#<%= upnlSignUpDetail.ClientID %>');
 
                 function toggleReminderControlsVisibility(projectTypeGuid) {
                     var projectTypeGuid = projectTypeGuid || $thisBlock.find('.js-project-type input[checked]').first().val();
