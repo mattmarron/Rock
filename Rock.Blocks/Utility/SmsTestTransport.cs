@@ -40,7 +40,7 @@ namespace Rock.Blocks.Utility
     [Rock.SystemGuid.BlockTypeGuid( "2c2d6bc3-8257-4e23-8fe7-06e744d58ac0" )]
     public class SmsTestTransport : RockObsidianDetailBlockType
     {
-        public override string BlockFileUrl => $"{base.BlockFileUrl}.vue";
+        public override string BlockFileUrl => $"{base.BlockFileUrl}.obs";
 
         #region Methods
 

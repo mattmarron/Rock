@@ -62,7 +62,7 @@
     import Block from "@Obsidian/Templates/block";
     import TextBox from "@Obsidian/Controls/textBox";
     import RockButton from "@Obsidian/Controls/rockButton";
-    import { BtnType } from "@Obsidian/Enums/Controls/buttonOptions";
+    import { BtnType } from "@Obsidian/Enums/Controls/btnType";
     import { ref } from "vue";
     import { getTopic, ITopic } from "@Obsidian/Utility/realTime";
 
