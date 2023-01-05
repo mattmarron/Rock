@@ -425,19 +425,7 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
         protected void gAttendees_RowSelected( object sender, RowEventArgs e )
         {
-            if ( !string.IsNullOrWhiteSpace( GetAttributeValue( AttributeKey.GroupMemberDetailPage ) ) )
-            {
-                var keys = e.RowKeyValues;
-                var qryParams = new Dictionary<string, string>
-                {
-                    { PageParameterKey.GroupId, _groupId.ToString() },
-                    { PageParameterKey.LocationId, _locationId.ToString() },
-                    { PageParameterKey.ScheduleId, _scheduleId.ToString() },
-                    { PageParameterKey.GroupMemberId, keys[nameof( GroupMemberAssignment.GroupMemberId )].ToString() },
-                };
-
-                NavigateToLinkedPage( AttributeKey.GroupMemberDetailPage, qryParams );
-            }
+            NavigateToGroupMemberDetailPage( e.RowKeyValues[nameof( GroupMemberAssignment.GroupMemberId )].ToIntSafe() );
         }
 
         /// <summary>
@@ -447,7 +435,44 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="e">The <see cref="Rock.Web.UI.Controls.GridRebindEventArgs"/> instance containing the event data.</param>
         protected void gAttendees_GridRebind( object sender, Rock.Web.UI.Controls.GridRebindEventArgs e )
         {
-            BindAttendeesGrid( isExporting: e.IsExporting );
+            BindAttendeesGrid( isCommunicating: e.IsCommunication, isExporting: e.IsExporting );
+        }
+
+        /// <summary>
+        /// Handles the GetRecipientMergeFields event of the gAttendees control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="GetRecipientMergeFieldsEventArgs"/> instance containing the event data.</param>
+        protected void gAttendees_GetRecipientMergeFields( object sender, GetRecipientMergeFieldsEventArgs e )
+        {
+            var groupMemberAssignment = e.DataItem as GroupMemberAssignment;
+
+            if ( groupMemberAssignment == null )
+            {
+                return;
+            }
+
+            var entityTypeMergeField = MergeFieldPicker.EntityTypeInfo.GetMergeFieldId<GroupMemberAssignment>(
+                new MergeFieldPicker.EntityTypeInfo.EntityTypeQualifier[]
+                {
+                    new MergeFieldPicker.EntityTypeInfo.EntityTypeQualifier( "GroupId", _groupId.ToString() ),
+                    new MergeFieldPicker.EntityTypeInfo.EntityTypeQualifier( "GroupTypeId", _groupTypeCache.Id.ToString() ),
+                    new MergeFieldPicker.EntityTypeInfo.EntityTypeQualifier( "LocationId", groupMemberAssignment.LocationId.ToString() ),
+                    new MergeFieldPicker.EntityTypeInfo.EntityTypeQualifier( "ScheduleId", groupMemberAssignment.ScheduleId.ToString() )
+                } );
+
+            e.MergeValues.Add( entityTypeMergeField, groupMemberAssignment.Id );
+        }
+
+        /// <summary>
+        /// Handles the AddClick event of the gAttendees control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
+        
+        protected void gAttendees_AddClick( object sender, EventArgs e )
+        {
+            NavigateToGroupMemberDetailPage();
         }
 
         /// <summary>
@@ -512,11 +537,15 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="group">The group.</param>
         private void InitializeGrid( Group group )
         {
-            var canEdit = IsUserAuthorized( Authorization.EDIT ) && group.IsAuthorized( Authorization.EDIT, this.CurrentPerson );
-
             gfAttendees.UserPreferenceKeyPrefix = $"{_groupId}-{_locationId}-{_scheduleId}";
 
             gAttendees.PersonIdField = "PersonId";
+            gAttendees.ExportFilename = group.Name;
+            gAttendees.GetRecipientMergeFields += gAttendees_GetRecipientMergeFields;
+            gAttendees.Actions.AddClick += gAttendees_AddClick;
+
+            var canEdit = IsUserAuthorized( Authorization.EDIT ) && group.IsAuthorized( Authorization.EDIT, this.CurrentPerson );
+            gAttendees.Actions.ShowAdd = canEdit;
 
             AddGridRowButtons();
             SetGridFilters( group );
@@ -819,6 +848,11 @@ namespace RockWeb.Blocks.SignUp
                     && gma.LocationId == _locationId
                     && gma.ScheduleId == _scheduleId );
 
+            if ( _isCommunicating )
+            {
+                qry = qry.Where( gma => gma.GroupMember.GroupMemberStatus != GroupMemberStatus.Inactive );
+            }
+
             // Filter by first name.
             var firstName = tbFirstName.Text;
             if ( !string.IsNullOrWhiteSpace( firstName ) )
@@ -1089,6 +1123,7 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="isExporting">if set to <c>true</c> [is exporting].</param>
         private void BindAttendeesGrid( Opportunity opportunity = null, bool isCommunicating = false, bool isExporting = false )
         {
+            _isCommunicating = isCommunicating;
             _isExporting = isExporting;
 
             if ( opportunity == null )
@@ -1101,6 +1136,26 @@ namespace RockWeb.Blocks.SignUp
 
             gAttendees.DataSource = opportunity.Attendees;
             gAttendees.DataBind();
+        }
+
+        /// <summary>
+        /// Navigates to group member detail page.
+        /// </summary>
+        /// <param name="groupMemberId">The group member identifier.</param>
+        private void NavigateToGroupMemberDetailPage( int? groupMemberId = null )
+        {
+            if ( !string.IsNullOrWhiteSpace( GetAttributeValue( AttributeKey.GroupMemberDetailPage ) ) )
+            {
+                var qryParams = new Dictionary<string, string>
+                {
+                    { PageParameterKey.GroupId, _groupId.ToString() },
+                    { PageParameterKey.LocationId, _locationId.ToString() },
+                    { PageParameterKey.ScheduleId, _scheduleId.ToString() },
+                    { PageParameterKey.GroupMemberId, groupMemberId.GetValueOrDefault().ToString() },
+                };
+
+                NavigateToLinkedPage( AttributeKey.GroupMemberDetailPage, qryParams );
+            }
         }
 
         #endregion

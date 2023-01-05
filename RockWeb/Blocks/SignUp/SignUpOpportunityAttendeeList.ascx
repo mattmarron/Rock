@@ -75,7 +75,7 @@
                                 <asp:ListItem Text="Unknown" Value="Unknown" />
                             </Rock:RockCheckBoxList>
                         </Rock:GridFilter>
-                        <Rock:Grid ID="gAttendees" runat="server" DataKeyNames="GroupMemberId" DisplayType="Full" AllowSorting="true" CssClas="js-grid-members" RowItemText="Attendee" OnRowDataBound="gAttendees_RowDataBound" OnGridRebind="gAttendees_GridRebind" OnRowSelected="gAttendees_RowSelected" ExportSource="ColumnOutput" ShowConfirmDeleteDialog="true">
+                        <Rock:Grid ID="gAttendees" runat="server" DataKeyNames="Id,GroupMemberId" DisplayType="Full" AllowSorting="true" CssClas="js-grid-members" RowItemText="Attendee" OnRowDataBound="gAttendees_RowDataBound" OnGridRebind="gAttendees_GridRebind" OnRowSelected="gAttendees_RowSelected" ExportSource="ColumnOutput" ShowConfirmDeleteDialog="true">
                             <Columns>
                                 <Rock:SelectField></Rock:SelectField>
                                 <Rock:RockLiteralField ID="lExportFullName" HeaderText="Name" Visible="false" ExcelExportBehavior="AlwaysInclude" />
