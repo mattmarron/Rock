@@ -482,7 +482,90 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="e">The <see cref="Rock.Web.UI.Controls.RowEventArgs" /> instance containing the event data.</param>
         protected void DeleteOrArchiveGroupMember_Click( object sender, Rock.Web.UI.Controls.RowEventArgs e )
         {
+            var groupMemberId = e.RowKeyValues[nameof( GroupMemberAssignment.GroupMemberId )].ToIntSafe();
+            var groupMemberAssignmentId = e.RowKeyValues[nameof( GroupMemberAssignment.Id )].ToIntSafe();
+            var shouldRebindGrid = false;
 
+            using ( var rockContext = new RockContext() )
+            {
+                var groupMemberAssignmentService = new GroupMemberAssignmentService( rockContext );
+
+                var groupMemberAssignments = groupMemberAssignmentService
+                    .Queryable()
+                    .Where( gma => gma.GroupMemberId == groupMemberId )
+                    .ToList();
+
+                var thisAssignment = groupMemberAssignments.FirstOrDefault( gma => gma.Id == groupMemberAssignmentId );
+
+                if ( thisAssignment != null )
+                {
+                    if ( !groupMemberAssignmentService.CanDelete( thisAssignment, out string groupMemberAssignmentErrorMessage ) )
+                    {
+                        mdGridWarning.Show( groupMemberAssignmentErrorMessage, ModalAlertType.Information );
+                        return;
+                    }
+                    else
+                    {
+                        groupMemberAssignments.Remove( thisAssignment );
+                        groupMemberAssignmentService.Delete( thisAssignment );
+                        shouldRebindGrid = true;
+                    }
+                }
+
+                // If no other assignments remain for this GroupMember, try to delete or archive the GroupMember record as well.
+                if ( !groupMemberAssignments.Any() )
+                {
+                    var groupMemberService = new GroupMemberService( rockContext );
+                    var groupMember = groupMemberService.Get( groupMemberId );
+
+                    if ( groupMember != null )
+                    {
+                        var shouldArchive = false;
+                        var shouldDelete = false;
+
+                        // This call loads up the GroupTypeCache and GroupMemberHistorical records we need.
+                        GetSharedGroup( rockContext );
+
+                        if ( _groupTypeCache.EnableGroupHistory && _groupMembersWithGroupMemberHistory.Contains( groupMemberId ) )
+                        {
+                            shouldArchive = true;
+                            shouldRebindGrid = true;
+                        }
+                        else
+                        {
+                            if ( !groupMemberService.CanDelete( groupMember, out string groupMemberErrorMessage ) )
+                            {
+                                /*
+                                 * Just swallow this error, as there's really no need to show the user.
+                                 * The Attendee (Group Member Assignment) record itself will be deleted, but we cannot delete the underlying GroupMember record.
+                                 */
+                            }
+                            else
+                            {
+                                shouldDelete = true;
+                                shouldRebindGrid = true;
+                            }
+                        }
+
+                        if ( shouldArchive )
+                        {
+                            // NOTE: Delete will AutoArchive, but since we know that we need to archive, we can call .Archive directly
+                            groupMemberService.Archive( groupMember, this.CurrentPersonAliasId, false );
+                        }
+                        else if ( shouldDelete )
+                        {
+                            groupMemberService.Delete( groupMember );
+                        }
+                    }
+                }
+
+                rockContext.SaveChanges();
+            }
+
+            if ( shouldRebindGrid )
+            {
+                BindAttendeesGrid();
+            }
         }
 
         #endregion

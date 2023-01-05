@@ -7,6 +7,7 @@
         <Rock:NotificationBox ID="nbNotAuthorizedToView" runat="server" NotificationBoxType="Warning" />
         <Rock:NotificationBox ID="nbInvalidGroupType" runat="server" NotificationBoxType="Warning" Visible="false" Text="The selected group is not of a type that can be edited as a sign-up group." />
         <Rock:NotificationBox ID="nbOpportunityNotFound" runat="server" NotificationBoxType="Warning" Text="The selected sign-up opportunity does not exist." />
+        <Rock:ModalAlert ID="mdGridWarning" runat="server" />
 
         <asp:Panel ID="pnlDetails" runat="server">
             <div class="panel panel-block">
