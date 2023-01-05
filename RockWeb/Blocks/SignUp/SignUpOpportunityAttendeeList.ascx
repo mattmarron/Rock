@@ -175,6 +175,16 @@
                         }
                     });
                 });
+
+                // initialize any unmet requirements tooltips
+                $thisBlock.find('.unmet-group-requirements').each(function () {
+                    var $requirements = $(this);
+                    var tooltip = $('#' + $requirements.data('tip')).html();
+                    $requirements.tooltip({
+                        html: true,
+                        title: tooltip
+                    });
+                });
             });
 
         </script>

@@ -75,8 +75,12 @@ namespace RockWeb.Blocks.SignUp
 
         private readonly string _photoFormat = "<div class=\"photo-icon photo-round photo-round-xs pull-left margin-r-sm js-person-popover\" personid=\"{0}\" data-original=\"{1}&w=50\" style=\"background-image: url( '{2}' ); background-size: cover; background-repeat: no-repeat;\"></div>";
 
+        private bool _hasGroupRequirements = false;
         private bool _isCommunicating = false;
         private bool _isExporting = false;
+
+        private HashSet<int> _groupMemberIdsNotMeetingRequirements = null;
+        private Dictionary<GroupMember, Dictionary<PersonGroupRequirementStatus, DateTime>> _unmetRequirementsByGroupMember = null;
 
         private Dictionary<int, Location> _personIdHomeLocationLookup = null;
         private Dictionary<int, Dictionary<int, string>> _personIdPhoneNumberTypePhoneNumberLookup = null;
@@ -307,6 +311,12 @@ namespace RockWeb.Blocks.SignUp
             if ( e.Row.FindControl( "lNameWithHtml" ) is Literal lNameWithHtml )
             {
                 var nameHtml = new StringBuilder();
+
+                if ( _hasGroupRequirements && _groupMemberIdsNotMeetingRequirements.Contains( groupMember.Id ) )
+                {
+                    nameHtml.Append( $"<span class='unmet-group-requirements pull-left margin-r-md' data-tip='{GetUnmetRequirementsTooltipId( groupMember.Id )}'><i class='fa fa-exclamation-triangle text-warning'></i></span>{GetUnmetRequirementsTooltip( groupMember.Id )}" );
+                }
+
                 nameHtml.AppendFormat( _photoFormat, groupMember.PersonId, groupMember.Person.PhotoUrl, ResolveUrl( "~/Assets/Images/person-no-photo-unknown.svg" ) );
                 nameHtml.Append( groupMember.Person.FullName );
                 if ( groupMember.Person.TopSignalColor.IsNotNullOrWhiteSpace() )
@@ -897,6 +907,8 @@ namespace RockWeb.Blocks.SignUp
         /// <returns></returns>
         private Opportunity GetOpportunity( RockContext rockContext, Group group = null )
         {
+            group = group ?? GetSharedGroup( rockContext );
+
             var groupLocation = new GroupLocationService( rockContext )
                 .Queryable()
                 .AsNoTracking()
@@ -1005,6 +1017,23 @@ namespace RockWeb.Blocks.SignUp
                 qry = qry.Where( gma => genders.Contains( gma.GroupMember.Person.Gender ) );
             }
 
+            // Take note of any group requirements (and any members not yet meeting them).
+            _hasGroupRequirements = new GroupRequirementService( rockContext )
+                .Queryable()
+                .AsNoTracking()
+                .Where( gr =>
+                    ( gr.GroupId.HasValue && gr.GroupId == _groupId ) ||
+                    ( gr.GroupTypeId.HasValue && gr.GroupTypeId == _groupTypeCache.Id ) )
+                .Any();
+
+            _unmetRequirementsByGroupMember = new GroupService( rockContext ).GroupMembersNotMeetingRequirements( group, true, true );
+            _groupMemberIdsNotMeetingRequirements = new HashSet<int>(
+                _unmetRequirementsByGroupMember
+                    .Select( kvp => kvp.Key.Id )
+                    .Distinct()
+                    .ToList()
+            );
+
             if ( _isExporting )
             {
                 if ( !FamilyGroupTypeId.HasValue )
@@ -1084,7 +1113,7 @@ namespace RockWeb.Blocks.SignUp
             return new Opportunity
             {
                 SlotsFilled = slotsFilled,
-                Group = group ?? GetSharedGroup( rockContext ),
+                Group = group,
                 Location = groupLocation.Location,
                 Schedule = schedule,
                 Config = config,
@@ -1217,6 +1246,65 @@ namespace RockWeb.Blocks.SignUp
 
             gAttendees.DataSource = opportunity.Attendees;
             gAttendees.DataBind();
+        }
+
+        /// <summary>
+        /// Gets the unmet requirements tooltip identifier.
+        /// </summary>
+        /// <param name="groupMemberId">The group member identifier.</param>
+        /// <returns></returns>
+        private string GetUnmetRequirementsTooltipId( int groupMemberId )
+        {
+            return $"unmet-group-requirements-tooltip-{groupMemberId}";
+        }
+
+        /// <summary>
+        /// Gets the unmet requirements tooltip.
+        /// </summary>
+        /// <param name="groupMemberId">The group member identifier.</param>
+        /// <returns></returns>
+        private string GetUnmetRequirementsTooltip( int groupMemberId )
+        {
+            var friendlyRequirements = new List<string>();
+
+            foreach ( var groupMemberRequirements in _unmetRequirementsByGroupMember.Where( kvp => kvp.Key.Id == groupMemberId ) )
+            {
+                var unmetRequirements = groupMemberRequirements.Value;
+
+                foreach ( var unmetRequirement in unmetRequirements )
+                {
+                    var personGroupRequirementStatus = unmetRequirement.Key;
+
+                    var friendlyRequirement = personGroupRequirementStatus?.GroupRequirement?.GroupRequirementType?.NegativeLabel;
+
+                    if ( string.IsNullOrWhiteSpace( friendlyRequirement ) )
+                    {
+                        friendlyRequirement = personGroupRequirementStatus?.GroupRequirement?.GroupRequirementType?.Name;
+                    }
+
+                    if ( !string.IsNullOrWhiteSpace( friendlyRequirement ) )
+                    {
+                        friendlyRequirements.Add( friendlyRequirement );
+                    }
+                }
+            }
+
+            if ( !friendlyRequirements.Any() )
+            {
+                return string.Empty;
+            }
+
+            var tooltipHtmlSb = new StringBuilder( $"<div id='{GetUnmetRequirementsTooltipId( groupMemberId )}' class='hide'>");
+            tooltipHtmlSb.Append( "<p class='text-center'><strong>Unmet Group Requirements</strong></><ul>" );
+
+            foreach ( var friendlyRequirement in friendlyRequirements )
+            {
+                tooltipHtmlSb.Append( $"<li>{friendlyRequirement}</li>" );
+            }
+
+            tooltipHtmlSb.Append( "</ul></div>" );
+
+            return tooltipHtmlSb.ToString();
         }
 
         /// <summary>
