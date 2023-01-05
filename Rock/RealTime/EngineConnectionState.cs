@@ -32,7 +32,7 @@ namespace Rock.RealTime
         /// to inform topics when a client disconnects.
         /// </summary>
         /// <value>The topics this connection has connected to.</value>
-        public ConcurrentDictionary<string, bool> ConnectedTopics { get; } = new ConcurrentDictionary<string, bool>();
+        public ConcurrentDictionary<string, ConcurrentDictionary<string, bool>> ConnectedTopics { get; } = new ConcurrentDictionary<string, ConcurrentDictionary<string, bool>>();
 
         /// <summary>
         /// Gets or sets the request representing the original connection.
