@@ -813,6 +813,8 @@ namespace RockWeb.Blocks.SignUp
             private int? SlotsDesired => Config?.DesiredCapacity;
             private int? SlotsMax => Config?.MaximumCapacity;
 
+            public int SlotsFilled { get; set; }
+
             public Group Group { get; set; }
 
             public Location Location { get; set; }
@@ -858,14 +860,6 @@ namespace RockWeb.Blocks.SignUp
                         SlotsDesired.GetValueOrDefault().ToString("N0"),
                         SlotsMax.GetValueOrDefault().ToString("N0"),
                     } );
-                }
-            }
-
-            public int SlotsFilled
-            {
-                get
-                {
-                    return Attendees?.Count ?? 0;
                 }
             }
 
@@ -930,6 +924,9 @@ namespace RockWeb.Blocks.SignUp
                 .Where( gma => gma.GroupMember.GroupId == _groupId
                     && gma.LocationId == _locationId
                     && gma.ScheduleId == _scheduleId );
+
+            var slotsFilled = qry.Count();
+            bSlotsFilled.Text = slotsFilled.ToString( "N0" );
 
             if ( _isCommunicating )
             {
@@ -1086,6 +1083,7 @@ namespace RockWeb.Blocks.SignUp
 
             return new Opportunity
             {
+                SlotsFilled = slotsFilled,
                 Group = group ?? GetSharedGroup( rockContext ),
                 Location = groupLocation.Location,
                 Schedule = schedule,
