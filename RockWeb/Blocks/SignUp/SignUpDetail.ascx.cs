@@ -2501,7 +2501,7 @@ namespace RockWeb.Blocks.SignUp
             {
                 get
                 {
-                    var html = $"<div class='sign-up-slots-badge' data-tip='{SlotsBadgeTooltipId}'>&nbsp;";
+                    var htmlSb = new StringBuilder( $"<div class='sign-up-slots-badge' data-tip='{SlotsBadgeTooltipId}'>&nbsp;" );
                     var slotsFilled = SlotsFilled.GetValueOrDefault();
                     string fillColor;
                     string thresholdColor;
@@ -2547,24 +2547,24 @@ namespace RockWeb.Blocks.SignUp
                                 }
                             }
 
-                            html += GetFilledVisual( fillColor, SlotsMax.Value );
+                            htmlSb.Append( GetFilledVisual( fillColor, SlotsMax.Value ) );
 
                             if ( fillColor == BadgeColor.SuccessPlus )
                             {
-                                html += GetFilledVisual( BadgeColor.Success, SlotsMax.Value, partOverride );
+                                htmlSb.Append( GetFilledVisual( BadgeColor.Success, SlotsMax.Value, partOverride ) );
                             }
                         }
 
                         if ( SlotsMin.GetValueOrDefault() > 0 )
                         {
                             thresholdColor = slotsFilled < SlotsMin.Value ? BadgeColor.Warning : BadgeColor.White;
-                            html += GetThresholdVisual( BadgeThreshold.Minimum, thresholdColor, SlotsMax.Value, SlotsMin.Value );
+                            htmlSb.Append( GetThresholdVisual( BadgeThreshold.Minimum, thresholdColor, SlotsMax.Value, SlotsMin.Value ) );
                         }
 
                         if ( SlotsDesired.GetValueOrDefault() > 0 )
                         {
                             thresholdColor = slotsFilled < SlotsDesired.Value ? BadgeColor.Success : BadgeColor.White;
-                            html += GetThresholdVisual( BadgeThreshold.Desired, thresholdColor, SlotsMax.Value, SlotsDesired.Value );
+                            htmlSb.Append( GetThresholdVisual( BadgeThreshold.Desired, thresholdColor, SlotsMax.Value, SlotsDesired.Value ) );
                         }
                     }
                     else if ( SlotsDesired.GetValueOrDefault() > 0 )
@@ -2580,18 +2580,18 @@ namespace RockWeb.Blocks.SignUp
                                 fillColor = BadgeColor.SuccessPlus;
                             }
 
-                            html += GetFilledVisual( fillColor, SlotsDesired.Value );
+                            htmlSb.Append( GetFilledVisual( fillColor, SlotsDesired.Value ) );
 
                             if ( fillColor == BadgeColor.SuccessPlus )
                             {
-                                html += GetFilledVisual( BadgeColor.Success, SlotsDesired.Value, SlotsMin );
+                                htmlSb.Append( GetFilledVisual( BadgeColor.Success, SlotsDesired.Value, SlotsMin ) );
                             }
                         }
 
                         if ( SlotsMin.GetValueOrDefault() > 0 )
                         {
                             thresholdColor = SlotsFilled < SlotsMin.Value ? BadgeColor.Warning : BadgeColor.White;
-                            html += GetThresholdVisual( BadgeThreshold.Minimum, thresholdColor, SlotsDesired.Value, SlotsMin.Value );
+                            htmlSb.Append( GetThresholdVisual( BadgeThreshold.Minimum, thresholdColor, SlotsDesired.Value, SlotsMin.Value ) );
                         }
                     }
                     else if ( SlotsMin.GetValueOrDefault() > 0 )
@@ -2599,7 +2599,7 @@ namespace RockWeb.Blocks.SignUp
                         if ( slotsFilled > 0 )
                         {
                             fillColor = slotsFilled < SlotsMin.Value ? BadgeColor.Warning : BadgeColor.Success;
-                            html += GetFilledVisual( fillColor, SlotsMin.Value );
+                            htmlSb.Append( GetFilledVisual( fillColor, SlotsMin.Value ) );
                         }
                     }
                     else
@@ -2607,11 +2607,11 @@ namespace RockWeb.Blocks.SignUp
                         if ( slotsFilled > 0 )
                         {
                             fillColor = BadgeColor.Success;
-                            html += GetFilledVisual( fillColor, slotsFilled, slotsFilled );
+                            htmlSb.Append( GetFilledVisual( fillColor, slotsFilled, slotsFilled ) );
                         }
                     }
 
-                    return $"{html}</div>{SlotsBadgeTooltip}";
+                    return $"{htmlSb}</div>{SlotsBadgeTooltip}";
                 }
             }
 
