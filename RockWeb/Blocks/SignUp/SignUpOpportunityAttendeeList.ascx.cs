@@ -41,7 +41,7 @@ namespace RockWeb.Blocks.SignUp
     [Rock.SystemGuid.BlockTypeGuid( "EE652767-5070-4EAB-8BB7-BB254DD01B46" )]
     public partial class SignUpOpportunityAttendeeList : RockBlock
     {
-        #region Private Members
+        #region Private Keys and Fields
 
         private static class PageParameterKey
         {
@@ -71,6 +71,8 @@ namespace RockWeb.Blocks.SignUp
         private int _locationId;
         private int _scheduleId;
 
+        private bool _canEdit;
+
         private GroupTypeCache _groupTypeCache;
 
         private readonly string _photoFormat = "<div class=\"photo-icon photo-round photo-round-xs pull-left margin-r-sm js-person-popover\" personid=\"{0}\" data-original=\"{1}&w=50\" style=\"background-image: url( '{2}' ); background-size: cover; background-repeat: no-repeat;\"></div>";
@@ -80,7 +82,7 @@ namespace RockWeb.Blocks.SignUp
         private bool _isExporting = false;
 
         private HashSet<int> _groupMemberIdsNotMeetingRequirements = null;
-        private Dictionary<GroupMember, Dictionary<PersonGroupRequirementStatus, DateTime>> _unmetRequirementsByGroupMember = null;
+        private Dictionary<int, List<GroupRequirementType>> _unmetRequirementTypesByGroupMemberId = null;
 
         private Dictionary<int, Location> _personIdHomeLocationLookup = null;
         private Dictionary<int, Dictionary<int, string>> _personIdPhoneNumberTypePhoneNumberLookup = null;
@@ -148,6 +150,15 @@ namespace RockWeb.Blocks.SignUp
         #region Control Life-Cycle Events
 
         /// <summary>
+        /// Restores the view-state information from a previous user control request that was saved by the <see cref="M:System.Web.UI.UserControl.SaveViewState" /> method.
+        /// </summary>
+        /// <param name="savedState">An <see cref="T:System.Object" /> that represents the user control state to be restored.</param>
+        protected override void LoadViewState( object savedState )
+        {
+            base.LoadViewState( savedState );
+        }
+
+        /// <summary>
         /// Raises the <see cref="E:System.Web.UI.Control.Init" /> event.
         /// </summary>
         /// <param name="e">An <see cref="T:System.EventArgs" /> object that contains the event data.</param>
@@ -198,6 +209,17 @@ namespace RockWeb.Blocks.SignUp
         protected void Block_BlockUpdated( object sender, EventArgs e )
         {
             NavigateToCurrentPageReference();
+        }
+
+        /// <summary>
+        /// Saves any user control view-state changes that have occurred since the last page postback.
+        /// </summary>
+        /// <returns>
+        /// Returns the user control's current view state. If there is no view state associated with the control, it returns <see langword="null" />.
+        /// </returns>
+        protected override object SaveViewState()
+        {
+            return base.SaveViewState();
         }
 
         #endregion
@@ -632,13 +654,14 @@ namespace RockWeb.Blocks.SignUp
         {
             gfAttendees.UserPreferenceKeyPrefix = $"{_groupId}-{_locationId}-{_scheduleId}";
 
+            gAttendees.EntityTypeId = EntityTypeCache.Get( Rock.SystemGuid.EntityType.GROUP_MEMBER_ASSIGNMENT ).Id;
             gAttendees.PersonIdField = "PersonId";
             gAttendees.ExportFilename = group.Name;
             gAttendees.GetRecipientMergeFields += gAttendees_GetRecipientMergeFields;
             gAttendees.Actions.AddClick += gAttendees_AddClick;
 
-            var canEdit = IsUserAuthorized( Authorization.EDIT ) && group.IsAuthorized( Authorization.EDIT, this.CurrentPerson );
-            gAttendees.Actions.ShowAdd = canEdit;
+            _canEdit = IsUserAuthorized( Authorization.EDIT ) && group.IsAuthorized( Authorization.EDIT, this.CurrentPerson );
+            gAttendees.Actions.ShowAdd = _canEdit;
 
             AddGridRowButtons();
             SetGridFilters( group );
@@ -653,9 +676,12 @@ namespace RockWeb.Blocks.SignUp
             personProfileLinkField.LinkedPageAttributeKey = AttributeKey.PersonProfilePage;
             gAttendees.Columns.Add( personProfileLinkField );
 
-            _deleteField = new DeleteField();
-            _deleteField.Click += DeleteOrArchiveGroupMember_Click;
-            gAttendees.Columns.Add( _deleteField );
+            if ( _canEdit )
+            {
+                _deleteField = new DeleteField();
+                _deleteField.Click += DeleteOrArchiveGroupMember_Click;
+                gAttendees.Columns.Add( _deleteField );
+            }
         }
 
         /// <summary>
@@ -1026,10 +1052,20 @@ namespace RockWeb.Blocks.SignUp
                     ( gr.GroupTypeId.HasValue && gr.GroupTypeId == _groupTypeCache.Id ) )
                 .Any();
 
-            _unmetRequirementsByGroupMember = new GroupService( rockContext ).GroupMembersNotMeetingRequirements( group, true, true );
+            _unmetRequirementTypesByGroupMemberId = new GroupService( rockContext )
+                .GroupMembersNotMeetingRequirements( group, true, true )
+                .Select( kvp => new
+                {
+                    GroupMemberId = kvp.Key.Id,
+                    GroupRequirementType = kvp.Value.Select(
+                        kvpInner => ( ( PersonGroupRequirementStatus ) kvpInner.Key )?.GroupRequirement?.GroupRequirementType
+                    )
+                } )
+                .ToDictionary( x => x.GroupMemberId, x => x.GroupRequirementType.ToList() ); // Dictionary<int, List<GroupRequirementType>>
+
             _groupMemberIdsNotMeetingRequirements = new HashSet<int>(
-                _unmetRequirementsByGroupMember
-                    .Select( kvp => kvp.Key.Id )
+                _unmetRequirementTypesByGroupMemberId
+                    .Select( kvp => kvp.Key )
                     .Distinct()
                     .ToList()
             );
@@ -1244,6 +1280,12 @@ namespace RockWeb.Blocks.SignUp
                 }
             }
 
+            // If any row is selected, use those selected, otherwise choose all of them.
+            if ( gAttendees.SelectedKeys.Any() )
+            {
+                bool hit = true;
+            }
+
             gAttendees.DataSource = opportunity.Attendees;
             gAttendees.DataBind();
         }
@@ -1265,31 +1307,27 @@ namespace RockWeb.Blocks.SignUp
         /// <returns></returns>
         private string GetUnmetRequirementsTooltip( int groupMemberId )
         {
-            var friendlyRequirements = new List<string>();
+            var friendlyNames = new List<string>();
 
-            foreach ( var groupMemberRequirements in _unmetRequirementsByGroupMember.Where( kvp => kvp.Key.Id == groupMemberId ) )
+            foreach ( var unmetRequirementTypes in _unmetRequirementTypesByGroupMemberId.Where( kvp => kvp.Key == groupMemberId ) )
             {
-                var unmetRequirements = groupMemberRequirements.Value;
-
-                foreach ( var unmetRequirement in unmetRequirements )
+                foreach ( var groupRequirementType in unmetRequirementTypes.Value )
                 {
-                    var personGroupRequirementStatus = unmetRequirement.Key;
+                    var friendlyName = groupRequirementType?.NegativeLabel;
 
-                    var friendlyRequirement = personGroupRequirementStatus?.GroupRequirement?.GroupRequirementType?.NegativeLabel;
-
-                    if ( string.IsNullOrWhiteSpace( friendlyRequirement ) )
+                    if ( string.IsNullOrWhiteSpace( friendlyName ) )
                     {
-                        friendlyRequirement = personGroupRequirementStatus?.GroupRequirement?.GroupRequirementType?.Name;
+                        friendlyName = groupRequirementType?.Name;
                     }
 
-                    if ( !string.IsNullOrWhiteSpace( friendlyRequirement ) )
+                    if ( !string.IsNullOrWhiteSpace( friendlyName ) )
                     {
-                        friendlyRequirements.Add( friendlyRequirement );
+                        friendlyNames.Add( friendlyName );
                     }
                 }
             }
 
-            if ( !friendlyRequirements.Any() )
+            if ( !friendlyNames.Any() )
             {
                 return string.Empty;
             }
@@ -1297,9 +1335,9 @@ namespace RockWeb.Blocks.SignUp
             var tooltipHtmlSb = new StringBuilder( $"<div id='{GetUnmetRequirementsTooltipId( groupMemberId )}' class='hide'>");
             tooltipHtmlSb.Append( "<p class='text-center'><strong>Unmet Group Requirements</strong></><ul>" );
 
-            foreach ( var friendlyRequirement in friendlyRequirements )
+            foreach ( var friendlyName in friendlyNames )
             {
-                tooltipHtmlSb.Append( $"<li>{friendlyRequirement}</li>" );
+                tooltipHtmlSb.Append( $"<li>{friendlyName}</li>" );
             }
 
             tooltipHtmlSb.Append( "</ul></div>" );
