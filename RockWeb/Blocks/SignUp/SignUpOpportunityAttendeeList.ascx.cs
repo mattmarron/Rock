@@ -75,8 +75,6 @@ namespace RockWeb.Blocks.SignUp
 
         private GroupTypeCache _groupTypeCache;
 
-        private readonly string _photoFormat = "<div class=\"photo-icon photo-round photo-round-xs pull-left margin-r-sm js-person-popover\" personid=\"{0}\" data-original=\"{1}&w=50\" style=\"background-image: url( '{2}' ); background-size: cover; background-repeat: no-repeat;\"></div>";
-
         private bool _hasGroupRequirements = false;
         private bool _isCommunicating = false;
         private bool _isExporting = false;
@@ -336,19 +334,20 @@ namespace RockWeb.Blocks.SignUp
 
                 if ( _hasGroupRequirements && _groupMemberIdsNotMeetingRequirements.Contains( groupMember.Id ) )
                 {
-                    nameHtml.Append( $"<span class='unmet-group-requirements pull-left margin-r-md' data-tip='{GetUnmetRequirementsTooltipId( groupMember.Id )}'><i class='fa fa-exclamation-triangle text-warning'></i></span>{GetUnmetRequirementsTooltip( groupMember.Id )}" );
+                    nameHtml.Append( $"<i class='fa fa-exclamation-triangle text-warning unmet-group-requirements margin-r-md' data-tip='{GetUnmetRequirementsTooltipId( groupMember.Id )}'></i>{GetUnmetRequirementsTooltip( groupMember.Id )}" );
                 }
 
-                nameHtml.AppendFormat( _photoFormat, groupMember.PersonId, groupMember.Person.PhotoUrl, ResolveUrl( "~/Assets/Images/person-no-photo-unknown.svg" ) );
+                nameHtml.Append( $"<div class=\"photo-icon photo-round photo-round-xs margin-r-sm js-person-popover\" personid=\"{groupMember.PersonId}\" data-original=\"{groupMember.Person.PhotoUrl}&w=50\" style=\"background-image: url( 'ResolveUrl( \"~/Assets/Images/person-no-photo-unknown.svg\" )' ); background-size: cover; background-repeat: no-repeat;\"></div>" );
+
                 nameHtml.Append( groupMember.Person.FullName );
                 if ( groupMember.Person.TopSignalColor.IsNotNullOrWhiteSpace() )
                 {
-                    nameHtml.Append( " " + groupMember.Person.GetSignalMarkup() );
+                    nameHtml.Append( $" {groupMember.Person.GetSignalMarkup()}" );
                 }
 
                 if ( groupMember.Note.IsNotNullOrWhiteSpace() )
                 {
-                    nameHtml.Append( " <span class='js-group-member-note' data-toggle='tooltip' data-placement='top' title='" + groupMember.Note.EncodeHtml() + "'><i class='fa fa-file-text-o text-info'></i></span>" );
+                    nameHtml.Append( $" <span class='js-group-member-note' data-toggle='tooltip' data-placement='top' title='{groupMember.Note.EncodeHtml()}'><i class='fa fa-file-text-o text-info'></i></span>" );
                 }
 
                 lNameWithHtml.Text = nameHtml.ToString();
