@@ -946,7 +946,7 @@ namespace RockWeb.Blocks.SignUp
                 var linkButtonField = gOpportunities.ColumnsOfType<LinkButtonField>().FirstOrDefault( c => c.ID == "lbOpportunityDetail" );
                 if ( linkButtonField != null )
                 {
-                    gOpportunities.Columns.Remove( linkButtonField );
+                    linkButtonField.Visible = false;
                 }
             }
 
@@ -955,13 +955,13 @@ namespace RockWeb.Blocks.SignUp
                 var editField = gOpportunities.ColumnsOfType<EditField>().FirstOrDefault( c => c.ID == "efOpportunities" );
                 if ( editField != null )
                 {
-                    gOpportunities.Columns.Remove( editField );
+                    editField.Visible = false;
                 }
 
                 var deleteField = gOpportunities.ColumnsOfType<DeleteField>().FirstOrDefault( c => c.ID == "dfOpportunities" );
                 if ( deleteField != null )
                 {
-                    gOpportunities.Columns.Remove( deleteField );
+                    deleteField.Visible = false;
                 }
             }
         }

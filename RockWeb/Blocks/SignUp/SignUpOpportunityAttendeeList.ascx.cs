@@ -659,8 +659,15 @@ namespace RockWeb.Blocks.SignUp
             gAttendees.GetRecipientMergeFields += gAttendees_GetRecipientMergeFields;
             gAttendees.Actions.AddClick += gAttendees_AddClick;
 
-            _canEdit = IsUserAuthorized( Authorization.EDIT ) && group.IsAuthorized( Authorization.EDIT, this.CurrentPerson );
+            // we'll have custom javascript (see SignUpOpportunityAttendeeList.ascx ) do this instead.
+            gAttendees.ShowConfirmDeleteDialog = false;
+
+            _canEdit = IsUserAuthorized( Authorization.EDIT )
+                || group.IsAuthorized( Authorization.EDIT, this.CurrentPerson )
+                || group.IsAuthorized( Authorization.MANAGE_MEMBERS, this.CurrentPerson );
+
             gAttendees.Actions.ShowAdd = _canEdit;
+            gAttendees.IsDeleteEnabled = _canEdit;
 
             AddGridRowButtons();
             SetGridFilters( group );
@@ -675,12 +682,9 @@ namespace RockWeb.Blocks.SignUp
             personProfileLinkField.LinkedPageAttributeKey = AttributeKey.PersonProfilePage;
             gAttendees.Columns.Add( personProfileLinkField );
 
-            if ( _canEdit )
-            {
-                _deleteField = new DeleteField();
-                _deleteField.Click += DeleteOrArchiveGroupMember_Click;
-                gAttendees.Columns.Add( _deleteField );
-            }
+            _deleteField = new DeleteField();
+            _deleteField.Click += DeleteOrArchiveGroupMember_Click;
+            gAttendees.Columns.Add( _deleteField );
         }
 
         /// <summary>
