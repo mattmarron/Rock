@@ -65,12 +65,13 @@ namespace Rock.Plugin.HotFixes
         {
             RockMigrationHelper.AddGroupType( "Sign-Up Group", "Used to track individuals who have signed up for events such as short term serving projects.", "Group", "Member", false, true, true, "fa fa-clipboard-check", 0, null, 3, null, SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP );
 
+            Sql( $"UPDATE [GroupType] SET [AllowedScheduleTypes] = 6 WHERE [Guid] = '{SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP}'" );
+            Sql( $"UPDATE [GroupType] SET [EnableGroupHistory] = 1 WHERE [Guid] = '{SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP}'" );
+
             RockMigrationHelper.AddGroupTypeRole( SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP, "Leader", "Indicates the person is a leader in the group.", 0, null, null, SystemGuid.GroupRole.GROUPROLE_SIGNUP_GROUP_LEADER, true, true, false );
             RockMigrationHelper.AddGroupTypeRole( SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP, "Member", "Indicates the person is a member in the group.", 1, null, null, SystemGuid.GroupRole.GROUPROLE_SIGNUP_GROUP_MEMBER, true, false, true );
 
             RockMigrationHelper.AddGroupTypeAssociation( SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP, SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP );
-
-            Sql( $"UPDATE [GroupType] SET [AllowedScheduleTypes] = 6 WHERE [Guid] = '{SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP}'" );
 
             RockMigrationHelper.AddGroupTypeGroupAttribute( SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP, SystemGuid.FieldType.DEFINED_VALUE, "Project Type", "The specified project type.", 0, string.Empty, SystemGuid.Attribute.GROUPTYPE_SIGNUP_GROUP_PROJECT_TYPE, true );
 
@@ -108,6 +109,9 @@ namespace Rock.Plugin.HotFixes
         private void ShortTermServingProjects_AddAdminBlockTypes()
         {
             RockMigrationHelper.UpdateBlockType( "Sign-Up Overview", "Displays an overview of sign-up projects with upcoming and recently-occurred opportunities.", "~/Blocks/SignUp/SignUpOverview.ascx", "Sign-Up", "B539F3B5-01D3-4325-B32A-85AFE2A9D18B" );
+            RockMigrationHelper.AddOrUpdateBlockTypeAttribute( "B539F3B5-01D3-4325-B32A-85AFE2A9D18B", "BD53F9C9-EBA9-4D3F-82EA-DE5DD34A8108", "Project Detail Page", "ProjectDetailPage", "Project Detail Page", "Page used for viewing details about the scheduled opportunities for a given project group. Clicking a row in the grid will take you to this page.", 0, "", "E306CB42-10FE-428C-A8B9-224BB7B30C6A" );
+            Sql( "UPDATE [Attribute] SET [IsRequired] = 1 WHERE [Guid] = 'E306CB42-10FE-428C-A8B9-224BB7B30C6A';" );
+            RockMigrationHelper.AddOrUpdateBlockTypeAttribute( "B539F3B5-01D3-4325-B32A-85AFE2A9D18B", "BD53F9C9-EBA9-4D3F-82EA-DE5DD34A8108", "Sign-Up Opportunity Attendee List Page", "SignUpOpportunityAttendeeListPage", "Sign-Up Opportunity Attendee List Page", "Page used for viewing all the group members for the selected sign-up opportunity. If set, a view attendees button will show for each opportunity.", 1, "", "B86F9026-5B63-414C-A069-B5C86B8FEFC2" );
 
             RockMigrationHelper.UpdateBlockType( "Sign-Up Detail", "Displays details about the scheduled opportunities for a given project group.", "~/Blocks/SignUp/SignUpDetail.ascx", "Sign-Up", "69F5C6BD-7A22-42FE-8285-7C8E586E746A" );
             RockMigrationHelper.AddOrUpdateBlockTypeAttribute( "69F5C6BD-7A22-42FE-8285-7C8E586E746A", "BD53F9C9-EBA9-4D3F-82EA-DE5DD34A8108", "Sign-Up Opportunity Attendee List Page", "SignUpOpportunityAttendeeListPage", "Sign-Up Opportunity Attendee List Page", "Page used for viewing all the group members for the selected sign-up opportunity. If set, a view attendees button will show for each opportunity.", 0, "", "525A1D90-CF46-4710-ADC3-86552EBB1E9C" );
@@ -130,6 +134,10 @@ namespace Rock.Plugin.HotFixes
             RockMigrationHelper.AddPageRoute( "1941542C-21F2-4341-BDE1-996AA1E0C0A2", "people/sign-up", "75332FE3-DB1B-4B83-9287-5EDDD09A1A4E" );
             // [Block]: Sign-Up Overview for [Page]: Engagement > Sign-Up
             RockMigrationHelper.AddBlock( true, "1941542C-21F2-4341-BDE1-996AA1E0C0A2".AsGuidOrNull(), null, null, "B539F3B5-01D3-4325-B32A-85AFE2A9D18B".AsGuidOrNull(), "Sign-Up Overview", "Main", "", "", 0, "4ECCC106-5374-4E33-A8AA-3ADE977FB1A4" );
+            // [Attribute Value]: Project Detail Page for [Block]: Sign-Up Overview for [Page]: Engagement > Sign-Up
+            RockMigrationHelper.AddBlockAttributeValue( "4ECCC106-5374-4E33-A8AA-3ADE977FB1A4", "E306CB42-10FE-428C-A8B9-224BB7B30C6A", "34212f8e-5f14-4d92-8b19-46748eba2727,d6aefd09-630e-40d7-aa56-77cc904c6595" );
+            // [Attribute Value]: Sign-Up Opportunity Attendee List Page for [Block]: Sign-Up Overview for [Page]: Engagement > Sign-Up
+            RockMigrationHelper.AddBlockAttributeValue( "4ECCC106-5374-4E33-A8AA-3ADE977FB1A4", "B86F9026-5B63-414C-A069-B5C86B8FEFC2", "aaf11844-ec6c-498b-a9d8-387390206570,db9c7e0d-5ec7-4cc2-ba9e-dd398d4b9714" );
             // [Block]: Sign-Up Groups (Group Tree View) for [Page]: Engagement > Sign-Up
             RockMigrationHelper.AddBlock( true, "1941542C-21F2-4341-BDE1-996AA1E0C0A2".AsGuidOrNull(), null, null, "2D26A2C4-62DC-4680-8219-A52EB2BC0F65".AsGuidOrNull(), "Sign-Up Groups", "Sidebar1", "", "", 0, "B9D4522A-38D7-4F5B-B9CD-E5497B258471" );
             // [Attribute Value]: Detail Page for [Block]: Sign-Up Groups (Group Tree View) for [Page]: Engagement > Sign-Up
@@ -305,6 +313,10 @@ namespace Rock.Plugin.HotFixes
             RockMigrationHelper.DeleteBlockAttributeValue( "B9D4522A-38D7-4F5B-B9CD-E5497B258471", "ADCC4391-8D8B-4A28-80AF-24CD6D3F77E2" );
             // [Block]: Sign-Up Groups (Group Tree View) for [Page]: Engagement > Sign-Up
             RockMigrationHelper.DeleteBlock( "B9D4522A-38D7-4F5B-B9CD-E5497B258471" );
+            // [Attribute Value]: Sign-Up Opportunity Attendee List Page for [Block]: Sign-Up Overview for [Page]: Engagement > Sign-Up
+            RockMigrationHelper.DeleteBlockAttributeValue( "4ECCC106-5374-4E33-A8AA-3ADE977FB1A4", "B86F9026-5B63-414C-A069-B5C86B8FEFC2" );
+            // [Attribute Value]: Project Detail Page for [Block]: Sign-Up Overview for [Page]: Engagement > Sign-Up
+            RockMigrationHelper.DeleteBlockAttributeValue( "4ECCC106-5374-4E33-A8AA-3ADE977FB1A4", "E306CB42-10FE-428C-A8B9-224BB7B30C6A" );
             // [Block]: Sign-Up Overview for [Page]: Engagement > Sign-Up
             RockMigrationHelper.DeleteBlock( "4ECCC106-5374-4E33-A8AA-3ADE977FB1A4" );
             // [Page]: Engagement > Sign-Up
@@ -317,6 +329,8 @@ namespace Rock.Plugin.HotFixes
         /// </summary>
         private void ShortTermServingProjects_DeleteAdminBlockTypes()
         {
+            RockMigrationHelper.DeleteBlockAttribute( "E306CB42-10FE-428C-A8B9-224BB7B30C6A" );
+            RockMigrationHelper.DeleteBlockAttribute( "B86F9026-5B63-414C-A069-B5C86B8FEFC2" );
             RockMigrationHelper.DeleteBlockType( "B539F3B5-01D3-4325-B32A-85AFE2A9D18B" );
 
             RockMigrationHelper.DeleteBlockAttribute( "525A1D90-CF46-4710-ADC3-86552EBB1E9C" );

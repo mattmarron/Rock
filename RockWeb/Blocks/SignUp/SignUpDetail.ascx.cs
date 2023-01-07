@@ -76,6 +76,13 @@ namespace RockWeb.Blocks.SignUp
             public const string GroupRequirements = "GroupRequirements";
         }
 
+        private static class DataKeyName
+        {
+            public const string GroupLocationId = "GroupLocationId";
+            public const string LocationId = "LocationId";
+            public const string ScheduleId = "ScheduleId";
+        }
+
         #endregion
 
         #region Fields
@@ -114,7 +121,6 @@ namespace RockWeb.Blocks.SignUp
                 return GroupTypeCache.Get( Rock.SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP );
             }
         }
-
 
         private int SignUpGroupTypeId
         {
@@ -977,8 +983,8 @@ namespace RockWeb.Blocks.SignUp
             var qryParams = new Dictionary<string, string>
             {
                 { PageParameterKey.GroupId, GroupId.ToString() },
-                { PageParameterKey.LocationId, keys[nameof( Opportunity.LocationId )].ToString() },
-                { PageParameterKey.ScheduleId, keys[nameof( Opportunity.ScheduleId )].ToString() }
+                { PageParameterKey.LocationId, keys[DataKeyName.LocationId].ToString() },
+                { PageParameterKey.ScheduleId, keys[DataKeyName.ScheduleId].ToString() }
             };
 
             NavigateToLinkedPage( AttributeKey.SignUpOpportunityAttendeeListPage, qryParams );
@@ -1084,7 +1090,7 @@ namespace RockWeb.Blocks.SignUp
         protected void gOpportunities_Edit( object sender, RowEventArgs e )
         {
             var keys = e.RowKeyValues;
-            gOpportunities_ShowEdit( ( int ) keys[nameof( Opportunity.GroupLocationId )], ( int ) keys[nameof( Opportunity.ScheduleId )] );
+            gOpportunities_ShowEdit( keys[DataKeyName.GroupLocationId].ToIntSafe(), keys[DataKeyName.ScheduleId].ToIntSafe() );
         }
 
         /// <summary>
@@ -1532,11 +1538,22 @@ namespace RockWeb.Blocks.SignUp
         protected void gOpportunities_Delete( object sender, RowEventArgs e )
         {
             var keys = e.RowKeyValues;
-            var groupLocationId = ( int ) keys[nameof( Opportunity.GroupLocationId )];
-            var scheduleId = ( int ) keys[nameof( Opportunity.ScheduleId )];
+            var groupLocationId = keys[DataKeyName.GroupLocationId].ToIntSafe();
+            var scheduleId = keys[DataKeyName.ScheduleId].ToIntSafe();
 
             using ( var rockContext = new RockContext() )
             {
+                /*
+                 * An Opportunity is a GroupLocationSchedule with possible GroupMemberAssignments (and therefore, GroupMembers).
+                 * When deleting an Opportunity we should delete the following:
+                 * 
+                 * 1) GroupMemberAssignments
+                 * 2) GroupMembers (if no more GroupMemberAssignents for a given GroupMember)
+                 * 3) Schedule (if non-named and nothing else is using it)
+                 * 4) GroupLocationScheduleConfig
+                 * 5) GroupLocation (if no more Schedules tied to the specified GroupLocation)
+                 */
+
                 var groupLocationService = new GroupLocationService( rockContext );
                 var groupLocation = groupLocationService
                     .Queryable()
@@ -2679,7 +2696,6 @@ namespace RockWeb.Blocks.SignUp
 
 
                     OpportunitiesState = opportunities
-                        .Where( o => o.Config != null )
                         .Select( o =>
                         {
                             var now = group.Campus?.CurrentDateTime ?? RockDateTime.Now;
@@ -2690,15 +2706,15 @@ namespace RockWeb.Blocks.SignUp
                                 GroupLocationId = o.GroupLocationId,
                                 LocationId = o.Location.Id,
                                 ScheduleId = o.Schedule.Id,
-                                Name = o.Config.ConfigurationName,
+                                Name = o.Config?.ConfigurationName,
                                 IsUpcoming = nextStartDateTime.HasValue && nextStartDateTime >= now,
                                 FriendlyDateTime = o.Schedule.FriendlyScheduleText ?? "Custom",
                                 FriendlyLocation = o.Location.ToString(),
-                                SlotsMin = o.Config.MinimumCapacity,
-                                SlotsDesired = o.Config.DesiredCapacity,
-                                SlotsMax = o.Config.MaximumCapacity,
-                                ReminderAdditionalDetails = o.Config.ReminderAdditionalDetails,
-                                ConfirmationAdditionalDetails = o.Config.ConfirmationAdditionalDetails
+                                SlotsMin = o.Config?.MinimumCapacity,
+                                SlotsDesired = o.Config?.DesiredCapacity,
+                                SlotsMax = o.Config?.MaximumCapacity,
+                                ReminderAdditionalDetails = o.Config?.ReminderAdditionalDetails,
+                                ConfirmationAdditionalDetails = o.Config?.ConfirmationAdditionalDetails
                             };
                         } )
                         .ToList();

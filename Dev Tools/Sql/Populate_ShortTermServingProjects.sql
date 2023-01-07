@@ -159,8 +159,12 @@ DECLARE @DefinedValueGuid_ProjectType_ProjectDue [uniqueidentifier] = 'C999D489-
 
 DECLARE @Now [datetime] = (SELECT GETDATE());
 DECLARE @DateTimeString_Now [char](15) = (SELECT FORMAT(@Now, 'yyyyMMddTHHmmss'));
+
 DECLARE @DateString_OneWeekInFuture [char](8) = (SELECT FORMAT (DATEADD(day, 7, @Now), 'yyyyMMdd'));
 DECLARE @DateString_OneWeekInPast [char](8) = (SELECT FORMAT (DATEADD(day, -7, @Now), 'yyyyMMdd'));
+
+DECLARE @DateString_TwoWeeksInFuture [char](8) = (SELECT FORMAT (DATEADD(day, 14, @Now), 'yyyyMMdd'));
+DECLARE @DateString_TwoWeeksInPast [char](8) = (SELECT FORMAT (DATEADD(day, -14, @Now), 'yyyyMMdd'));
 
 DECLARE @ParentGroupGuid [uniqueidentifier]
     , @GroupGuid [uniqueidentifier]
@@ -171,11 +175,8 @@ DECLARE @ParentGroupGuid [uniqueidentifier]
 ---------------------------------------------------------------------------------------------------
 BEGIN -- region Feed My Starving Children
     SET @ParentGroupGuid = @GroupGuid_SignUpGroups;
-    -- These (and all Guids below EXCEPT those within the "INSERT INTO @Members" sections) are new: made specifically for this script.
+    -- All Guids below (EXCEPT those within the "INSERT INTO @Members" sections) are new: made specifically for this script.
     SET @GroupGuid = '353C7EEE-6257-4A0C-A081-87386F8F8134';
-    SET @LocationGuid = '31346174-0643-45E1-96D0-0A6FDE33A76A';
-    SET @ScheduleGuid = '53B79AD0-0304-4B5F-B15D-77FFFE570DA4';
-    SET @OpportunityGuid = '67C8C422-5B92-4C9D-8953-421CD827DE87';
 
     INSERT INTO @Groups
     VALUES
@@ -189,6 +190,10 @@ BEGIN -- region Feed My Starving Children
         , null -- [CampusGuid] [uniqueidentifier] NULL
         , 'Turn hunger into hope with your own two hands by packing nutritious meals for hungry children around the world.' -- [Description] [nvarchar](max) NULL
     );
+
+    SET @LocationGuid = '31346174-0643-45E1-96D0-0A6FDE33A76A';
+    SET @ScheduleGuid = '53B79AD0-0304-4B5F-B15D-77FFFE570DA4';
+    SET @OpportunityGuid = '67C8C422-5B92-4C9D-8953-421CD827DE87';
 
     INSERT INTO @Locations
     VALUES
@@ -439,9 +444,6 @@ END
 BEGIN -- region Habitat for Humanity
     SET @ParentGroupGuid = @GroupGuid_SignUpGroups;
     SET @GroupGuid = 'CC712BEB-B74C-416F-B226-D524F5CF5381';
-    SET @LocationGuid = null;
-    SET @ScheduleGuid = null;
-    SET @OpportunityGuid = null;
 
     INSERT INTO @Groups
     VALUES
@@ -459,9 +461,6 @@ BEGIN -- region Habitat for Humanity
     -----------------------------------------------------------------------------------------------
     SET @ParentGroupGuid = @GroupGuid;
     SET @GroupGuid = 'D417EEF0-3AB7-4C56-B7B1-E3CEC4CD2BC3';
-    SET @LocationGuid = null;
-    SET @ScheduleGuid = null;
-    SET @OpportunityGuid = null;
 
     INSERT INTO @Groups
     VALUES
@@ -479,9 +478,6 @@ BEGIN -- region Habitat for Humanity
 
     -----------------------------------------------------------------------------------------------
     SET @GroupGuid = '997862DB-C58B-4438-8834-9E2C5A0D92CC';
-    SET @LocationGuid = null;
-    SET @ScheduleGuid = null;
-    SET @OpportunityGuid = null;
 
     INSERT INTO @Groups
     VALUES
@@ -497,11 +493,104 @@ BEGIN -- region Habitat for Humanity
         , 'Since 1991, Women Build volunteers from all walks of life have come together to build stronger, safer communities.' -- [Description] [nvarchar](max) NULL
     );
 
+    SET @LocationGuid = 'A6535DAC-B0EC-46A1-BD82-59CA1DB4AC86';
+    SET @ScheduleGuid = 'EE8EBC8B-DD64-41FA-82C5-529B7389D7FE';
+    SET @OpportunityGuid = 'EFA0EC52-D711-4BBE-B489-22FF790AF003';
+
+    INSERT INTO @Locations
+    VALUES
+    (
+        @LocationGuid -- [Guid] [uniqueidentifier] NOT NULL
+        , null -- [Name] [nvarchar](100) NULL
+        , 0xE6100000010C79758E01D9CB40403563D17476105CC0 -- [GeoPoint] [geography] NULL
+        , '9133 Grand Ave.' -- [Street1] [nvarchar](100) NULL
+        , null -- [Street2] [nvarchar](100) NULL
+        , 'Peoria' -- [City] [nvarchar](50) NULL
+        , 'AZ' -- [State] [nvarchar](50) NULL
+        , 'US' -- [Country] [nvarchar](50) NULL
+        , '85345-8189' -- [PostalCode] [nvarchar](50) NULL
+        , 'Maricopa' -- [County] [varchar](50) NULL
+    );
+
+    INSERT INTO @Schedules
+    VALUES
+    (
+        @ScheduleGuid -- [Guid] [uniqueidentifier] NOT NULL
+        , CONCAT('BEGIN:VCALENDAR
+PRODID:-//github.com/rianjs/ical.net//NONSGML ical.net 4.0//EN
+VERSION:2.0
+BEGIN:VEVENT
+DTEND:', @DateString_TwoWeeksInFuture,'T110000
+DTSTAMP:', @DateTimeString_Now,'
+DTSTART:', @DateString_TwoWeeksInFuture, 'T090000
+SEQUENCE:0
+UID:753f3bb6-f9dd-495a-94bd-97ac0901917c
+END:VEVENT
+END:VCALENDAR
+') -- [iCalendarContent] [nvarchar](max) NOT NULL
+        , null -- [Name] [nvarchar](50) NULL
+    );
+
+    INSERT INTO @Opportunities
+    VALUES
+    (
+        @OpportunityGuid -- [Guid] [uniqueidentifier] NOT NULL
+        , @GroupGuid -- [GroupGuid] [uniqueidentifier] NOT NULL
+        , @LocationGuid -- [LocationGuid] [uniqueidentifier] NOT NULL
+        , @ScheduleGuid -- [ScheduleGuid] [uniqueidentifier] NOT NULL
+        , 'Peoria ReStore Volunteer' -- [Name] [nvarchar](100) NULL
+        , 4 -- [MinimumCapacity] [int] NULL
+        , 6 -- [DesiredCapacity] [int] NULL
+        , 10 -- [MaximumCapacity] [int] NULL
+        , null -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
+        , null -- [ReminderAdditionalDetails] [nvarchar](max) NULL
+    );
+
+    INSERT INTO @Members
+    VALUES
+    (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , 'B71494DB-D809-451A-A950-28898D0FD92C' -- Cindy Decker
+        , 1 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '69DC0FDC-B451-4303-BD91-EF17C0015D23' -- Alisha Marble
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , 'F4450E80-F221-4556-881D-CB92B008C2DA' -- Pamela Foster
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '1A5A4E5F-E0A4-4EFA-B7D7-6698153ED718' -- Lorraine Greggs
+        , 0 -- [IsLeader] [bit] NOT NULL
+    ),    
+    (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , 'D35B865D-BF50-4A7D-848F-6C0ED7A2AE67' -- Wendy Gilbert
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '3E52CD9D-79D4-40FC-AC71-26688C084A27' -- Becky Peterson
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '988195A3-1895-492E-839B-653C35307862' -- Nancy Sweeney
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '773AD0F9-369A-47BC-BEBB-2E8EE4C5FEF5' -- Sheryl Tennant
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+
     -----------------------------------------------------------------------------------------------
     SET @GroupGuid = '46D9BD61-BCF3-4D04-B2D8-9B68B1665715';
-    SET @LocationGuid = null;
-    SET @ScheduleGuid = null;
-    SET @OpportunityGuid = null;
 
     INSERT INTO @Groups
     VALUES

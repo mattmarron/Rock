@@ -71,6 +71,7 @@ namespace RockWeb.Blocks.SignUp
         private int _locationId;
         private int _scheduleId;
 
+        private bool _canView;
         private bool _canEdit;
 
         private GroupTypeCache _groupTypeCache;
@@ -175,6 +176,11 @@ namespace RockWeb.Blocks.SignUp
                 var group = GetSharedGroup( rockContext );
                 if ( group != null )
                 {
+                    _canView = group.IsAuthorized( Authorization.VIEW, this.CurrentPerson );
+                    _canEdit = IsUserAuthorized( Authorization.EDIT )
+                        || group.IsAuthorized( Authorization.EDIT, this.CurrentPerson )
+                        || group.IsAuthorized( Authorization.MANAGE_MEMBERS, this.CurrentPerson );
+
                     InitializeGrid( group );
                 }
             }
@@ -651,9 +657,9 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="group">The group.</param>
         private void InitializeGrid( Group group )
         {
-            gfAttendees.UserPreferenceKeyPrefix = $"{_groupId}-{_locationId}-{_scheduleId}";
+            // Prevent the "Launch Workflow" button from showing for now; this needs a bit more thought: what exactly will we send a workflow from this grid?
+            //gAttendees.EntityTypeId = EntityTypeCache.Get( Rock.SystemGuid.EntityType.GROUP_MEMBER_ASSIGNMENT ).Id;
 
-            gAttendees.EntityTypeId = EntityTypeCache.Get( Rock.SystemGuid.EntityType.GROUP_MEMBER_ASSIGNMENT ).Id;
             gAttendees.PersonIdField = "PersonId";
             gAttendees.ExportFilename = group.Name;
             gAttendees.GetRecipientMergeFields += gAttendees_GetRecipientMergeFields;
@@ -662,14 +668,12 @@ namespace RockWeb.Blocks.SignUp
             // we'll have custom javascript (see SignUpOpportunityAttendeeList.ascx ) do this instead.
             gAttendees.ShowConfirmDeleteDialog = false;
 
-            _canEdit = IsUserAuthorized( Authorization.EDIT )
-                || group.IsAuthorized( Authorization.EDIT, this.CurrentPerson )
-                || group.IsAuthorized( Authorization.MANAGE_MEMBERS, this.CurrentPerson );
-
             gAttendees.Actions.ShowAdd = _canEdit;
             gAttendees.IsDeleteEnabled = _canEdit;
 
             AddGridRowButtons();
+
+            gfAttendees.UserPreferenceKeyPrefix = $"{_groupId}-{_locationId}-{_scheduleId}-";
             SetGridFilters( group );
         }
 
@@ -824,7 +828,7 @@ namespace RockWeb.Blocks.SignUp
         /// <returns></returns>
         private bool EnsureGroupIsAllowed( Group group )
         {
-            if ( !group.IsAuthorized( Authorization.VIEW, this.CurrentPerson ) )
+            if ( !_canView )
             {
                 ShowNotAuthorizedToViewMessage();
                 return false;
