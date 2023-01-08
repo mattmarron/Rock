@@ -103,12 +103,11 @@ namespace Rock.Model
         /// </summary>
         /// <param name="relatedSmsFromDefinedValueId">The related SMS from defined value identifier.</param>
         /// <param name="startDateTime">The start date time.</param>
-        /// <param name="showReadMessages">if set to <c>true</c> [show read messages].</param>
         /// <param name="maxCount">The maximum count.</param>
         /// <param name="filter">The message filter.</param>
         /// <param name="personId">The person identifier.</param>
         /// <returns></returns>
-        public List<CommunicationRecipientResponse> GetCommunicationResponseRecipients( int relatedSmsFromDefinedValueId, DateTime startDateTime, bool showReadMessages, int maxCount, CommunicationMessageFilter filter, int? personId )
+        public List<CommunicationRecipientResponse> GetCommunicationResponseRecipients( int relatedSmsFromDefinedValueId, DateTime startDateTime, int maxCount, CommunicationMessageFilter filter, int? personId )
         {
             var smsMediumEntityTypeId = EntityTypeCache.GetId( SystemGuid.EntityType.COMMUNICATION_MEDIUM_SMS ).Value;
 
@@ -122,7 +121,7 @@ namespace Rock.Model
                 && r.CreatedDateTime >= startDateTime
                 && r.Status == CommunicationRecipientStatus.Delivered );
 
-            if ( !showReadMessages || filter == CommunicationMessageFilter.ShowUnreadReplies )
+            if ( filter == CommunicationMessageFilter.ShowUnreadReplies )
             {
                 communicationResponseQuery = communicationResponseQuery.Where( r => r.IsRead == false );
             }
