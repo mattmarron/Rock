@@ -78,6 +78,7 @@ namespace RockWeb.Blocks.SignUp
 
         private static class DataKeyName
         {
+            public const string GroupId = "GroupId";
             public const string GroupLocationId = "GroupLocationId";
             public const string LocationId = "LocationId";
             public const string ScheduleId = "ScheduleId";
@@ -1537,9 +1538,14 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
         protected void gOpportunities_Delete( object sender, RowEventArgs e )
         {
-            var keys = e.RowKeyValues;
-            var groupLocationId = keys[DataKeyName.GroupLocationId].ToIntSafe();
-            var scheduleId = keys[DataKeyName.ScheduleId].ToIntSafe();
+            var groupId = e.RowKeyValues[DataKeyName.GroupId].ToIntSafe();
+            var locationId = e.RowKeyValues[DataKeyName.LocationId].ToIntSafe();
+            var scheduleId = e.RowKeyValues[DataKeyName.ScheduleId].ToIntSafe();
+
+            /*
+             * We should consider moving this logic to a service (probably the GroupLocationService), as this code block is identical
+             * to that found within the SignUpOverview block's dfOpportunities_Click() method.
+             */
 
             using ( var rockContext = new RockContext() )
             {
@@ -1549,42 +1555,56 @@ namespace RockWeb.Blocks.SignUp
                  * 
                  * 1) GroupMemberAssignments
                  * 2) GroupMembers (if no more GroupMemberAssignents for a given GroupMember)
-                 * 3) Schedule (if non-named and nothing else is using it)
-                 * 4) GroupLocationScheduleConfig
-                 * 5) GroupLocation (if no more Schedules tied to the specified GroupLocation)
+                 * 3) GroupLocationSchedule & GroupLocationScheduleConfig
+                 * 4) GroupLocation (if no more Schedules tied to it)
+                 * 5) Schedule (if non-named and nothing else is using it)
                  */
 
+                rockContext.SqlLogging( true );
+
+                var groupMemberAssignmentService = new GroupMemberAssignmentService( rockContext );
+                var groupMemberAssignments = groupMemberAssignmentService
+                    .Queryable()
+                    .Include( gma => gma.GroupMember )
+                    .Where( gma => gma.GroupMember.GroupId == groupId
+                        && gma.LocationId == locationId
+                        && gma.ScheduleId == scheduleId
+                    )
+                    .ToList();
+
+                // Set these aside so we can try to delete them next.
+                var groupMembers = groupMemberAssignments
+                    .Select( gma => gma.GroupMember )
+                    .ToList();
+
+                groupMemberAssignmentService.DeleteRange( groupMemberAssignments );
+
+                var groupMemberService = new GroupMemberService( rockContext );
+                foreach ( var groupMember in groupMembers.Where( gm => !gm.GroupMemberAssignments.Any() ) )
+                {
+                    // We need to delete these one-by-one, as the individual Delete call will dynamically archive if necessary (whereas the bulk delete calls will not).
+                    groupMemberService.Delete( groupMember );
+                }
+
+                // Now go get the GroupLocation, Schedule & GroupLocationScheduleConfig.
                 var groupLocationService = new GroupLocationService( rockContext );
                 var groupLocation = groupLocationService
                     .Queryable()
                     .Include( gl => gl.Schedules )
                     .Include( gl => gl.GroupLocationScheduleConfigs )
-                    .FirstOrDefault( gl => gl.Id == groupLocationId );
+                    .FirstOrDefault( gl => gl.GroupId == groupId && gl.LocationId == locationId );
 
-                if ( groupLocation == null )
-                {
-                    // Nothing to delete.
-                    return;
-                }
+                // We'll have to delete these last, since we reference the Schedule.Id in the GroupLocationSchedule & GroupLocationScheduleConfig tables.
+                var schedulesToDelete = groupLocation.Schedules
+                    .Where( s => s.Id == scheduleId )
+                    .ToList();
 
-                var groupMemberAssignmentService = new GroupMemberAssignmentService( rockContext );
-                var groupMemberAssignments = groupMemberAssignmentService
-                        .Queryable()
-                        .Where( gma => gma.ScheduleId == scheduleId
-                            && gma.LocationId == groupLocation.LocationId
-                            && gma.GroupMember.GroupId == GroupId )
-                        .ToList();
-
-                groupMemberAssignmentService.DeleteRange( groupMemberAssignments );
-
-                Schedule scheduleToDelete = null;
-                foreach ( var schedule in groupLocation.Schedules.Where( s => s.Id == scheduleId ).ToList() )
+                foreach ( var schedule in schedulesToDelete )
                 {
                     groupLocation.Schedules.Remove( schedule );
-                    scheduleToDelete = schedule;
                 }
 
-                foreach ( var config in groupLocation.GroupLocationScheduleConfigs.Where( c => c.ScheduleId == scheduleId ).ToList() )
+                foreach ( var config in groupLocation.GroupLocationScheduleConfigs.Where( gls => gls.ScheduleId == scheduleId ).ToList() )
                 {
                     groupLocation.GroupLocationScheduleConfigs.Remove( config );
                 }
@@ -1592,6 +1612,7 @@ namespace RockWeb.Blocks.SignUp
                 // If this GroupLocation has no more Schedules, delete it.
                 if ( !groupLocation.Schedules.Any() )
                 {
+                    // Note that if there happen to be any lingering GroupLocationScheduleConfig records that somehow weren't deleted yet, a cascade delete will get rid of them here.
                     groupLocationService.Delete( groupLocation );
                 }
 
@@ -1600,13 +1621,13 @@ namespace RockWeb.Blocks.SignUp
                     // Initial save to release FK constraints tied to child entities we'll be deleting.
                     rockContext.SaveChanges();
 
-                    // Remove the schedule if custom (non-named) and nothing else is using it.
-                    if ( scheduleToDelete != null && scheduleToDelete.ScheduleType != ScheduleType.Named )
+                    var scheduleService = new ScheduleService( rockContext );
+                    foreach ( var schedule in schedulesToDelete )
                     {
-                        var scheduleService = new ScheduleService( rockContext );
-                        if ( scheduleService.CanDelete( scheduleToDelete, out string scheduleErrorMessage ) )
+                        // Remove the schedule if custom (non-named) and nothing else is using it.
+                        if ( schedule.ScheduleType != ScheduleType.Named && scheduleService.CanDelete( schedule, out string scheduleErrorMessage ) )
                         {
-                            scheduleService.Delete( scheduleToDelete );
+                            scheduleService.Delete( schedule );
                         }
                     }
 
@@ -1619,6 +1640,8 @@ namespace RockWeb.Blocks.SignUp
                     // Follow-up save for deleted child entities.
                     rockContext.SaveChanges();
                 } );
+
+                rockContext.SqlLogging( false );
             }
 
             BindOpportunitiesGrid( shouldForceRefresh: true );
@@ -2473,6 +2496,8 @@ namespace RockWeb.Blocks.SignUp
 
         private class Opportunity
         {
+            public int GroupId { get; set; }
+
             public int GroupLocationId { get; set; }
 
             public int LocationId { get; set; }
@@ -2703,6 +2728,7 @@ namespace RockWeb.Blocks.SignUp
 
                             return new Opportunity
                             {
+                                GroupId = GroupId,
                                 GroupLocationId = o.GroupLocationId,
                                 LocationId = o.Location.Id,
                                 ScheduleId = o.Schedule.Id,

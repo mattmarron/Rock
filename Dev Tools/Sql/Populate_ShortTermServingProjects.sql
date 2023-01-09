@@ -324,6 +324,108 @@ END:VCALENDAR
 
     -----------------------------------------------------------------------------------------------
     SET @LocationGuid = 'EBFBF7D0-F9DF-4079-8ABF-87FACD5B43E1';
+    SET @ScheduleGuid = '41C3D6E0-E572-47AA-8D39-58F049EEF75D';
+    SET @OpportunityGuid = 'FF35BB37-9F86-4D71-BC31-12EAC5C41052';
+
+    INSERT INTO @Locations
+    VALUES
+    (
+        @LocationGuid -- [Guid] [uniqueidentifier] NOT NULL
+        , null -- [Name] [nvarchar](100) NULL
+        , 0xE6100000010C1A51DA1B7CD5404022C32ADEC8165CC0 -- [GeoPoint] [geography] NULL
+        , '13724 W Meeker Blvd' -- [Street1] [nvarchar](100) NULL
+        , null -- [Street2] [nvarchar](100) NULL
+        , 'Sun City West' -- [City] [nvarchar](50) NULL
+        , 'AZ' -- [State] [nvarchar](50) NULL
+        , 'US' -- [Country] [nvarchar](50) NULL
+        , '85375-3730' -- [PostalCode] [nvarchar](50) NULL
+        , 'Maricopa' -- [County] [varchar](50) NULL
+    );
+
+    INSERT INTO @Schedules
+    VALUES
+    (
+        @ScheduleGuid -- [Guid] [uniqueidentifier] NOT NULL
+        , CONCAT('BEGIN:VCALENDAR
+PRODID:-//github.com/rianjs/ical.net//NONSGML ical.net 4.0//EN
+VERSION:2.0
+BEGIN:VEVENT
+DTEND:', @DateString_OneWeekInPast,'T110000
+DTSTAMP:', @DateTimeString_Now,'
+DTSTART:', @DateString_OneWeekInPast, 'T090000
+SEQUENCE:0
+UID:23AE92BE-80C7-486B-966D-01561A309EC0
+END:VEVENT
+END:VCALENDAR
+') -- [iCalendarContent] [nvarchar](max) NOT NULL
+        , null -- [Name] [nvarchar](50) NULL
+    );
+
+    INSERT INTO @Opportunities
+    VALUES
+    (
+        @OpportunityGuid -- [Guid] [uniqueidentifier] NOT NULL
+        , @GroupGuid -- [GroupGuid] [uniqueidentifier] NOT NULL
+        , @LocationGuid -- [LocationGuid] [uniqueidentifier] NOT NULL
+        , @ScheduleGuid -- [ScheduleGuid] [uniqueidentifier] NOT NULL
+        , 'FMSC - West Valley (MobilePack)' -- [Name] [nvarchar](100) NULL
+        , 4 -- [MinimumCapacity] [int] NULL
+        , 6 -- [DesiredCapacity] [int] NULL
+        , 8 -- [MaximumCapacity] [int] NULL
+        , null -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
+        , null -- [ReminderAdditionalDetails] [nvarchar](max) NULL
+    );
+
+    INSERT INTO @Members
+    VALUES
+    (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , 'BE66C5D3-F43E-4F9A-BA62-B7C0103BF54C' -- Pete Foster
+        , 1 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , 'F4450E80-F221-4556-881D-CB92B008C2DA' -- Pamela Foster
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '3C402382-3BD2-4337-A996-9E62F1BAB09D' -- Ben Jones
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '3D7F6605-3666-4AB5-9F4E-D7FEBF93278E' -- Brian Jones
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '00E0DBB3-5451-456E-ADAB-E12C5EF4C285' -- Marty Webb
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '6C42BB46-67F7-4D58-93F3-73A7FBE1ADBB' -- Deb Webb
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , 'FA38A268-6744-4507-9CDC-69A7AC6CC0E5' -- Sean Hansen
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '3BB26A8B-F004-43E4-82BB-620D1E657AF9' -- Nancy Turner
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '92D04619-3F97-4EFF-932E-61DA56441995' -- Brian Gilbert
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+
+    -----------------------------------------------------------------------------------------------
+    SET @LocationGuid = 'EBFBF7D0-F9DF-4079-8ABF-87FACD5B43E1';
     SET @ScheduleGuid = 'F0F5C376-736A-4D18-9DBE-2C630C6B57F7';
     SET @OpportunityGuid = '585BE36F-785B-439E-BD03-B8D4A2DD04BF';
 
@@ -354,7 +456,7 @@ DTEND:', @DateString_OneWeekInFuture,'T110000
 DTSTAMP:', @DateTimeString_Now,'
 DTSTART:', @DateString_OneWeekInFuture, 'T090000
 SEQUENCE:0
-UID:753f3bb6-f9dd-495a-94bd-97ac0901917c
+UID:7C7F6AD7-A65E-43B1-A56D-AEA6A023C017
 END:VEVENT
 END:VCALENDAR
 ') -- [iCalendarContent] [nvarchar](max) NOT NULL
@@ -524,7 +626,7 @@ DTEND:', @DateString_TwoWeeksInFuture,'T110000
 DTSTAMP:', @DateTimeString_Now,'
 DTSTART:', @DateString_TwoWeeksInFuture, 'T090000
 SEQUENCE:0
-UID:753f3bb6-f9dd-495a-94bd-97ac0901917c
+UID:559C1673-8A09-4E8E-AF96-2948B5129E3F
 END:VEVENT
 END:VCALENDAR
 ') -- [iCalendarContent] [nvarchar](max) NOT NULL

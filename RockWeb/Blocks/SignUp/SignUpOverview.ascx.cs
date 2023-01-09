@@ -280,6 +280,11 @@ namespace RockWeb.Blocks.SignUp
             var locationId = e.RowKeyValues[DataKeyName.LocationId].ToIntSafe();
             var scheduleId = e.RowKeyValues[DataKeyName.ScheduleId].ToIntSafe();
 
+            /*
+             * We should consider moving this logic to a service (probably the GroupLocationService), as this code block is identical
+             * to that found within the SignUpDetail block's gOpportunities_Delete() method.
+             */
+
             using ( var rockContext = new RockContext() )
             {
                 /*
@@ -288,9 +293,9 @@ namespace RockWeb.Blocks.SignUp
                  * 
                  * 1) GroupMemberAssignments
                  * 2) GroupMembers (if no more GroupMemberAssignents for a given GroupMember)
-                 * 3) Schedule (if non-named and nothing else is using it)
-                 * 4) GroupLocationScheduleConfig
-                 * 5) GroupLocation (if no more Schedules tied to it)
+                 * 3) GroupLocationSchedule & GroupLocationScheduleConfig
+                 * 4) GroupLocation (if no more Schedules tied to it)
+                 * 5) Schedule (if non-named and nothing else is using it)
                  */
 
                 rockContext.SqlLogging( true );
@@ -299,7 +304,6 @@ namespace RockWeb.Blocks.SignUp
                 var groupMemberAssignments = groupMemberAssignmentService
                     .Queryable()
                     .Include( gma => gma.GroupMember )
-                    .Include( gma => gma.GroupMember.GroupMemberAssignments )
                     .Where( gma => gma.GroupMember.GroupId == groupId
                         && gma.LocationId == locationId
                         && gma.ScheduleId == scheduleId
@@ -316,10 +320,11 @@ namespace RockWeb.Blocks.SignUp
                 var groupMemberService = new GroupMemberService( rockContext );
                 foreach ( var groupMember in groupMembers.Where( gm => !gm.GroupMemberAssignments.Any() ) )
                 {
-                    // We can't delete these in bulk, as the individual Delete call will dynamically archive if necessary (whereas the bulk calls will not).
+                    // We need to delete these one-by-one, as the individual Delete call will dynamically archive if necessary (whereas the bulk delete calls will not).
                     groupMemberService.Delete( groupMember );
                 }
 
+                // Now go get the GroupLocation, Schedule & GroupLocationScheduleConfig.
                 var groupLocationService = new GroupLocationService( rockContext );
                 var groupLocation = groupLocationService
                     .Queryable()
@@ -345,6 +350,7 @@ namespace RockWeb.Blocks.SignUp
                 // If this GroupLocation has no more Schedules, delete it.
                 if ( !groupLocation.Schedules.Any() )
                 {
+                    // Note that if there happen to be any lingering GroupLocationScheduleConfig records that somehow weren't deleted yet, a cascade delete will get rid of them here.
                     groupLocationService.Delete( groupLocation );
                 }
 

@@ -193,7 +193,7 @@
                                 <Rock:NotificationBox ID="nbNoAllowedLocationPickerModes" runat="server" Visible="false" NotificationBoxType="Warning" />
 
                                 <div class="grid">
-                                    <Rock:Grid ID="gOpportunities" runat="server" DataKeyNames="GroupLocationId,LocationId,ScheduleId" AllowPaging="false" DisplayType="Light" RowItemText="Opportunity" ShowConfirmDeleteDialog="true" OnDataBinding="gOpportunities_DataBinding" OnGridRebind="gOpportunities_GridRebind">
+                                    <Rock:Grid ID="gOpportunities" runat="server" DataKeyNames="GroupId,GroupLocationId,LocationId,ScheduleId" AllowPaging="false" DisplayType="Light" RowItemText="Opportunity" ShowConfirmDeleteDialog="true" OnDataBinding="gOpportunities_DataBinding" OnGridRebind="gOpportunities_GridRebind">
                                         <Columns>
                                             <Rock:RockBoundField DataField="Name" HeaderText="Opportunity Name" />
                                             <Rock:RockBoundField DataField="FriendlyDateTime" HeaderText="Date/Time" />
