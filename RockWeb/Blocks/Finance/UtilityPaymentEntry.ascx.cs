@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.Entity;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web.UI;
 using System.Web.UI.WebControls;
@@ -1036,6 +1037,13 @@ namespace RockWeb.Blocks.Finance
                         }
                     }
                 }
+
+                string[] eventArgs = ( this.Page.Request.Form["__EVENTARGUMENT"] ?? string.Empty ).Split( new[] { "=" }, StringSplitOptions.RemoveEmptyEntries );
+
+                if ( eventArgs.Length == 2 && eventArgs[0] == "btnAddAccountLiteral" && int.TryParse( eventArgs[1], out int accountId ) )
+                {
+                    UpdateAvailableAccounts( accountId );
+                }
             }
 
             // Update the total amount
@@ -1209,16 +1217,18 @@ namespace RockWeb.Blocks.Finance
             }
         }
 
-        /// <summary>
-        /// Handles the SelectionChanged event of the btnAddAccount control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected void btnAddAccount_SelectionChanged( object sender, EventArgs e )
+        private void UpdateAvailableAccounts( int? accountId )
         {
-            var selected = AvailableAccounts.Where( a => a.Id == ( btnAddAccount.SelectedValueAsId() ?? 0 ) ).ToList();
+            var selected = AvailableAccounts.Where( a => a.Id == ( accountId ?? 0 ) ).ToList();
             AvailableAccounts = AvailableAccounts.Except( selected ).ToList();
             SelectedAccounts.AddRange( selected );
+
+            // If the selected account was a child account remove it from the parent's children list so it does not show up in the UI.
+            foreach ( var accountItem in selected.Where( a => a.ParentAccountId.HasValue ) )
+            {
+                var parentAccount = AvailableAccounts.FirstOrDefault( a => a.Id == accountItem.ParentAccountId.Value );
+                parentAccount?.RemoveFromChildItems( accountItem );
+            }
 
             BindAccounts();
         }
@@ -1890,8 +1900,6 @@ namespace RockWeb.Blocks.Finance
             lSuccessTitle.Text = GetAttributeValue( AttributeKey.SuccessTitle );
             lSaveAccountTitle.Text = GetAttributeValue( AttributeKey.SaveAccountTitle );
 
-            btnAddAccount.Title = GetAttributeValue( AttributeKey.AddAccountText );
-
             divRepeatingPayments.Visible = btnFrequency.Items.Count > 0;
 
             bool displayEmail = GetAttributeValue( AttributeKey.DisplayEmail ).AsBoolean();
@@ -1960,17 +1968,33 @@ namespace RockWeb.Blocks.Finance
             }
             else
             {
-                // Enumerate through all active accounts that are public
-                foreach ( var account in new FinancialAccountService( rockContext ).Queryable()
+                var financialAccountService = new FinancialAccountService( rockContext );
+
+                var publicAccounts = financialAccountService.Queryable()
                 .Where( f =>
                     f.IsActive &&
                     f.IsPublic.HasValue &&
                     f.IsPublic.Value &&
                     ( f.StartDate == null || f.StartDate <= RockDateTime.Today ) &&
                     ( f.EndDate == null || f.EndDate >= RockDateTime.Today ) )
-                .OrderBy( f => f.Order ) )
+                .OrderBy( f => f.Order )
+                .ToList();
+
+                var accountIds = publicAccounts.Select( f => f.Id ).ToList();
+
+                var childList = financialAccountService.Queryable().Where( f =>
+                f.ParentAccountId.HasValue &&
+                accountIds.Contains( f.ParentAccountId.Value ) )
+                    .ToList();
+
+                // Enumerate through all active accounts that are public
+                foreach ( var account in publicAccounts )
                 {
-                    var accountItem = new AccountItem( account.Id, account.Order, account.Name, account.CampusId, account.PublicName );
+                    var accountItem = new AccountItem( account.Id, account.Order, account.Name, account.CampusId, account.PublicName, account.ParentAccountId );
+                    accountItem.HasChildren = childList.Any( v => v.ParentAccountId == accountItem.Id );
+                    accountItem.Children = childList.Where( f => f.ParentAccountId == accountItem.Id )
+                        .Select( f => new AccountItem( f.Id, f.Order, f.Name, f.CampusId, f.PublicName, f.ParentAccountId ) )
+                        .ToList();
 
                     if ( showAll )
                     {
@@ -2044,9 +2068,64 @@ namespace RockWeb.Blocks.Finance
                 AvailableAccounts.RemoveAll( a => ( _accountCampusContextFilter == 0 && a.CampusId != _currentCampusContextId ) || ( _accountCampusContextFilter == 1 && ( a.CampusId != null && a.CampusId != _currentCampusContextId ) ) );
             }
 
-            btnAddAccount.Visible = AvailableAccounts.Any();
-            btnAddAccount.DataSource = AvailableAccounts;
-            btnAddAccount.DataBind();
+            phbtnAddAccount.Visible = AvailableAccounts.Any( a => !a.ParentAccountId.HasValue );
+
+            DatabindAddAccountsButton();
+        }
+
+        private void DatabindAddAccountsButton()
+        {
+            phbtnAddAccount.Controls.Clear();
+
+            var literal = new LiteralControl() { ID = "btnAddAccountLiteral" };
+            var openingHtml = $@"
+<div class=""btn-group js-button-dropdownlist"">
+    <div>
+        <button type=""button"" class=""btn btn-default dropdown-toggle js-buttondropdown-btn-select"" data-toggle=""dropdown"" aria-expanded=""false"">{GetAttributeValue( AttributeKey.AddAccountText )} <span class=""fa fa-caret-down""></span></button>
+        <ul class=""dropdown-menu"">
+";
+
+            const string closingHtml = @"
+        </ul>
+    </div>
+</div>
+";
+            var htmlBuilder = new StringBuilder( openingHtml );
+            foreach ( var accountItem in AvailableAccounts.Where( a => !a.ParentAccountId.HasValue ) )
+            {
+                if ( accountItem.HasChildren )
+                {
+                    htmlBuilder.Append( "<li class=\"dropdown-submenu\"><a class=\"dropdown-submenu-toggle\" " );
+                }
+                else
+                {
+                    htmlBuilder.Append( "<li><a " );
+                }
+
+                htmlBuilder.Append( $"href=\"javascript:__doPostBack('{upPayment.ClientID}', '{literal.ID}={accountItem.Id}')\" data-id='{accountItem.Id}'>" );
+
+                if ( accountItem.HasChildren )
+                {
+                    htmlBuilder.Append( $"{accountItem.PublicName}<span class=\"caret\"></span></a><ul class=\"dropdown-menu\">" );
+                    foreach ( var listItemChild in accountItem.Children )
+                    {
+                        htmlBuilder.Append( $"<li><a " );
+                        htmlBuilder.Append( $"href=\"javascript:__doPostBack('{upPayment.ClientID}', '{literal.ID}={listItemChild.Id}')\" data-id='{listItemChild.Id}'" );
+                        htmlBuilder.Append( $"</a>{listItemChild.PublicName}</li>" );
+                    }
+                    htmlBuilder.Append( "</ul></li>" );
+                }
+                else
+                {
+                    htmlBuilder.Append( $"{accountItem.PublicName}</a></li>" );
+                }
+            }
+
+            htmlBuilder.Append( closingHtml );
+
+            literal.Text = htmlBuilder.ToString();
+
+            phbtnAddAccount.Controls.Add( literal );
         }
 
         /// <summary>
@@ -3483,6 +3562,12 @@ namespace RockWeb.Blocks.Finance
 
             public string PublicName { get; set; }
 
+            public int? ParentAccountId { get; set; }
+
+            public bool HasChildren { get; set; }
+
+            public List<AccountItem> Children { get; set; }
+
             public string AmountFormatted
             {
                 get
@@ -3505,11 +3590,22 @@ namespace RockWeb.Blocks.Finance
                 Enabled = true;
             }
 
+            public AccountItem( int id, int order, string name, int? campusId, string publicName, int? parentAccountId ) : this( id, order, name, campusId, publicName )
+            {
+                ParentAccountId = parentAccountId;
+            }
+
             public AccountItem( int id, int order, string name, int? campusId, string publicName, decimal amount, bool enabled )
                 : this( id, order, name, campusId, publicName )
             {
                 Amount = amount;
                 Enabled = enabled;
+            }
+
+            internal void RemoveFromChildItems( AccountItem accountItem )
+            {
+                Children = Children.Where( c => c.Id != accountItem.Id ).ToList();
+                HasChildren = Children.Any();
             }
         }
 

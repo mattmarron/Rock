@@ -459,7 +459,7 @@ namespace Rock.Web.UI.Controls
 
             // only add a postback if there is a SelectionChanged event or if AutoPostBack is set to true
             bool doPostBack = ( SelectionChanged != null || AutoPostBack == true );
-            
+
             var updatePanel = this.ParentUpdatePanel();
             string postbackControlId;
             if ( updatePanel != null )
