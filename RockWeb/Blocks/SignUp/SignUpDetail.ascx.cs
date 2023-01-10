@@ -344,6 +344,9 @@ namespace RockWeb.Blocks.SignUp
             gOpportunities.Actions.AddClick += gOpportunities_Add;
             gOpportunities.EmptyDataText = Server.HtmlEncode( None.Text );
 
+            // we'll have custom javascript (see SignUpDetail.ascx ) do this instead.
+            gOpportunities.ShowConfirmDeleteDialog = false;
+
             // This event gets fired after block settings are updated. It's nice to repaint the screen if these settings would alter it.
             this.BlockUpdated += Block_BlockUpdated;
             this.AddConfigurationUpdateTrigger( upnlSignUpDetail );
@@ -939,6 +942,30 @@ namespace RockWeb.Blocks.SignUp
         protected void bgOpportunitiesTimeframe_SelectedIndexChanged( object sender, EventArgs e )
         {
             BindOpportunitiesGrid();
+        }
+
+        /// <summary>
+        /// Handles the RowDataBound event of the gOpportunities control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="GridViewRowEventArgs" /> instance containing the event data.</param>
+        protected void gOpportunities_RowDataBound( object sender, GridViewRowEventArgs e )
+        {
+            if ( e.Row.RowType != DataControlRowType.DataRow )
+            {
+                return;
+            }
+
+            var opportunity = e.Row.DataItem as Opportunity;
+            if ( opportunity == null )
+            {
+                return;
+            }
+
+            if ( opportunity.SlotsFilled > 0 )
+            {
+                e.Row.AddCssClass( "js-has-participants" );
+            }
         }
 
         /// <summary>
@@ -2653,7 +2680,7 @@ namespace RockWeb.Blocks.SignUp
                         }
                     }
 
-                    return $"{htmlSb}</div>{SlotsBadgeTooltip}";
+                    return $"{htmlSb}</div><span class='hide js-slots-filled'>{SlotsFilled.GetValueOrDefault()}</span>{SlotsBadgeTooltip}";
                 }
             }
 

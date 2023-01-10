@@ -193,7 +193,7 @@
                                 <Rock:NotificationBox ID="nbNoAllowedLocationPickerModes" runat="server" Visible="false" NotificationBoxType="Warning" />
 
                                 <div class="grid">
-                                    <Rock:Grid ID="gOpportunities" runat="server" DataKeyNames="GroupId,GroupLocationId,LocationId,ScheduleId" AllowPaging="false" DisplayType="Light" RowItemText="Opportunity" ShowConfirmDeleteDialog="true" OnDataBinding="gOpportunities_DataBinding" OnGridRebind="gOpportunities_GridRebind">
+                                    <Rock:Grid ID="gOpportunities" runat="server" DataKeyNames="GroupId,GroupLocationId,LocationId,ScheduleId" AllowPaging="false" DisplayType="Light" CssClass="js-grid-opportunities" RowItemText="Opportunity" OnDataBinding="gOpportunities_DataBinding" OnRowDataBound="gOpportunities_RowDataBound" OnGridRebind="gOpportunities_GridRebind">
                                         <Columns>
                                             <Rock:RockBoundField DataField="Name" HeaderText="Opportunity Name" />
                                             <Rock:RockBoundField DataField="FriendlyDateTime" HeaderText="Date/Time" />
@@ -345,6 +345,30 @@
 
                 toggleReminderControlsVisibility();
                 initializeSlotsBadgeTooltips();
+
+                // delete prompt
+                $thisBlock.find('table.js-grid-opportunities a.grid-delete-button').on('click', function (e) {
+                    var $btn = $(this);
+                    var $row = $btn.closest('tr');
+
+                    var confirmMessage = 'Are you sure you want to delete this Opportunity?';
+
+                    if ($row.hasClass('js-has-participants')) {
+                        var participantCount = parseInt($row.find('.js-slots-filled').html());
+                        var participantLabel = participantCount > 1
+                            ? 'participants'
+                            : 'participant';
+
+                        confirmMessage = 'This Opportunity has ' + participantCount + ' ' + participantLabel + '. Are you sure you want to delete this Opportunity and remove all participants? ';
+                    }
+
+                    e.preventDefault();
+                    Rock.dialogs.confirm(confirmMessage, function (result) {
+                        if (result) {
+                            window.location = e.target.href ? e.target.href : e.target.parentElement.href;
+                        }
+                    });
+                });
             });
 
         </script>
