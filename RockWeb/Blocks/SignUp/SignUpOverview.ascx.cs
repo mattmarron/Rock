@@ -75,7 +75,6 @@ namespace RockWeb.Blocks.SignUp
 
         private static class GridAction
         {
-            public const string Inactivate = "INACTIVATE";
             public const string EmailLeaders = "EMAIL_LEADERS";
             public const string EmailAll = "EMAIL_ALL";
             public const string None = "";
@@ -211,18 +210,8 @@ namespace RockWeb.Blocks.SignUp
                     .Where( o => selectedGuids.Contains( o.Guid ) )
                     .ToList();
 
-                switch ( hfAction.Value )
-                {
-                    case GridAction.Inactivate:
-                        InactivateOpportunities( selectedOpportunities );
-                        break;
-                    case GridAction.EmailLeaders:
-                        EmailParticipants( selectedOpportunities, true );
-                        break;
-                    case GridAction.EmailAll:
-                        EmailParticipants( selectedOpportunities );
-                        break;
-                }
+                var shouldOnlyEmailLeaders = hfAction.Value == GridAction.EmailLeaders;
+                EmailParticipants( selectedOpportunities, shouldOnlyEmailLeaders );
             }
 
             _ddlAction.SelectedIndex = 0;
@@ -523,7 +512,6 @@ namespace RockWeb.Blocks.SignUp
             _ddlAction.ID = "ddlAction";
             _ddlAction.CssClass = "pull-left input-width-xl";
             _ddlAction.Items.Add( new ListItem( "-- Select Action --", GridAction.None ) );
-            _ddlAction.Items.Add( new ListItem( "Inactivate Selected Projects", GridAction.Inactivate ) );
             _ddlAction.Items.Add( new ListItem( "Email Leaders of Selected Schedules", GridAction.EmailLeaders ) );
             _ddlAction.Items.Add( new ListItem( "Email All Participants of Selected Schedules", GridAction.EmailAll ) );
 
@@ -736,46 +724,12 @@ namespace RockWeb.Blocks.SignUp
                         return;
                     }}
 
-                    if ($ddl.val() === '{GridAction.Inactivate}') {{
-                        Rock.dialogs.confirm('Are you sure you want to inactivate the selected projects?', function (result) {{
-                            if (!result) {{
-                                return;
-                            }}
-
-                            window.location = ""javascript:{Page.ClientScript.GetPostBackEventReference( this, PostbackEventArgument.GridActionChanged )}"";
-                            $ddl.val('');
-                        }});
-                    }} else {{
-                        window.location = ""javascript:{Page.ClientScript.GetPostBackEventReference( this, PostbackEventArgument.GridActionChanged )}"";
-                        $ddl.val('');
-                    }}
+                    window.location = ""javascript:{Page.ClientScript.GetPostBackEventReference( this, PostbackEventArgument.GridActionChanged )}"";
+                    $ddl.val('');
                 }});";
 
             ScriptManager.RegisterStartupScript( _ddlAction, _ddlAction.GetType(), "ProcessGridActionChange", script, true );
         }
-
-        /// <summary>
-        /// Inactivates the opportunities.
-        /// </summary>
-        /// <param name="opportunities">The opportunities.</param>
-        private void InactivateOpportunities( List<Opportunity> opportunities )
-        {
-            if ( !opportunities.Any() )
-            {
-                return;
-            }
-
-            /*
-             * TBD: Waiting to hear back from Nick regarding exactly what we're inactivating here. Options are:
-             * 1) Project [Group], which would inactivate all opportunities [GroupLocationSchedules] under this project.
-             * 2) Schedule - just this opportunity.
-             *      a) This could prove difficult if a named (shared) schedule is used; we'd need a new [IsActive] bit field at the [GroupLocationScheduleConfig] level, I think.
-             * 
-             * Note that we'll also need to change our query within the GetOpportunities() method of this block and the BindOpportunitiesGrid() method of the SignUpDetail block,
-             * to ensure we're only showing active opportunities within their respective grids.
-             */
-        }
-
 
         /// <summary>
         /// Emails the participants.
