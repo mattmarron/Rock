@@ -4,6 +4,7 @@
     <ContentTemplate>
 
         <asp:Panel ID="pnlDetails" runat="server">
+            <asp:HiddenField ID="hfAction" runat="server" />
             <div class="panel panel-block">
 
                 <div class="panel-heading">
@@ -15,9 +16,9 @@
                         <Rock:GridFilter ID="gfOpportunities" runat="server" OnDisplayFilterValue="gfOpportunities_DisplayFilterValue" OnApplyFilterClick="gfOpportunities_ApplyFilterClick" OnClearFilterClick="gfOpportunities_ClearFilterClick">
                             <Rock:RockTextBox ID="tbProjectName" runat="server" Label="Project Name" />
                         </Rock:GridFilter>
-                        <Rock:Grid ID="gOpportunities" runat="server" DataKeyNames="GroupId,LocationId,ScheduleId" DisplayType="Full" AllowSorting="true" CssClass="js-grid-opportunities" RowItemText="Opportunity" OnDataBinding="gOpportunities_DataBinding" OnRowDataBound="gOpportunities_RowDataBound" OnGridRebind="gOpportunities_GridRebind" OnRowSelected="gOpportunities_RowSelected" ExportSource="ColumnOutput" ShowConfirmDeleteDialog="true">
+                        <Rock:Grid ID="gOpportunities" runat="server" DataKeyNames="Guid,GroupId,LocationId,ScheduleId" DisplayType="Full" AllowSorting="true" CssClass="js-grid-opportunities" RowItemText="Opportunity" OnDataBinding="gOpportunities_DataBinding" OnRowDataBound="gOpportunities_RowDataBound" OnGridRebind="gOpportunities_GridRebind" OnRowSelected="gOpportunities_RowSelected" ExportSource="ColumnOutput" ShowConfirmDeleteDialog="true">
                             <Columns>
-                                <Rock:SelectField></Rock:SelectField>
+                                <Rock:SelectField />
                                 <Rock:RockBoundField DataField="ProjectName" HeaderText="Project Name" ExcelExportBehavior="AlwaysInclude" />
                                 <Rock:RockBoundField DataField="FriendlySchedule" HeaderText="Schedule" ExcelExportBehavior="AlwaysInclude" />
                                 <Rock:RockBoundField DataField="LeaderCount" HeaderText="Leader Count" ExcelExportBehavior="AlwaysInclude" />

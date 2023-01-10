@@ -41,7 +41,7 @@ namespace RockWeb.Blocks.SignUp
     [Rock.SystemGuid.BlockTypeGuid( "EE652767-5070-4EAB-8BB7-BB254DD01B46" )]
     public partial class SignUpOpportunityAttendeeList : RockBlock
     {
-        #region Private Keys and Fields
+        #region Private Keys
 
         private static class PageParameterKey
         {
@@ -66,6 +66,10 @@ namespace RockWeb.Blocks.SignUp
             public const string Campus = "Campus";
             public const string Gender = "Gender";
         }
+
+        #endregion
+
+        #region Fields
 
         private int _groupId;
         private int _locationId;

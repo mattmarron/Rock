@@ -2723,8 +2723,7 @@ namespace RockWeb.Blocks.SignUp
                     OpportunitiesState = opportunities
                         .Select( o =>
                         {
-                            var now = group.Campus?.CurrentDateTime ?? RockDateTime.Now;
-                            var nextStartDateTime = o.Schedule.GetNextStartDateTime( now );
+                            var nextStartDateTime = o.Schedule.NextStartDateTime;
 
                             return new Opportunity
                             {
@@ -2733,7 +2732,7 @@ namespace RockWeb.Blocks.SignUp
                                 LocationId = o.Location.Id,
                                 ScheduleId = o.Schedule.Id,
                                 Name = o.Config?.ConfigurationName,
-                                IsUpcoming = nextStartDateTime.HasValue && nextStartDateTime >= now,
+                                IsUpcoming = nextStartDateTime.HasValue && nextStartDateTime >= RockDateTime.Now,
                                 FriendlyDateTime = o.Schedule.FriendlyScheduleText ?? "Custom",
                                 FriendlyLocation = o.Location.ToString(),
                                 SlotsMin = o.Config?.MinimumCapacity,

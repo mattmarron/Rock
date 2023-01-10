@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.Entity;
 using System.Linq;
+using System.Web.UI;
 using System.Web.UI.WebControls;
+using Newtonsoft.Json;
 using Rock;
 using Rock.Attribute;
 using Rock.Data;
@@ -36,9 +38,9 @@ namespace RockWeb.Blocks.SignUp
     #endregion
 
     [Rock.SystemGuid.BlockTypeGuid( "B539F3B5-01D3-4325-B32A-85AFE2A9D18B" )]
-    public partial class SignUpOverview : RockBlock
+    public partial class SignUpOverview : RockBlock, IPostBackEventHandler
     {
-        #region Private Keys and Fields
+        #region Private Keys
 
         private static class PageParameterKey
         {
@@ -53,6 +55,11 @@ namespace RockWeb.Blocks.SignUp
             public const string SignUpOpportunityAttendeeListPage = "SignUpOpportunityAttendeeListPage";
         }
 
+        private class ViewStateKey
+        {
+            public const string OpportunitiesState = "OpportunitiesState";
+        }
+
         private static class GridFilterKey
         {
             public const string ProjectName = "ProjectName";
@@ -65,7 +72,25 @@ namespace RockWeb.Blocks.SignUp
             public const string ScheduleId = "ScheduleId";
         }
 
+        private static class GridAction
+        {
+            public const string Inactivate = "INACTIVATE";
+            public const string EmailLeaders = "EMAIL_LEADERS";
+            public const string EmailAll = "EMAIL_ALL";
+            public const string None = "";
+        }
+
+        private static class PostbackEventArgument
+        {
+            public const string GridActionChanged = "GridActionChanged";
+        }
+
+        #endregion
+
+        #region Fields
+
         private bool _canEdit;
+        private RockDropDownList _ddlAction;
 
         #endregion
 
@@ -88,9 +113,30 @@ namespace RockWeb.Blocks.SignUp
             }
         }
 
+        private List<Opportunity> OpportunitiesState { get; set; }
+
         #endregion
 
         #region Control Life-Cycle Events
+
+        /// <summary>
+        /// Restores the view-state information from a previous user control request that was saved by the <see cref="M:System.Web.UI.UserControl.SaveViewState" /> method.
+        /// </summary>
+        /// <param name="savedState">An <see cref="T:System.Object" /> that represents the user control state to be restored.</param>
+        protected override void LoadViewState( object savedState )
+        {
+            base.LoadViewState( savedState );
+
+            var json = ViewState[ViewStateKey.OpportunitiesState] as string;
+            if ( string.IsNullOrWhiteSpace( json ) )
+            {
+                OpportunitiesState = new List<Opportunity>();
+            }
+            else
+            {
+                OpportunitiesState = JsonConvert.DeserializeObject<List<Opportunity>>( json ) ?? new List<Opportunity>();
+            }
+        }
 
         /// <summary>
         /// Raises the <see cref="E:System.Web.UI.Control.Init" /> event.
@@ -117,7 +163,11 @@ namespace RockWeb.Blocks.SignUp
         {
             base.OnLoad( e );
 
-            ShowDetails();
+            if ( !Page.IsPostBack )
+            {
+                BindOpportunitiesGrid();
+                SetGridFilters();
+            }
         }
 
         /// <summary>
@@ -131,6 +181,60 @@ namespace RockWeb.Blocks.SignUp
             NavigateToCurrentPageReference();
         }
 
+        /// <summary>
+        /// When implemented by a class, enables a server control to process an event raised when a form is posted to the server.
+        /// </summary>
+        /// <param name="eventArgument">A <see cref="T:System.String" /> that represents an optional event argument to be passed to the event handler.</param>
+        public void RaisePostBackEvent( string eventArgument )
+        {
+            if ( eventArgument != PostbackEventArgument.GridActionChanged || hfAction.Value.IsNullOrWhiteSpace() )
+            {
+                return;
+            }
+
+            var selectedGuids = gOpportunities.SelectedKeys.Select( k => ( Guid )k ).ToList();
+            if ( selectedGuids.Any() )
+            {
+                var selectedOpportunities = OpportunitiesState.Where( o => selectedGuids.Contains( o.Guid ) );
+                switch ( hfAction.Value )
+                {
+                    case GridAction.Inactivate:
+                        InactivateOpportunities( selectedOpportunities );
+                        break;
+                    case GridAction.EmailLeaders:
+                        EmailParticipants( selectedOpportunities, true );
+                        break;
+                    case GridAction.EmailAll:
+                        EmailParticipants( selectedOpportunities );
+                        break;
+                }
+            }
+
+            _ddlAction.SelectedIndex = 0;
+            hfAction.Value = string.Empty;
+            gOpportunities.SelectedKeys.Clear();
+            BindOpportunitiesGrid();
+        }
+
+        /// <summary>
+        /// Saves any user control view-state changes that have occurred since the last page postback.
+        /// </summary>
+        /// <returns>
+        /// Returns the user control's current view state. If there is no view state associated with the control, it returns <see langword="null" />.
+        /// </returns>
+        protected override object SaveViewState()
+        {
+            var jsonSetting = new JsonSerializerSettings
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                ContractResolver = new Rock.Utility.IgnoreUrlEncodedKeyContractResolver()
+            };
+
+            ViewState[ViewStateKey.OpportunitiesState] = JsonConvert.SerializeObject( OpportunitiesState, Formatting.None, jsonSetting );
+
+            return base.SaveViewState();
+        }
+
         #endregion
 
         #region Opportunities Grid Events
@@ -140,7 +244,7 @@ namespace RockWeb.Blocks.SignUp
         /// </summary>
         /// <param name="sender">The sender.</param>
         /// <param name="e">The e.</param>
-        protected void gfOpportunities_DisplayFilterValue( object sender, Rock.Web.UI.Controls.GridFilter.DisplayFilterValueArgs e )
+        protected void gfOpportunities_DisplayFilterValue( object sender, GridFilter.DisplayFilterValueArgs e )
         {
             if ( e.Key == GridFilterKey.ProjectName )
             {
@@ -226,8 +330,8 @@ namespace RockWeb.Blocks.SignUp
         /// Handles the RowSelected event of the gOpportunities control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="Rock.Web.UI.Controls.RowEventArgs" /> instance containing the event data.</param>
-        protected void gOpportunities_RowSelected( object sender, Rock.Web.UI.Controls.RowEventArgs e )
+        /// <param name="e">The <see cref="RowEventArgs" /> instance containing the event data.</param>
+        protected void gOpportunities_RowSelected( object sender, RowEventArgs e )
         {
             if ( !string.IsNullOrWhiteSpace( GetAttributeValue( AttributeKey.ProjectDetailPage ) ) )
             {
@@ -263,8 +367,8 @@ namespace RockWeb.Blocks.SignUp
         /// Handles the GridRebind event of the gOpportunities control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="Rock.Web.UI.Controls.GridRebindEventArgs" /> instance containing the event data.</param>
-        protected void gOpportunities_GridRebind( object sender, Rock.Web.UI.Controls.GridRebindEventArgs e )
+        /// <param name="e">The <see cref="GridRebindEventArgs" /> instance containing the event data.</param>
+        protected void gOpportunities_GridRebind( object sender, GridRebindEventArgs e )
         {
             BindOpportunitiesGrid();
         }
@@ -400,8 +504,17 @@ namespace RockWeb.Blocks.SignUp
             gOpportunities.ShowConfirmDeleteDialog = false;
             gOpportunities.IsDeleteEnabled = _canEdit;
 
+            _ddlAction = new RockDropDownList();
+            _ddlAction.ID = "ddlAction";
+            _ddlAction.CssClass = "pull-left input-width-xl";
+            _ddlAction.Items.Add( new ListItem( "-- Select Action --", GridAction.None ) );
+            _ddlAction.Items.Add( new ListItem( "Inactivate Selected Projects", GridAction.Inactivate ) );
+            _ddlAction.Items.Add( new ListItem( "Email Leaders of Selected Schedules", GridAction.EmailLeaders ) );
+            _ddlAction.Items.Add( new ListItem( "Email All Participants of Selected Schedules", GridAction.EmailAll ) );
+
+            gOpportunities.Actions.AddCustomActionControl( _ddlAction );
+
             gfOpportunities.UserPreferenceKeyPrefix = $"{SignUpGroupTypeId}-";
-            SetGridFilters();
         }
 
         /// <summary>
@@ -410,14 +523,6 @@ namespace RockWeb.Blocks.SignUp
         private void SetGridFilters()
         {
             tbProjectName.Text = gfOpportunities.GetUserPreference( GridFilterKey.ProjectName );
-        }
-
-        /// <summary>
-        /// Shows the details.
-        /// </summary>
-        private void ShowDetails()
-        {
-            BindOpportunitiesGrid();
         }
 
         private class Opportunity
@@ -453,6 +558,11 @@ namespace RockWeb.Blocks.SignUp
                         : BadgeType.Warning;
                 }
             }
+
+            /// <summary>
+            /// This is a runtime Guid, not related to any Entity in particular.
+            /// </summary>
+            public Guid Guid { get; set; }
 
             public int GroupId { get; set; }
 
@@ -503,6 +613,8 @@ namespace RockWeb.Blocks.SignUp
 
             gOpportunities.DataSource = opportunities;
             gOpportunities.DataBind();
+
+            RegisterJavaScriptForGridActions();
         }
 
         /// <summary>
@@ -512,12 +624,14 @@ namespace RockWeb.Blocks.SignUp
         /// <returns></returns>
         private List<Opportunity> GetOpportunities( RockContext rockContext )
         {
+            rockContext.SqlLogging( true );
+
             var qry = new GroupLocationService( rockContext )
                 .Queryable()
                 .AsNoTracking()
                 .Where( gl =>
-                    gl.Group.GroupTypeId == SignUpGroupTypeId
-                    || gl.Group.GroupType.InheritedGroupTypeId == SignUpGroupTypeId
+                    gl.Group.IsActive
+                    && ( gl.Group.GroupTypeId == SignUpGroupTypeId || gl.Group.GroupType.InheritedGroupTypeId == SignUpGroupTypeId )
                 );
 
             // Filter by project name.
@@ -527,8 +641,8 @@ namespace RockWeb.Blocks.SignUp
                 qry = qry.Where( gl => gl.Group.Name.StartsWith( projectName ) );
             }
 
-            // Project our query into a runtime object collection.
-            var groupLocationSchedules = qry
+            // Get the current opportunities (GroupLocationSchedules).
+            var qryGroupLocationSchedules = qry
                 .SelectMany( gl => gl.Schedules, ( gl, s ) => new
                 {
                     gl.Group,
@@ -537,20 +651,22 @@ namespace RockWeb.Blocks.SignUp
                     Schedule = s,
                     Config = gl.GroupLocationScheduleConfigs.FirstOrDefault( glsc => glsc.ScheduleId == s.Id )
                 } )
-                .ToList();
+                .Where( gls => !gls.Schedule.EffectiveEndDate.HasValue || gls.Schedule.EffectiveEndDate >= RockDateTime.Now );
 
-            // Go get all attendees for all opportunities; we'll hook them up to their respective opportunities below.
+            // Get all attendees for all current opportunities; we'll hook them up to their respective opportunities below.
             var attendees = new GroupMemberAssignmentService( rockContext )
                 .Queryable()
                 .AsNoTracking()
                 .Include( gma => gma.GroupMember.GroupRole )
                 .Where( gma =>
-                    gma.GroupMember.Group.GroupTypeId == SignUpGroupTypeId
-                    || gma.GroupMember.Group.GroupType.InheritedGroupTypeId == SignUpGroupTypeId
+                    qryGroupLocationSchedules.Any( gls => gls.Group.Id == gma.GroupMember.GroupId
+                        && gls.Location.Id == gma.LocationId
+                        && gls.Schedule.Id == gma.ScheduleId )
                 )
                 .ToList();
 
-            var opportunities = groupLocationSchedules
+            var opportunities = qryGroupLocationSchedules
+                .ToList()
                 .Select( gls =>
                 {
                     var locationId = gls.Location.Id;
@@ -560,18 +676,18 @@ namespace RockWeb.Blocks.SignUp
                         .Where( a => a.LocationId == locationId && a.ScheduleId == scheduleId )
                         .ToList();
 
-                    var now = gls.Group.Campus?.CurrentDateTime ?? RockDateTime.Now;
-                    var nextStartDateTime = gls.Schedule.GetNextStartDateTime( now );
+                    var nextStartDateTime = gls.Schedule.NextStartDateTime;
 
                     return new Opportunity
                     {
+                        Guid = Guid.NewGuid(),
                         GroupId = gls.Group.Id,
                         GroupLocationId = gls.GroupLocationId,
                         LocationId = locationId,
                         ScheduleId = scheduleId,
                         ProjectName = gls.Group.Name,
                         NextStartDateTime = nextStartDateTime,
-                        FriendlySchedule = nextStartDateTime.ToRelativeDateString(),
+                        FriendlySchedule = nextStartDateTime?.ToRelativeDateString(),
                         SlotsMin = gls.Config?.MinimumCapacity,
                         SlotsDesired = gls.Config?.DesiredCapacity,
                         SlotsMax = gls.Config?.MaximumCapacity,
@@ -581,7 +697,140 @@ namespace RockWeb.Blocks.SignUp
                 } )
                 .ToList();
 
+            OpportunitiesState = opportunities;
+
+            rockContext.SqlLogging( false );
+
             return opportunities;
+        }
+
+        /// <summary>
+        /// Registers the JavaScript for grid actions.
+        /// NOTE: This needs to be done after binding the grid.
+        /// </summary>
+        private void RegisterJavaScriptForGridActions()
+        {
+            string script = $@"
+                $('#{_ddlAction.ClientID}').on('change', function(e){{
+                    var $ddl = $(this);
+                    var action = $ddl.val();
+                    $('#{hfAction.ClientID}').val(action);
+
+                    var count = $(""#{gOpportunities.ClientID} input[id$='_cbSelect_0']:checked"").length;
+                    if (action === '{GridAction.None}' || count === 0) {{
+                        return;
+                    }}
+
+                    if ($ddl.val() === '{GridAction.Inactivate}') {{
+                        Rock.dialogs.confirm('Are you sure you want to inactivate the selected projects?', function (result) {{
+                            if (!result) {{
+                                return;
+                            }}
+
+                            window.location = ""javascript:{Page.ClientScript.GetPostBackEventReference( this, PostbackEventArgument.GridActionChanged )}"";
+                            $ddl.val('');
+                        }});
+                    }} else {{
+                        window.location = ""javascript:{Page.ClientScript.GetPostBackEventReference( this, PostbackEventArgument.GridActionChanged )}"";
+                        $ddl.val('');
+                    }}
+                }});";
+
+            ScriptManager.RegisterStartupScript( _ddlAction, _ddlAction.GetType(), "ProcessGridActionChange", script, true );
+        }
+
+        /// <summary>
+        /// Inactivates the opportunities.
+        /// </summary>
+        /// <param name="opportunities">The opportunities.</param>
+        private void InactivateOpportunities( IEnumerable<Opportunity> opportunities )
+        {
+            if ( !opportunities.Any() )
+            {
+                return;
+            }
+
+            /*
+             * TBD: Waiting to hear back from Nick regarding exactly what we're inactivating here. Options are:
+             * 1) Project [Group], which would inactivate all opportunities [GroupLocationSchedules] under this project.
+             * 2) Schedule - just this opportunity.
+             *      a) This could prove difficult if a named (shared) schedule is used; we'd need a new [IsActive] bit field at the [GroupLocationScheduleConfig] level, I think.
+             * 
+             * Note that we'll also need to change our query within the GetOpportunities() method of this block and the BindOpportunitiesGrid() method of the SignUpDetail block,
+             * to ensure we're only showing active opportunities within their respective grids.
+             */
+        }
+
+
+        /// <summary>
+        /// Emails the participants.
+        /// </summary>
+        /// <param name="opportunities">The opportunities.</param>
+        /// <param name="shouldOnlyEmailLeaders">if set to <c>true</c> [should only email leaders].</param>
+        private void EmailParticipants( IEnumerable<Opportunity> opportunities, bool shouldOnlyEmailLeaders = false )
+        {
+            // These lists of selected Group/Location/Schedule IDs should be pretty small; SQL WHERE IN clauses should be safe here.
+            var distinctGroupIds = opportunities.Select( o => o.GroupId ).Distinct().ToList();
+            var distinctLocationIds = opportunities.Select( o => o.LocationId ).Distinct().ToList();
+            var distinctScheduleIds = opportunities.Select( o => o.ScheduleId ).Distinct().ToList();
+
+            using ( var rockContext = new RockContext() )
+            {
+                var qry = new GroupMemberAssignmentService( rockContext )
+                    .Queryable()
+                    .AsNoTracking()
+                    .Where(
+                        gma => distinctGroupIds.Contains( gma.GroupMember.GroupId )
+                                && gma.LocationId.HasValue && distinctLocationIds.Contains( gma.LocationId.Value )
+                                && gma.ScheduleId.HasValue && distinctScheduleIds.Contains( gma.ScheduleId.Value )
+                    );
+
+                if ( shouldOnlyEmailLeaders )
+                {
+                    qry = qry.Where( gma => gma.GroupMember.GroupRole.IsLeader );
+                }
+
+                var personIds = qry
+                    .Select( gma => gma.GroupMember.PersonId )
+                    .Distinct()
+                    .ToList();
+
+                // Get the primary aliases.
+                var personAliasService = new PersonAliasService( rockContext );
+                var personAliasList = new List<PersonAlias>( personIds.Count );
+
+                // Get the data in chunks just in case we have a large list of PersonIds (to avoid a SQL Expression limit error).
+                var chunkedPersonIds = personIds.Take( 1000 );
+                var skipCount = 0;
+                while ( chunkedPersonIds.Any() )
+                {
+                    var chunkedPrimaryAliasList = personAliasService
+                        .Queryable()
+                        .AsNoTracking()
+                        .Where( pa => pa.PersonId == pa.AliasPersonId && chunkedPersonIds.Contains( pa.PersonId ) )
+                        .ToList();
+
+                    personAliasList.AddRange( chunkedPrimaryAliasList );
+
+                    skipCount += 1000;
+                    chunkedPersonIds = personIds.Skip( skipCount ).Take( 1000 );
+                }
+
+                // Create communication.
+                var communication = new Communication
+                {
+                    IsBulkCommunication = true,
+                    Status = CommunicationStatus.Transient
+                };
+
+
+
+                rockContext.WrapTransaction( () =>
+                {
+                    var communicationService = new CommunicationService( rockContext );
+
+                } );
+            }
         }
 
         #endregion
