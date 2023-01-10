@@ -44,6 +44,7 @@ namespace RockWeb.Blocks.SignUp
 
         private static class PageParameterKey
         {
+            public const string CommunicationId = "CommunicationId";
             public const string GroupId = "GroupId";
             public const string LocationId = "LocationId";
             public const string ScheduleId = "ScheduleId";
@@ -85,6 +86,17 @@ namespace RockWeb.Blocks.SignUp
             public const string GridActionChanged = "GridActionChanged";
         }
 
+        private static class MergeFieldKey
+        {
+            public static string Group = EntityTypeCache.Get( Rock.SystemGuid.EntityType.GROUP ).Name;
+            public static string GroupLocation = EntityTypeCache.Get( Rock.SystemGuid.EntityType.GROUP_LOCATION ).Name;
+            public static string Location = EntityTypeCache.Get( Rock.SystemGuid.EntityType.LOCATION ).Name;
+            public static string Schedule = EntityTypeCache.Get( Rock.SystemGuid.EntityType.SCHEDULE ).Name;
+            public const string ProjectName = "ProjectName";
+            public const string LeaderCount = "LeaderCount";
+            public const string ParticipantCount = "ParticipantCount";
+        }
+
         #endregion
 
         #region Fields
@@ -109,7 +121,7 @@ namespace RockWeb.Blocks.SignUp
         {
             get
             {
-                return SignUpGroupType?.Id ?? 0;
+                return this.SignUpGroupType?.Id ?? 0;
             }
         }
 
@@ -130,11 +142,11 @@ namespace RockWeb.Blocks.SignUp
             var json = ViewState[ViewStateKey.OpportunitiesState] as string;
             if ( string.IsNullOrWhiteSpace( json ) )
             {
-                OpportunitiesState = new List<Opportunity>();
+                this.OpportunitiesState = new List<Opportunity>();
             }
             else
             {
-                OpportunitiesState = JsonConvert.DeserializeObject<List<Opportunity>>( json ) ?? new List<Opportunity>();
+                this.OpportunitiesState = JsonConvert.DeserializeObject<List<Opportunity>>( json ) ?? new List<Opportunity>();
             }
         }
 
@@ -163,7 +175,7 @@ namespace RockWeb.Blocks.SignUp
         {
             base.OnLoad( e );
 
-            if ( !Page.IsPostBack )
+            if ( !this.Page.IsPostBack )
             {
                 BindOpportunitiesGrid();
                 SetGridFilters();
@@ -192,10 +204,13 @@ namespace RockWeb.Blocks.SignUp
                 return;
             }
 
-            var selectedGuids = gOpportunities.SelectedKeys.Select( k => ( Guid )k ).ToList();
+            var selectedGuids = gOpportunities.SelectedKeys.Select( k => ( Guid ) k ).ToList();
             if ( selectedGuids.Any() )
             {
-                var selectedOpportunities = OpportunitiesState.Where( o => selectedGuids.Contains( o.Guid ) );
+                var selectedOpportunities = this.OpportunitiesState
+                    .Where( o => selectedGuids.Contains( o.Guid ) )
+                    .ToList();
+
                 switch ( hfAction.Value )
                 {
                     case GridAction.Inactivate:
@@ -230,7 +245,7 @@ namespace RockWeb.Blocks.SignUp
                 ContractResolver = new Rock.Utility.IgnoreUrlEncodedKeyContractResolver()
             };
 
-            ViewState[ViewStateKey.OpportunitiesState] = JsonConvert.SerializeObject( OpportunitiesState, Formatting.None, jsonSetting );
+            ViewState[ViewStateKey.OpportunitiesState] = JsonConvert.SerializeObject( this.OpportunitiesState, Formatting.None, jsonSetting );
 
             return base.SaveViewState();
         }
@@ -498,7 +513,7 @@ namespace RockWeb.Blocks.SignUp
         /// </summary>
         private void InitializeGrid()
         {
-            gOpportunities.ExportFilename = $"{SignUpGroupType.Name} Opportunities";
+            gOpportunities.ExportFilename = $"{this.SignUpGroupType.Name} Opportunities";
 
             // we'll have custom javascript (see SignUpOverview.ascx ) do this instead.
             gOpportunities.ShowConfirmDeleteDialog = false;
@@ -514,7 +529,7 @@ namespace RockWeb.Blocks.SignUp
 
             gOpportunities.Actions.AddCustomActionControl( _ddlAction );
 
-            gfOpportunities.UserPreferenceKeyPrefix = $"{SignUpGroupTypeId}-";
+            gfOpportunities.UserPreferenceKeyPrefix = $"{this.SignUpGroupTypeId}-";
         }
 
         /// <summary>
@@ -540,20 +555,20 @@ namespace RockWeb.Blocks.SignUp
                 {
                     if ( SlotsMax.GetValueOrDefault() > 0 )
                     {
-                        return ParticipantCount == 0 || ParticipantCount < SlotsMin.GetValueOrDefault()
+                        return this.ParticipantCount == 0 || this.ParticipantCount < this.SlotsMin.GetValueOrDefault()
                             ? BadgeType.Warning
-                            : ParticipantCount < SlotsMax.Value
+                            : this.ParticipantCount < this.SlotsMax.Value
                                 ? BadgeType.Success
                                 : BadgeType.Danger;
                     }
-                    else if ( SlotsMin.GetValueOrDefault() > 0 )
+                    else if ( this.SlotsMin.GetValueOrDefault() > 0 )
                     {
-                        return ParticipantCount < SlotsMin.Value
+                        return this.ParticipantCount < this.SlotsMin.Value
                             ? BadgeType.Warning
                             : BadgeType.Success;
                     }
 
-                    return ParticipantCount > 0
+                    return this.ParticipantCount > 0
                         ? BadgeType.Success
                         : BadgeType.Warning;
                 }
@@ -594,7 +609,7 @@ namespace RockWeb.Blocks.SignUp
             {
                 get
                 {
-                    return $"<span class='badge badge-{ParticipantCountBadgeType} participant-count-badge'>{ParticipantCount}</span>";
+                    return $"<span class='badge badge-{this.ParticipantCountBadgeType} participant-count-badge'>{this.ParticipantCount}</span>";
                 }
             }
         }
@@ -631,7 +646,7 @@ namespace RockWeb.Blocks.SignUp
                 .AsNoTracking()
                 .Where( gl =>
                     gl.Group.IsActive
-                    && ( gl.Group.GroupTypeId == SignUpGroupTypeId || gl.Group.GroupType.InheritedGroupTypeId == SignUpGroupTypeId )
+                    && ( gl.Group.GroupTypeId == this.SignUpGroupTypeId || gl.Group.GroupType.InheritedGroupTypeId == this.SignUpGroupTypeId )
                 );
 
             // Filter by project name.
@@ -697,7 +712,7 @@ namespace RockWeb.Blocks.SignUp
                 } )
                 .ToList();
 
-            OpportunitiesState = opportunities;
+            this.OpportunitiesState = opportunities;
 
             rockContext.SqlLogging( false );
 
@@ -743,7 +758,7 @@ namespace RockWeb.Blocks.SignUp
         /// Inactivates the opportunities.
         /// </summary>
         /// <param name="opportunities">The opportunities.</param>
-        private void InactivateOpportunities( IEnumerable<Opportunity> opportunities )
+        private void InactivateOpportunities( List<Opportunity> opportunities )
         {
             if ( !opportunities.Any() )
             {
@@ -767,7 +782,7 @@ namespace RockWeb.Blocks.SignUp
         /// </summary>
         /// <param name="opportunities">The opportunities.</param>
         /// <param name="shouldOnlyEmailLeaders">if set to <c>true</c> [should only email leaders].</param>
-        private void EmailParticipants( IEnumerable<Opportunity> opportunities, bool shouldOnlyEmailLeaders = false )
+        private void EmailParticipants( List<Opportunity> opportunities, bool shouldOnlyEmailLeaders = false )
         {
             // These lists of selected Group/Location/Schedule IDs should be pretty small; SQL WHERE IN clauses should be safe here.
             var distinctGroupIds = opportunities.Select( o => o.GroupId ).Distinct().ToList();
@@ -775,6 +790,7 @@ namespace RockWeb.Blocks.SignUp
             var distinctScheduleIds = opportunities.Select( o => o.ScheduleId ).Distinct().ToList();
 
             using ( var rockContext = new RockContext() )
+            using ( var communicationRecipientRockContext = new RockContext() )
             {
                 var qry = new GroupMemberAssignmentService( rockContext )
                     .Queryable()
@@ -790,17 +806,33 @@ namespace RockWeb.Blocks.SignUp
                     qry = qry.Where( gma => gma.GroupMember.GroupRole.IsLeader );
                 }
 
-                var personIds = qry
-                    .Select( gma => gma.GroupMember.PersonId )
+                var participants = qry
+                    .Select( gma => new
+                    {
+                        gma.GroupMember.PersonId,
+                        gma.GroupMember.GroupId,
+                        gma.LocationId,
+                        gma.ScheduleId
+                    } )
+                    .ToList();
+
+                var distinctPersonIds = participants
+                    .Select( p => p.PersonId )
                     .Distinct()
                     .ToList();
 
+                if ( !distinctPersonIds.Any() )
+                {
+                    mdSignUpOverview.Show( "Unable to send email, as no recipients were found.", ModalAlertType.Information );
+                    return;
+                }
+
                 // Get the primary aliases.
                 var personAliasService = new PersonAliasService( rockContext );
-                var personAliasList = new List<PersonAlias>( personIds.Count );
+                var primaryAliasList = new List<PersonAlias>( distinctPersonIds.Count );
 
                 // Get the data in chunks just in case we have a large list of PersonIds (to avoid a SQL Expression limit error).
-                var chunkedPersonIds = personIds.Take( 1000 );
+                var chunkedPersonIds = distinctPersonIds.Take( 1000 );
                 var skipCount = 0;
                 while ( chunkedPersonIds.Any() )
                 {
@@ -810,26 +842,95 @@ namespace RockWeb.Blocks.SignUp
                         .Where( pa => pa.PersonId == pa.AliasPersonId && chunkedPersonIds.Contains( pa.PersonId ) )
                         .ToList();
 
-                    personAliasList.AddRange( chunkedPrimaryAliasList );
+                    primaryAliasList.AddRange( chunkedPrimaryAliasList );
 
                     skipCount += 1000;
-                    chunkedPersonIds = personIds.Skip( skipCount ).Take( 1000 );
+                    chunkedPersonIds = distinctPersonIds.Skip( skipCount ).Take( 1000 );
                 }
+
+                var currentPersonAliasId = this.RockPage.CurrentPersonAliasId;
+
+                // Add custom merge fields.
+                var mergeFields = new List<string>
+                {
+                    MergeFieldKey.Group,
+                    MergeFieldKey.Location,
+                    MergeFieldKey.Schedule,
+                    MergeFieldKey.ProjectName,
+                    MergeFieldKey.LeaderCount,
+                    MergeFieldKey.ParticipantCount
+                };
 
                 // Create communication.
                 var communication = new Communication
                 {
                     IsBulkCommunication = true,
-                    Status = CommunicationStatus.Transient
+                    Status = CommunicationStatus.Transient,
+                    SenderPersonAliasId = currentPersonAliasId,
+                    AdditionalMergeFields = mergeFields
                 };
 
+                communication.UrlReferrer = this.RockPage.Request?.UrlProxySafe()?.AbsoluteUri?.TrimForMaxLength( communication, "UrlReferrer" );
 
+                var communicationService = new CommunicationService( rockContext );
+                communicationService.Add( communication );
 
-                rockContext.WrapTransaction( () =>
+                // Save Communication to get ID.
+                rockContext.SaveChanges();
+
+                var now = RockDateTime.Now;
+
+                var communicationRecipientList = primaryAliasList
+                    .Select( a =>
+                    {
+                        var participant = participants.FirstOrDefault( p => p.PersonId == a.PersonId );
+                        var opportunity = participant != null
+                            ? opportunities.FirstOrDefault( o =>
+                                o.GroupId == participant.GroupId
+                                && o.LocationId == participant.LocationId.ToIntSafe()
+                                && o.ScheduleId == participant.ScheduleId.ToIntSafe()
+                            )
+                            : null;
+
+                        return new CommunicationRecipient
+                        {
+                            CommunicationId = communication.Id,
+                            PersonAliasId = a.Id,
+                            AdditionalMergeValues = new Dictionary<string, object>
+                            {
+                                { MergeFieldKey.Group, opportunity?.GroupId },
+                                { MergeFieldKey.Location, opportunity?.LocationId },
+                                { MergeFieldKey.Schedule, opportunity?.ScheduleId },
+                                { MergeFieldKey.ProjectName, opportunity?.ProjectName },
+                                { MergeFieldKey.LeaderCount, opportunity?.LeaderCount },
+                                { MergeFieldKey.ParticipantCount, opportunity?.ParticipantCount },
+                            },
+                            CreatedByPersonAliasId = currentPersonAliasId,
+                            ModifiedByPersonAliasId = currentPersonAliasId,
+                            CreatedDateTime = now,
+                            ModifiedDateTime = now
+                        };
+                    } )
+                    .ToList();
+
+                // BulkInsert to quickly insert the CommunicationRecipient records. Note: This is much faster, but will bypass EF and Rock processing.
+                communicationRecipientRockContext.BulkInsert( communicationRecipientList );
+
+                // Get the URL to the communication page.
+                var communicationPageRef = this.RockPage.Site.CommunicationPageReference;
+                string communicationUrl;
+                if ( communicationPageRef.PageId > 0 )
                 {
-                    var communicationService = new CommunicationService( rockContext );
+                    communicationPageRef.Parameters.AddOrReplace( PageParameterKey.CommunicationId, communication.Id.ToString() );
+                    communicationUrl = communicationPageRef.BuildUrl();
+                }
+                else
+                {
+                    communicationUrl = "~/Communication/{0}";
+                }
 
-                } );
+                this.Page.Response.Redirect( communicationUrl, false );
+                this.Context.ApplicationInstance.CompleteRequest();
             }
         }
 

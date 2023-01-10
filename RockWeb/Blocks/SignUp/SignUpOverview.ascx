@@ -2,6 +2,7 @@
 
 <asp:UpdatePanel ID="upnlSignUpOverview" runat="server">
     <ContentTemplate>
+        <Rock:ModalAlert ID="mdSignUpOverview" runat="server" />
 
         <asp:Panel ID="pnlDetails" runat="server">
             <asp:HiddenField ID="hfAction" runat="server" />

@@ -254,7 +254,7 @@ END:VCALENDAR
     , (
         @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
         , 'B71494DB-D809-451A-A950-28898D0FD92C' -- Cindy Decker
-        , 0 -- [IsLeader] [bit] NOT NULL
+        , 1 -- [IsLeader] [bit] NOT NULL
     )
     , (
         @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
