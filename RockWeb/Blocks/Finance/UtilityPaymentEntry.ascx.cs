@@ -1044,6 +1044,10 @@ namespace RockWeb.Blocks.Finance
                 {
                     UpdateAvailableAccounts( accountId );
                 }
+                else
+                {
+                    UpdateAvailableAccounts( null );
+                }
             }
 
             // Update the total amount
