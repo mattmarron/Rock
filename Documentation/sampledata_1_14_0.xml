@@ -1202,7 +1202,7 @@
             categoryGuid="568530FB-1B92-4FB7-9974-CCA169E51782" allowMultipleRegistrants="true" groupTypeGuid="8400497B-C52F-40AE-A529-3FCCB9587101"
             allowGroupPlacement="false" waitListEnabled = "true" maxRegistrants="5" registrantsInSameFamily="Ask"
             setCostOn="instance" allowExternalUpdatesToSavedRegistrations="true" feeTerm="Additional Options"
-            addPersonNote="true" loginRequired="false" financialGateway="Test Redirection Gateway" notify="Group Followers"
+            addPersonNote="true" loginRequired="false" financialGateway="Test Gateway" notify="Group Followers"
             paymentReminderTimeSpan="14" registrationTerm="Registration" registrantTerm="Registrant" cost="200" minInitialPayment="0"
             discountCodeTerm="Discount Code" RegistrarOption="PromptForRegistrar" showCurrentFamilyMembers="true">
 
