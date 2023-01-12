@@ -14,6 +14,9 @@
         <Rock:NotificationBox ID="nbNotAuthorizedToView" runat="server" NotificationBoxType="Warning" Visible="false" />
         <Rock:NotificationBox ID="nbGroupTypeNotAllowed" runat="server" NotificationBoxType="Warning" Visible="false" />
 
+        <Rock:HiddenFieldWithClass ID="hfOpportuntiesWithParticipantsCount" runat="server" CssClass="js-opportunities-with-participants-count" />
+        <Rock:HiddenFieldWithClass ID="hfTotalParticipantsCount" runat="server" CssClass="js-total-participants-count" />
+
         <asp:Panel ID="pnlDetails" CssClass="js-sign-up-detail-panel" runat="server">
             <div class="panel panel-block">
 
@@ -346,24 +349,54 @@
                 toggleReminderControlsVisibility();
                 initializeSlotsBadgeTooltips();
 
-                // delete prompt
+                var participantLabel;
+
+                // project delete prompt
+                $('#<%= btnDelete.ClientID %>').on('click', function (e) {
+                    var projectopportunityConfirmMessage = 'Are you sure you want to delete this Project?';
+
+                    var opportunityCount = parseInt($thisBlock.find('.js-opportunities-with-participants-count').val());
+                    if (opportunityCount > 0) {
+                        var totalParticipantsCount = parseInt($thisBlock.find('.js-total-participants-count').val());
+
+                        var opportunityLabel = opportunityCount > 1
+                            ? 'opportunities'
+                            : 'opportunity';
+
+                        participantLabel = totalParticipantsCount > 1
+                            ? 'participants'
+                            : 'participant';
+
+                        projectopportunityConfirmMessage = 'This Project has ' + opportunityCount.toLocaleString('en-US') + ' ' + opportunityLabel + ' and ' + totalParticipantsCount.toLocaleString('en-US') + ' ' + participantLabel + '.';
+                        projectopportunityConfirmMessage += ' Are you sure you want to delete this Project, removing all opportunities and participants?';
+                    }
+
+                    e.preventDefault();
+                    Rock.dialogs.confirm(projectopportunityConfirmMessage, function (result) {
+                        if (result) {
+                            window.location = e.target.href ? e.target.href : e.target.parentElement.href;
+                        }
+                    });
+                });
+
+                // opportunity delete prompt
                 $thisBlock.find('table.js-grid-opportunities a.grid-delete-button').on('click', function (e) {
                     var $btn = $(this);
                     var $row = $btn.closest('tr');
 
-                    var confirmMessage = 'Are you sure you want to delete this Opportunity?';
+                    var opportunityConfirmMessage = 'Are you sure you want to delete this Opportunity?';
 
                     if ($row.hasClass('js-has-participants')) {
                         var participantCount = parseInt($row.find('.js-slots-filled').html());
-                        var participantLabel = participantCount > 1
+                        participantLabel = participantCount > 1
                             ? 'participants'
                             : 'participant';
 
-                        confirmMessage = 'This Opportunity has ' + participantCount + ' ' + participantLabel + '. Are you sure you want to delete this Opportunity and remove all participants? ';
+                        opportunityConfirmMessage = 'This Opportunity has ' + participantCount.toLocaleString('en-US') + ' ' + participantLabel + '. Are you sure you want to delete this Opportunity and remove all participants? ';
                     }
 
                     e.preventDefault();
-                    Rock.dialogs.confirm(confirmMessage, function (result) {
+                    Rock.dialogs.confirm(opportunityConfirmMessage, function (result) {
                         if (result) {
                             window.location = e.target.href ? e.target.href : e.target.parentElement.href;
                         }

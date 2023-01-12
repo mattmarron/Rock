@@ -64,7 +64,7 @@
                             ? 'participants'
                             : 'participant';
 
-                        confirmMessage = 'This Opportunity has ' + participantCount + ' ' + participantLabel + '. Are you sure you want to delete this Opportunity and remove all participants? ';
+                        confirmMessage = 'This Opportunity has ' + participantCount.toLocaleString('en-US') + ' ' + participantLabel + '. Are you sure you want to delete this Opportunity and remove all participants? ';
                     }
 
                     e.preventDefault();

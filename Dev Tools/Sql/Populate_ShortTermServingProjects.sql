@@ -34,8 +34,8 @@ DECLARE @Groups TABLE
 --    , @GroupTypeGuid_SignUpGroup -- [GroupTypeGuid] [uniqueidentifier] NOT NULL
 --    , @DefinedValueGuid_ProjectType_InPerson -- [ProjectTypeGuid] [uniqueidentifier] NOT NULL
 --    , 1 -- [IsActive] [bit] NOT NULL
---    , null -- [CampusGuid] [uniqueidentifier] NULL
---    , null -- [Description] [nvarchar](max) NULL
+--    , NULL -- [CampusGuid] [uniqueidentifier] NULL
+--    , NULL -- [Description] [nvarchar](max) NULL
 --);
 
 ---------------------------------------------------------------------------------------------------
@@ -58,10 +58,10 @@ DECLARE @Locations TABLE
 --VALUES
 --(
 --    @LocationGuid -- [Guid] [uniqueidentifier] NOT NULL
---    , null -- [Name] [nvarchar](100) NULL
---    , null -- [GeoPoint] [geography] NULL
+--    , NULL -- [Name] [nvarchar](100) NULL
+--    , NULL -- [GeoPoint] [geography] NULL
 --    , '' -- [Street1] [nvarchar](100) NULL
---    , null -- [Street2] [nvarchar](100) NULL
+--    , NULL -- [Street2] [nvarchar](100) NULL
 --    , '' -- [City] [nvarchar](50) NULL
 --    , '' -- [State] [nvarchar](50) NULL
 --    , '' -- [Country] [nvarchar](50) NULL
@@ -75,6 +75,8 @@ DECLARE @Schedules TABLE
     [Id] [int] IDENTITY(1,1) NOT NULL
     , [Guid] [uniqueidentifier] NOT NULL
     , [iCalendarContent] [nvarchar](max) NOT NULL
+    , [EffectiveStartDate] [date] NULL
+    , [EffectiveEndDate] [date] NULL
     , [Name] [nvarchar](50) NULL
 );
 
@@ -83,7 +85,9 @@ DECLARE @Schedules TABLE
 --(
 --    @ScheduleGuid -- [Guid] [uniqueidentifier] NOT NULL
 --    , '' -- [iCalendarContent] [nvarchar](max) NOT NULL
---    , null -- [Name] [nvarchar](50) NULL
+--    , NULL -- [EffectiveStartDate] [date] NULL
+--    , NULL -- [EffectiveEndDate] [date] NULL
+--    , NULL -- [Name] [nvarchar](50) NULL
 --);
 
 ---------------------------------------------------------------------------------------------------
@@ -110,11 +114,11 @@ DECLARE @Opportunities TABLE
 --    , @LocationGuid -- [LocationGuid] [uniqueidentifier] NOT NULL
 --    , @ScheduleGuid -- [ScheduleGuid] [uniqueidentifier] NOT NULL
 --    , '' -- [Name] [nvarchar](100) NULL
---    , null -- [MinimumCapacity] [int] NULL
---    , null -- [DesiredCapacity] [int] NULL
---    , null -- [MaximumCapacity] [int] NULL
---    , null -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
---    , null -- [ReminderAdditionalDetails] [nvarchar](max) NULL
+--    , NULL -- [MinimumCapacity] [int] NULL
+--    , NULL -- [DesiredCapacity] [int] NULL
+--    , NULL -- [MaximumCapacity] [int] NULL
+--    , NULL -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
+--    , NULL -- [ReminderAdditionalDetails] [nvarchar](max) NULL
 --);
 
 ---------------------------------------------------------------------------------------------------
@@ -187,7 +191,7 @@ BEGIN -- region Feed My Starving Children
         , @GroupTypeGuid_SignUpGroup -- [GroupTypeGuid] [uniqueidentifier] NOT NULL
         , @DefinedValueGuid_ProjectType_InPerson -- [ProjectTypeGuid] [uniqueidentifier] NOT NULL
         , 1 -- [IsActive] [bit] NOT NULL
-        , null -- [CampusGuid] [uniqueidentifier] NULL
+        , NULL -- [CampusGuid] [uniqueidentifier] NULL
         , 'Turn hunger into hope with your own two hands by packing nutritious meals for hungry children around the world.' -- [Description] [nvarchar](max) NULL
     );
 
@@ -199,10 +203,10 @@ BEGIN -- region Feed My Starving Children
     VALUES
     (
         @LocationGuid -- [Guid] [uniqueidentifier] NOT NULL
-        , null -- [Name] [nvarchar](100) NULL
+        , NULL -- [Name] [nvarchar](100) NULL
         , 0xE6100000010C1973D712F2B1404042B28009DCF65BC0 -- [GeoPoint] [geography] NULL
         , '1345 S Alma School Rd' -- [Street1] [nvarchar](100) NULL
-        , null -- [Street2] [nvarchar](100) NULL
+        , NULL -- [Street2] [nvarchar](100) NULL
         , 'Mesa' -- [City] [nvarchar](50) NULL
         , 'AZ' -- [State] [nvarchar](50) NULL
         , 'US' -- [Country] [nvarchar](50) NULL
@@ -226,7 +230,9 @@ UID:753f3bb6-f9dd-495a-94bd-97ac0901917c
 END:VEVENT
 END:VCALENDAR
 ') -- [iCalendarContent] [nvarchar](max) NOT NULL
-        , null -- [Name] [nvarchar](50) NULL
+        , @DateString_OneWeekInFuture -- [EffectiveStartDate] [date] NULL
+        , @DateString_OneWeekInFuture -- [EffectiveEndDate] [date] NULL
+        , NULL -- [Name] [nvarchar](50) NULL
     );
 
     INSERT INTO @Opportunities
@@ -240,8 +246,8 @@ END:VCALENDAR
         , 30 -- [MinimumCapacity] [int] NULL
         , 50 -- [DesiredCapacity] [int] NULL
         , 60 -- [MaximumCapacity] [int] NULL
-        , null -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
-        , null -- [ReminderAdditionalDetails] [nvarchar](max) NULL
+        , NULL -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
+        , NULL -- [ReminderAdditionalDetails] [nvarchar](max) NULL
     );
 
     INSERT INTO @Members
@@ -331,10 +337,10 @@ END:VCALENDAR
     VALUES
     (
         @LocationGuid -- [Guid] [uniqueidentifier] NOT NULL
-        , null -- [Name] [nvarchar](100) NULL
+        , NULL -- [Name] [nvarchar](100) NULL
         , 0xE6100000010C1A51DA1B7CD5404022C32ADEC8165CC0 -- [GeoPoint] [geography] NULL
         , '13724 W Meeker Blvd' -- [Street1] [nvarchar](100) NULL
-        , null -- [Street2] [nvarchar](100) NULL
+        , NULL -- [Street2] [nvarchar](100) NULL
         , 'Sun City West' -- [City] [nvarchar](50) NULL
         , 'AZ' -- [State] [nvarchar](50) NULL
         , 'US' -- [Country] [nvarchar](50) NULL
@@ -358,7 +364,9 @@ UID:23AE92BE-80C7-486B-966D-01561A309EC0
 END:VEVENT
 END:VCALENDAR
 ') -- [iCalendarContent] [nvarchar](max) NOT NULL
-        , null -- [Name] [nvarchar](50) NULL
+        , @DateString_OneWeekInPast -- [EffectiveStartDate] [date] NULL
+        , @DateString_OneWeekInPast -- [EffectiveEndDate] [date] NULL
+        , NULL -- [Name] [nvarchar](50) NULL
     );
 
     INSERT INTO @Opportunities
@@ -372,8 +380,8 @@ END:VCALENDAR
         , 4 -- [MinimumCapacity] [int] NULL
         , 6 -- [DesiredCapacity] [int] NULL
         , 8 -- [MaximumCapacity] [int] NULL
-        , null -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
-        , null -- [ReminderAdditionalDetails] [nvarchar](max) NULL
+        , NULL -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
+        , NULL -- [ReminderAdditionalDetails] [nvarchar](max) NULL
     );
 
     INSERT INTO @Members
@@ -433,10 +441,10 @@ END:VCALENDAR
     VALUES
     (
         @LocationGuid -- [Guid] [uniqueidentifier] NOT NULL
-        , null -- [Name] [nvarchar](100) NULL
+        , NULL -- [Name] [nvarchar](100) NULL
         , 0xE6100000010C1A51DA1B7CD5404022C32ADEC8165CC0 -- [GeoPoint] [geography] NULL
         , '13724 W Meeker Blvd' -- [Street1] [nvarchar](100) NULL
-        , null -- [Street2] [nvarchar](100) NULL
+        , NULL -- [Street2] [nvarchar](100) NULL
         , 'Sun City West' -- [City] [nvarchar](50) NULL
         , 'AZ' -- [State] [nvarchar](50) NULL
         , 'US' -- [Country] [nvarchar](50) NULL
@@ -460,7 +468,9 @@ UID:7C7F6AD7-A65E-43B1-A56D-AEA6A023C017
 END:VEVENT
 END:VCALENDAR
 ') -- [iCalendarContent] [nvarchar](max) NOT NULL
-        , null -- [Name] [nvarchar](50) NULL
+        , @DateString_OneWeekInFuture -- [EffectiveStartDate] [date] NULL
+        , @DateString_OneWeekInFuture -- [EffectiveEndDate] [date] NULL
+        , NULL -- [Name] [nvarchar](50) NULL
     );
 
     INSERT INTO @Opportunities
@@ -474,8 +484,8 @@ END:VCALENDAR
         , 10 -- [MinimumCapacity] [int] NULL
         , 20 -- [DesiredCapacity] [int] NULL
         , 30 -- [MaximumCapacity] [int] NULL
-        , null -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
-        , null -- [ReminderAdditionalDetails] [nvarchar](max) NULL
+        , NULL -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
+        , NULL -- [ReminderAdditionalDetails] [nvarchar](max) NULL
     );
 
     INSERT INTO @Members
@@ -556,7 +566,7 @@ BEGIN -- region Habitat for Humanity
         , @GroupTypeGuid_SignUpGroup -- [GroupTypeGuid] [uniqueidentifier] NOT NULL
         , @DefinedValueGuid_ProjectType_InPerson -- [ProjectTypeGuid] [uniqueidentifier] NOT NULL
         , 1 -- [IsActive] [bit] NOT NULL
-        , null -- [CampusGuid] [uniqueidentifier] NULL
+        , NULL -- [CampusGuid] [uniqueidentifier] NULL
         , 'Habitat for Humanity is a nonprofit organization that helps families build and improve places to call home. We believe affordable housing plays a critical role in strong and stable communities.' -- [Description] [nvarchar](max) NULL
     );
 
@@ -574,7 +584,7 @@ BEGIN -- region Habitat for Humanity
         , @GroupTypeGuid_SignUpGroup -- [GroupTypeGuid] [uniqueidentifier] NOT NULL
         , @DefinedValueGuid_ProjectType_InPerson -- [ProjectTypeGuid] [uniqueidentifier] NOT NULL
         , 1 -- [IsActive] [bit] NOT NULL
-        , null -- [CampusGuid] [uniqueidentifier] NULL
+        , NULL -- [CampusGuid] [uniqueidentifier] NULL
         , 'Home repair services like painting, landscaping, weatherization and minor repairs, ensuring that families live in safe, decent homes for years to come.' -- [Description] [nvarchar](max) NULL
     );
 
@@ -591,7 +601,7 @@ BEGIN -- region Habitat for Humanity
         , @GroupTypeGuid_SignUpGroup -- [GroupTypeGuid] [uniqueidentifier] NOT NULL
         , @DefinedValueGuid_ProjectType_InPerson -- [ProjectTypeGuid] [uniqueidentifier] NOT NULL
         , 1 -- [IsActive] [bit] NOT NULL
-        , null -- [CampusGuid] [uniqueidentifier] NULL
+        , NULL -- [CampusGuid] [uniqueidentifier] NULL
         , 'Since 1991, Women Build volunteers from all walks of life have come together to build stronger, safer communities.' -- [Description] [nvarchar](max) NULL
     );
 
@@ -603,10 +613,10 @@ BEGIN -- region Habitat for Humanity
     VALUES
     (
         @LocationGuid -- [Guid] [uniqueidentifier] NOT NULL
-        , null -- [Name] [nvarchar](100) NULL
+        , NULL -- [Name] [nvarchar](100) NULL
         , 0xE6100000010C79758E01D9CB40403563D17476105CC0 -- [GeoPoint] [geography] NULL
         , '9133 Grand Ave.' -- [Street1] [nvarchar](100) NULL
-        , null -- [Street2] [nvarchar](100) NULL
+        , NULL -- [Street2] [nvarchar](100) NULL
         , 'Peoria' -- [City] [nvarchar](50) NULL
         , 'AZ' -- [State] [nvarchar](50) NULL
         , 'US' -- [Country] [nvarchar](50) NULL
@@ -630,7 +640,9 @@ UID:559C1673-8A09-4E8E-AF96-2948B5129E3F
 END:VEVENT
 END:VCALENDAR
 ') -- [iCalendarContent] [nvarchar](max) NOT NULL
-        , null -- [Name] [nvarchar](50) NULL
+        , @DateString_TwoWeeksInFuture -- [EffectiveStartDate] [date] NULL
+        , @DateString_TwoWeeksInFuture -- [EffectiveEndDate] [date] NULL
+        , NULL -- [Name] [nvarchar](50) NULL
     );
 
     INSERT INTO @Opportunities
@@ -644,8 +656,8 @@ END:VCALENDAR
         , 4 -- [MinimumCapacity] [int] NULL
         , 6 -- [DesiredCapacity] [int] NULL
         , 10 -- [MaximumCapacity] [int] NULL
-        , null -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
-        , null -- [ReminderAdditionalDetails] [nvarchar](max) NULL
+        , NULL -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
+        , NULL -- [ReminderAdditionalDetails] [nvarchar](max) NULL
     );
 
     INSERT INTO @Members
@@ -965,6 +977,8 @@ BEGIN -- region INSERT/DELETE records
                 (
                     [Name]
                     , [iCalendarContent]
+                    , [EffectiveStartDate]
+                    , [EffectiveEndDate]
                     , [Guid]
                     , [CreatedDateTime]
                     , [ModifiedDateTime]
@@ -974,6 +988,8 @@ BEGIN -- region INSERT/DELETE records
                 )
                 SELECT [Name]
                     , [iCalendarContent]
+                    , [EffectiveStartDate]
+                    , [EffectiveEndDate]
                     , [Guid]
                     , @Now
                     , @Now

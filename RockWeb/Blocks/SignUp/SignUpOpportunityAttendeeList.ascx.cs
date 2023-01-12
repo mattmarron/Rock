@@ -510,7 +510,6 @@ namespace RockWeb.Blocks.SignUp
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
-        
         protected void gAttendees_AddClick( object sender, EventArgs e )
         {
             NavigateToGroupMemberDetailPage();
@@ -637,20 +636,23 @@ namespace RockWeb.Blocks.SignUp
                 RockPage.SaveSharedItem( key, group );
             }
 
-            _groupTypeCache = GroupTypeCache.Get( group.GroupTypeId );
-            _groupMembersWithGroupMemberHistory = new HashSet<int>(
-                new GroupMemberHistoricalService( rockContext )
-                    .Queryable()
-                    .Where( a => a.GroupId == _groupId )
-                    .Select( a => a.GroupMemberId )
-                    .ToList()
-            );
+            if ( group != null )
+            {
+                _groupTypeCache = GroupTypeCache.Get( group.GroupTypeId );
+                _groupMembersWithGroupMemberHistory = new HashSet<int>(
+                    new GroupMemberHistoricalService( rockContext )
+                        .Queryable()
+                        .Where( a => a.GroupId == _groupId )
+                        .Select( a => a.GroupMemberId )
+                        .ToList()
+                );
 
-            _groupTypeRoleIdsWithGroupSync = new HashSet<int>(
-                group.GroupSyncs
-                    .Select( a => a.GroupTypeRoleId )
-                    .ToList()
-            );
+                _groupTypeRoleIdsWithGroupSync = new HashSet<int>(
+                    group.GroupSyncs
+                        .Select( a => a.GroupTypeRoleId )
+                        .ToList()
+                );
+            }
 
             return group;
         }
@@ -1343,7 +1345,7 @@ namespace RockWeb.Blocks.SignUp
                 return string.Empty;
             }
 
-            var tooltipHtmlSb = new StringBuilder( $"<div id='{GetUnmetRequirementsTooltipId( groupMemberId )}' class='hide'>");
+            var tooltipHtmlSb = new StringBuilder( $"<div id='{GetUnmetRequirementsTooltipId( groupMemberId )}' class='hide'>" );
             tooltipHtmlSb.Append( "<p class='text-center'><strong>Unmet Group Requirements</strong></><ul>" );
 
             foreach ( var friendlyName in friendlyNames )

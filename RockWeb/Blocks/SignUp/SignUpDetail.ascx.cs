@@ -335,7 +335,6 @@ namespace RockWeb.Blocks.SignUp
             base.OnInit( e );
 
             nbNotAuthorizedToView.Text = EditModeMessage.NotAuthorizedToView( Group.FriendlyTypeName );
-            btnDelete.Attributes["onclick"] = string.Format( "javascript: return Rock.dialogs.confirmDelete(event, '{0}');", Group.FriendlyTypeName );
             btnSecurity.EntityTypeId = EntityTypeCache.Get( typeof( Group ) ).Id;
 
             gGroupRequirements.Actions.AddClick += gGroupRequirements_Add;
@@ -1088,9 +1087,33 @@ namespace RockWeb.Blocks.SignUp
                     }
                 }
 
+                // Delete any non-named schedules tied to opportunities we'll be deleting.
+                var schedulesToDelete = new GroupLocationService( rockContext )
+                    .Queryable()
+                    .Where( gl => gl.GroupId == this.GroupId )
+                    .SelectMany( gl => gl.Schedules )
+                    .ToList();
+
                 groupService.Delete( group );
 
-                rockContext.SaveChanges();
+                rockContext.WrapTransaction( () =>
+                {
+                    // Initial save to release FK constraints tied to child schedules we'll be deleting.
+                    rockContext.SaveChanges();
+
+                    var scheduleService = new ScheduleService( rockContext );
+                    foreach ( var schedule in schedulesToDelete )
+                    {
+                        // Remove the schedule if custom (non-named) and nothing else is using it.
+                        if ( schedule.ScheduleType != ScheduleType.Named && scheduleService.CanDelete( schedule, out string scheduleErrorMessage ) )
+                        {
+                            scheduleService.Delete( schedule );
+                        }
+                    }
+
+                    // Follow-up save for deleted child entities.
+                    rockContext.SaveChanges();
+                } );
             }
 
             TryNavigateToParentGroup( parentGroupId );
@@ -1587,8 +1610,6 @@ namespace RockWeb.Blocks.SignUp
                  * 5) Schedule (if non-named and nothing else is using it)
                  */
 
-                rockContext.SqlLogging( true );
-
                 var groupMemberAssignmentService = new GroupMemberAssignmentService( rockContext );
                 var groupMemberAssignments = groupMemberAssignmentService
                     .Queryable()
@@ -1604,11 +1625,25 @@ namespace RockWeb.Blocks.SignUp
                     .Select( gma => gma.GroupMember )
                     .ToList();
 
+                /*
+                 * For now, this is safe, as [GroupMemberAssignment] is a pretty low-level Entity with no child Entities.
+                 * We will need to check GroupMemberAssignmentService.CanDelete() for each assignment if this changes in the future.
+                 */
                 groupMemberAssignmentService.DeleteRange( groupMemberAssignments );
+
+                // Get the GroupType to check if this Group has history enabled below, so we know whether to call GroupMemberService.CanDelete() for each GroupMember.
+                var group = new GroupService( rockContext ).GetNoTracking( groupId );
+                var groupTypeCache = GroupTypeCache.Get( group.GroupTypeId );
 
                 var groupMemberService = new GroupMemberService( rockContext );
                 foreach ( var groupMember in groupMembers.Where( gm => !gm.GroupMemberAssignments.Any() ) )
                 {
+                    if ( !groupTypeCache.EnableGroupHistory && !groupMemberService.CanDelete( groupMember, out string groupMemberErrorMessage ) )
+                    {
+                        // The Attendee (Group Member Assignment) record itself will be deleted, but we cannot delete the underlying GroupMember record.
+                        continue;
+                    }
+
                     // We need to delete these one-by-one, as the individual Delete call will dynamically archive if necessary (whereas the bulk delete calls will not).
                     groupMemberService.Delete( groupMember );
                 }
@@ -1667,8 +1702,6 @@ namespace RockWeb.Blocks.SignUp
                     // Follow-up save for deleted child entities.
                     rockContext.SaveChanges();
                 } );
-
-                rockContext.SqlLogging( false );
             }
 
             BindOpportunitiesGrid( shouldForceRefresh: true );
@@ -2533,7 +2566,9 @@ namespace RockWeb.Blocks.SignUp
 
             public string Name { get; set; }
 
-            public bool IsUpcoming { get; set; }
+            public DateTime? LastStartDateTime { get; set; }
+
+            public DateTime? NextStartDateTime { get; set; }
 
             public string FriendlyDateTime { get; set; }
 
@@ -2550,6 +2585,25 @@ namespace RockWeb.Blocks.SignUp
             public string ReminderAdditionalDetails { get; set; }
 
             public string ConfirmationAdditionalDetails { get; set; }
+
+            // Give preference to NextStartDateTime, but if not available, fall back to LastStartDateTime. We need something to sort on and display.
+            public DateTime? NextOrLastStartDateTime
+            {
+                get
+                {
+                    return this.NextStartDateTime.HasValue
+                        ? this.NextStartDateTime
+                        : this.LastStartDateTime;
+                }
+            }
+
+            public bool IsUpcoming
+            {
+                get
+                {
+                    return this.NextStartDateTime.HasValue && this.NextStartDateTime >= RockDateTime.Now;
+                }
+            }
 
             private class BadgeColor
             {
@@ -2733,58 +2787,94 @@ namespace RockWeb.Blocks.SignUp
 
                 if ( shouldForceRefresh || this.OpportunitiesState?.Any() != true )
                 {
-                    var opportunities = new GroupLocationService( rockContext )
+                    // Get this Group's opportunities (GroupLocationSchedules).
+                    var qryGroupLocationSchedules = new GroupLocationService( rockContext )
                         .Queryable()
                         .AsNoTracking()
                         .Where( gl => gl.GroupId == this.GroupId )
                         .SelectMany( gl => gl.Schedules, ( gl, s ) => new
                         {
+                            gl.Group,
                             GroupLocationId = gl.Id,
                             gl.Location,
                             Schedule = s,
                             Config = gl.GroupLocationScheduleConfigs.FirstOrDefault( glsc => glsc.Schedule.Id == s.Id )
-                        } )
+                        } );
+
+                    // Get all attendees for all opportunities; we'll hook them up to their respective opportunities below.
+                    var attendees = new GroupMemberAssignmentService( rockContext )
+                        .Queryable()
+                        .AsNoTracking()
+                        .Where( gma =>
+                            !gma.GroupMember.IsArchived
+                            && qryGroupLocationSchedules.Any( gls => gls.Group.Id == gma.GroupMember.GroupId
+                                && gls.Location.Id == gma.LocationId
+                                && gls.Schedule.Id == gma.ScheduleId )
+                        )
                         .ToList();
 
+                    var totalParticipantCount = 0;
 
-                    this.OpportunitiesState = opportunities
-                        .Select( o =>
+                    this.OpportunitiesState = qryGroupLocationSchedules
+                        .ToList() // Execute the query.
+                        .Select( gls =>
                         {
-                            var nextStartDateTime = o.Schedule.NextStartDateTime;
+                            var locationId = gls.Location.Id;
+                            var scheduleId = gls.Schedule.Id;
+
+                            var participants = attendees
+                                .Where( a => a.LocationId == locationId && a.ScheduleId == scheduleId )
+                                .ToList();
+
+                            totalParticipantCount += participants.Count;
+
+                            var nextStartDateTime = gls.Schedule.NextStartDateTime;
 
                             return new Opportunity
                             {
                                 GroupId = this.GroupId,
-                                GroupLocationId = o.GroupLocationId,
-                                LocationId = o.Location.Id,
-                                ScheduleId = o.Schedule.Id,
-                                Name = o.Config?.ConfigurationName,
-                                IsUpcoming = nextStartDateTime.HasValue && nextStartDateTime >= RockDateTime.Now,
-                                FriendlyDateTime = o.Schedule.FriendlyScheduleText ?? "Custom",
-                                FriendlyLocation = o.Location.ToString(),
-                                SlotsMin = o.Config?.MinimumCapacity,
-                                SlotsDesired = o.Config?.DesiredCapacity,
-                                SlotsMax = o.Config?.MaximumCapacity,
-                                ReminderAdditionalDetails = o.Config?.ReminderAdditionalDetails,
-                                ConfirmationAdditionalDetails = o.Config?.ConfirmationAdditionalDetails
+                                GroupLocationId = gls.GroupLocationId,
+                                LocationId = gls.Location.Id,
+                                ScheduleId = gls.Schedule.Id,
+                                Name = gls.Config?.ConfigurationName,
+                                LastStartDateTime = gls.Schedule.EffectiveEndDate,
+                                NextStartDateTime = gls.Schedule.NextStartDateTime,
+                                FriendlyDateTime = gls.Schedule.FriendlyScheduleText ?? "Custom",
+                                FriendlyLocation = gls.Location.ToString(),
+                                SlotsMin = gls.Config?.MinimumCapacity,
+                                SlotsDesired = gls.Config?.DesiredCapacity,
+                                SlotsMax = gls.Config?.MaximumCapacity,
+                                SlotsFilled = participants.Count,
+                                ReminderAdditionalDetails = gls.Config?.ReminderAdditionalDetails,
+                                ConfirmationAdditionalDetails = gls.Config?.ConfirmationAdditionalDetails
                             };
                         } )
                         .ToList();
+
+                    hfOpportuntiesWithParticipantsCount.Value = this.OpportunitiesState.Count( o => o.SlotsFilled.GetValueOrDefault() > 0 ).ToString();
+                    hfTotalParticipantsCount.Value = totalParticipantCount.ToString();
                 }
 
                 Enum.TryParse( bgOpportunitiesTimeframe.SelectedValue, out OpportunityTimeframe timeframe );
 
                 var timeframeOpportunities = this.OpportunitiesState.Where( o => o.IsUpcoming == ( timeframe == OpportunityTimeframe.Upcoming ) );
 
-                // Load SlotsFilled on demand (to prevent auto-loading counts for past opportunities).
-                var gmaService = new GroupMemberAssignmentService( rockContext );
-                foreach ( var opportunity in timeframeOpportunities.Where( o => !o.SlotsFilled.HasValue ) )
+                List<Opportunity> sortedOpportunities;
+                if ( timeframe == OpportunityTimeframe.Upcoming )
                 {
-                    opportunity.SlotsFilled = gmaService
-                        .Queryable()
-                            .Count( gma => gma.LocationId == opportunity.LocationId
-                                && gma.ScheduleId == opportunity.ScheduleId
-                                && gma.GroupMember.GroupId == group.Id );
+                    sortedOpportunities = timeframeOpportunities
+                        .OrderBy( o => o.NextOrLastStartDateTime )
+                        .ThenBy( o => o.Name )
+                        .ThenByDescending( o => o.SlotsFilled )
+                        .ToList();
+                }
+                else
+                {
+                    sortedOpportunities = timeframeOpportunities
+                        .OrderByDescending( o => o.NextOrLastStartDateTime )
+                        .ThenBy( o => o.Name )
+                        .ThenByDescending( o => o.SlotsFilled )
+                        .ToList();
                 }
 
                 gOpportunities.RowItemText = timeframe == OpportunityTimeframe.Upcoming ? "Upcoming Opportunity" : "Past Opportunity";

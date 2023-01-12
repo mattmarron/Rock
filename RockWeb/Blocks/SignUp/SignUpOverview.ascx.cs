@@ -455,8 +455,6 @@ namespace RockWeb.Blocks.SignUp
                  * 5) Schedule (if non-named and nothing else is using it)
                  */
 
-                rockContext.SqlLogging( true );
-
                 var groupMemberAssignmentService = new GroupMemberAssignmentService( rockContext );
                 var groupMemberAssignments = groupMemberAssignmentService
                     .Queryable()
@@ -472,11 +470,25 @@ namespace RockWeb.Blocks.SignUp
                     .Select( gma => gma.GroupMember )
                     .ToList();
 
+                /*
+                 * For now, this is safe, as [GroupMemberAssignment] is a pretty low-level Entity with no child Entities.
+                 * We will need to check GroupMemberAssignmentService.CanDelete() for each assignment if this changes in the future.
+                 */
                 groupMemberAssignmentService.DeleteRange( groupMemberAssignments );
+
+                // Get the GroupType to check if this Group has history enabled below, so we know whether to call GroupMemberService.CanDelete() for each GroupMember.
+                var group = new GroupService( rockContext ).GetNoTracking( groupId );
+                var groupTypeCache = GroupTypeCache.Get( group.GroupTypeId );
 
                 var groupMemberService = new GroupMemberService( rockContext );
                 foreach ( var groupMember in groupMembers.Where( gm => !gm.GroupMemberAssignments.Any() ) )
                 {
+                    if ( !groupTypeCache.EnableGroupHistory && !groupMemberService.CanDelete( groupMember, out string groupMemberErrorMessage ) )
+                    {
+                        // The Attendee (Group Member Assignment) record itself will be deleted, but we cannot delete the underlying GroupMember record.
+                        continue;
+                    }
+
                     // We need to delete these one-by-one, as the individual Delete call will dynamically archive if necessary (whereas the bulk delete calls will not).
                     groupMemberService.Delete( groupMember );
                 }
@@ -535,8 +547,6 @@ namespace RockWeb.Blocks.SignUp
                     // Follow-up save for deleted child entities.
                     rockContext.SaveChanges();
                 } );
-
-                rockContext.SqlLogging( false );
             }
 
             BindOpportunitiesGrid();
@@ -779,16 +789,15 @@ namespace RockWeb.Blocks.SignUp
         /// <returns></returns>
         private List<Opportunity> GetOpportunities( RockContext rockContext )
         {
-            var qry = new GroupLocationService( rockContext )
+            // Get the current opportunities (GroupLocationSchedules).
+            var qryGroupLocationSchedules = new GroupLocationService( rockContext )
                 .Queryable()
                 .AsNoTracking()
                 .Where( gl =>
-                    gl.Group.IsActive
+                    !gl.Group.IsArchived
+                    && gl.Group.IsActive // Should we care about [IsActive] here? I think so.. as we want this list to reflect what is publicly visible.
                     && ( gl.Group.GroupTypeId == this.SignUpGroupTypeId || gl.Group.GroupType.InheritedGroupTypeId == this.SignUpGroupTypeId )
-                );
-
-            // Get the current opportunities (GroupLocationSchedules).
-            var qryGroupLocationSchedules = qry
+                )
                 .SelectMany( gl => gl.Schedules, ( gl, s ) => new
                 {
                     gl.Group,
@@ -831,14 +840,15 @@ namespace RockWeb.Blocks.SignUp
                 .AsNoTracking()
                 .Include( gma => gma.GroupMember.GroupRole )
                 .Where( gma =>
-                    qryGroupLocationSchedules.Any( gls => gls.Group.Id == gma.GroupMember.GroupId
+                    !gma.GroupMember.IsArchived
+                    && qryGroupLocationSchedules.Any( gls => gls.Group.Id == gma.GroupMember.GroupId
                         && gls.Location.Id == gma.LocationId
                         && gls.Schedule.Id == gma.ScheduleId )
                 )
                 .ToList();
 
             var opportunities = qryGroupLocationSchedules
-                .ToList()
+                .ToList() // Execute the query.
                 .Select( gls =>
                 {
                     var locationId = gls.Location.Id;
@@ -951,7 +961,7 @@ namespace RockWeb.Blocks.SignUp
         private void RegisterJavaScriptForGridActions()
         {
             string script = $@"
-                $('#{_ddlAction.ClientID}').on('change', function(e){{
+                $('#{_ddlAction.ClientID}').on('change', function (e){{
                     var $ddl = $(this);
                     var action = $ddl.val();
                     $('#{hfAction.ClientID}').val(action);
