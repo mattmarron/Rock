@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -21,11 +21,13 @@ using System.ComponentModel.Composition;
 using System.Data.Entity;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
 using Rock.Tasks;
+using Rock.ViewModels.Communication;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls.Communication;
 
@@ -330,6 +332,53 @@ namespace Rock.Communication.Medium
 
                 rockContext.SaveChanges();
             }
+
+            Task.Run( async () =>
+            {
+                using ( var rc = new RockContext() )
+                {
+                    var publicUrl = GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" );
+                    var namelessRecordValueId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_NAMELESS.AsGuid() ).Value;
+                    var cr = new CommunicationResponseService( rc ).Get( communicationResponse.Id );
+
+                    var messageBag = new ConversationMessageBag
+                    {
+                        ConversationKey = $"SMS:{rockSmsFromPhoneDv.Guid}:{cr.FromPersonAlias.Person.PrimaryAlias.Guid}",
+                        MessageKey = $"R:{cr.Guid}",
+                        MessageDateTime = cr.CreatedDateTime,
+                        IsRead = cr.IsRead,
+                        Message = cr.Response,
+                        IsOutbound = false,
+                        IsNamelessPerson = namelessRecordValueId == cr.FromPersonAlias.Person.RecordTypeValueId,
+                        PersonAliasGuid = cr.FromPersonAlias.Person.PrimaryAlias.Guid,
+                        FullName = cr.FromPersonAlias.Person.FullName,
+                        ContactKey = cr.MessageKey,
+                        Attachments = new List<ConversationAttachmentBag>()
+                    };
+
+                    if ( cr.FromPersonAlias.Person.PhotoId.HasValue )
+                    {
+                        messageBag.PhotoUrl = $"{publicUrl}GetImage.ashx?Id={cr.FromPersonAlias.Person.PhotoId}&maxwidth=256&maxheight=256";
+                    }
+
+                    if ( attachments != null )
+                    {
+                        foreach ( var attachment in attachments )
+                        {
+                            messageBag.Attachments.Add( new ConversationAttachmentBag
+                            {
+                                Url = $"{publicUrl}GetFile.ashx?Guid={attachment.Guid}",
+                                ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}&maxwidth=512&maxheight=512"
+                            } );
+                        }
+                    }
+
+                    await Rock.RealTime.RealTimeHelper.GetTopicContext<Rock.RealTime.Topics.IConversationParticipant>()
+                        .Clients
+                        .Channel( "sms" )
+                        .NewSmsMessage( messageBag );
+                }
+            } );
         }
 
         /// <summary>
