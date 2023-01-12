@@ -373,14 +373,14 @@ namespace RockWeb.Blocks.SignUp
                 var personPhoneNumbers = _personIdPhoneNumberTypePhoneNumberLookup.GetValueOrNull( groupMember.PersonId );
                 if ( personPhoneNumbers != null )
                 {
-                    if ( HomePhoneTypeId.HasValue && e.Row.FindControl( "lExportHomePhone" ) is Literal lExportHomePhone )
+                    if ( this.HomePhoneTypeId.HasValue && e.Row.FindControl( "lExportHomePhone" ) is Literal lExportHomePhone )
                     {
-                        lExportHomePhone.Text = personPhoneNumbers.GetValueOrNull( HomePhoneTypeId.Value );
+                        lExportHomePhone.Text = personPhoneNumbers.GetValueOrNull( this.HomePhoneTypeId.Value );
                     }
 
-                    if ( CellPhoneTypeId.HasValue && e.Row.FindControl( "lExportCellPhone" ) is Literal lExportCellPhone )
+                    if ( this.CellPhoneTypeId.HasValue && e.Row.FindControl( "lExportCellPhone" ) is Literal lExportCellPhone )
                     {
-                        lExportCellPhone.Text = personPhoneNumbers.GetValueOrNull( CellPhoneTypeId.Value );
+                        lExportCellPhone.Text = personPhoneNumbers.GetValueOrNull( this.CellPhoneTypeId.Value );
                     }
                 }
 
@@ -448,7 +448,7 @@ namespace RockWeb.Blocks.SignUp
                 e.Row.AddCssClass( "is-deceased" );
             }
 
-            if ( InactiveRecordStatusValueId.HasValue && groupMember.Person.RecordStatusValueId == InactiveRecordStatusValueId.Value )
+            if ( this.InactiveRecordStatusValueId.HasValue && groupMember.Person.RecordStatusValueId == this.InactiveRecordStatusValueId.Value )
             {
                 e.Row.AddCssClass( "is-inactive-person" );
             }
@@ -838,7 +838,7 @@ namespace RockWeb.Blocks.SignUp
                 return false;
             }
 
-            if ( group.GroupTypeId != SignUpGroupTypeId && group.GroupType.InheritedGroupTypeId != SignUpGroupTypeId )
+            if ( group.GroupTypeId != this.SignUpGroupTypeId && group.GroupType.InheritedGroupTypeId != this.SignUpGroupTypeId )
             {
                 ShowInvalidGroupTypeMessage();
                 return false;
@@ -1036,7 +1036,7 @@ namespace RockWeb.Blocks.SignUp
                 var qryCampusMembers = new GroupMemberService( rockContext )
                     .Queryable()
                     .AsNoTracking()
-                    .Where( gm => gm.Group.GroupTypeId == FamilyGroupTypeId && gm.Group.CampusId == campusId );
+                    .Where( gm => gm.Group.GroupTypeId == this.FamilyGroupTypeId && gm.Group.CampusId == campusId );
 
                 qry = qry.Where( gma => qryCampusMembers.Any( cm => cm.PersonId == gma.GroupMember.PersonId ) );
             }
@@ -1083,7 +1083,7 @@ namespace RockWeb.Blocks.SignUp
 
             if ( _isExporting )
             {
-                if ( !FamilyGroupTypeId.HasValue )
+                if ( !this.FamilyGroupTypeId.HasValue )
                 {
                     _personIdPhoneNumberTypePhoneNumberLookup = new Dictionary<int, Dictionary<int, string>>();
                     _personIdHomeLocationLookup = new Dictionary<int, Location>();
@@ -1094,7 +1094,7 @@ namespace RockWeb.Blocks.SignUp
                         .Queryable()
                         .AsNoTracking()
                         .Where( gm => qry.Any( gma => gma.GroupMember.PersonId == gm.PersonId ) )
-                        .Where( gm => gm.Group.GroupTypeId == FamilyGroupTypeId )
+                        .Where( gm => gm.Group.GroupTypeId == this.FamilyGroupTypeId )
                         .Select( gm => new
                         {
                             gm.PersonId,
@@ -1120,7 +1120,7 @@ namespace RockWeb.Blocks.SignUp
                         .GroupBy( a => a.PersonId )
                         .ToDictionary( k => k.Key, v => v.ToDictionary( xk => xk.NumberTypeValueId.Value, xv => xv.NumberFormatted ) );
 
-                    if ( HomeAddressDefinedValue == null )
+                    if ( this.HomeAddressDefinedValue == null )
                     {
                         _personIdHomeLocationLookup = new Dictionary<int, Location>();
                     }
@@ -1131,7 +1131,7 @@ namespace RockWeb.Blocks.SignUp
                             .Select( pf => new
                             {
                                 HomeLocation = pf.Group.GroupLocations
-                                    .Where( l => l.GroupLocationTypeValueId == HomeAddressDefinedValue.Id && l.IsMappedLocation )
+                                    .Where( l => l.GroupLocationTypeValueId == this.HomeAddressDefinedValue.Id && l.IsMappedLocation )
                                     .Select( l => l.Location ).FirstOrDefault(),
                                 GroupOrder = pf.Group.Order,
                                 pf.PersonId

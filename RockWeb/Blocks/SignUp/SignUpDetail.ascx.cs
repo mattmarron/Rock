@@ -127,7 +127,7 @@ namespace RockWeb.Blocks.SignUp
         {
             get
             {
-                return SignUpGroupType?.Id ?? 0;
+                return this.SignUpGroupType?.Id ?? 0;
             }
         }
 
@@ -147,8 +147,8 @@ namespace RockWeb.Blocks.SignUp
         {
             get
             {
-                return GroupTypeId > 0
-                    ? GroupTypeCache.Get( GroupTypeId )
+                return this.GroupTypeId > 0
+                    ? GroupTypeCache.Get( this.GroupTypeId )
                     : null;
             }
         }
@@ -157,7 +157,7 @@ namespace RockWeb.Blocks.SignUp
         {
             get
             {
-                return this.ResolveUrl( $"~/Grouptype/{GroupTypeId}" );
+                return this.ResolveUrl( $"~/Grouptype/{this.GroupTypeId}" );
             }
         }
 
@@ -165,7 +165,7 @@ namespace RockWeb.Blocks.SignUp
         {
             get
             {
-                return CurrentGroupType.AllowedScheduleTypes;
+                return this.CurrentGroupType.AllowedScheduleTypes;
             }
         }
 
@@ -180,7 +180,7 @@ namespace RockWeb.Blocks.SignUp
                  * 
                  * Reason: Sign-Up Groups / short term serving projects - simplified UI (minus weekly schedule types).
                  */
-                return AllowedScheduleTypes.HasFlag( ScheduleType.Custom ) || CurrentGroupType.AllowedScheduleTypes.HasFlag( ScheduleType.Named );
+                return this.AllowedScheduleTypes.HasFlag( ScheduleType.Custom ) || this.CurrentGroupType.AllowedScheduleTypes.HasFlag( ScheduleType.Named );
             }
         }
 
@@ -189,7 +189,7 @@ namespace RockWeb.Blocks.SignUp
             get
             {
                 var allowedPickerModes = LocationPickerMode.None;
-                var groupTypeModes = CurrentGroupType.LocationSelectionMode;
+                var groupTypeModes = this.CurrentGroupType.LocationSelectionMode;
 
                 if ( groupTypeModes.HasFlag( GroupLocationPickerMode.Address ) )
                 {
@@ -219,7 +219,7 @@ namespace RockWeb.Blocks.SignUp
         {
             get
             {
-                return AllowedLocationPickerModes != LocationPickerMode.None;
+                return this.AllowedLocationPickerModes != LocationPickerMode.None;
             }
         }
 
@@ -286,15 +286,15 @@ namespace RockWeb.Blocks.SignUp
             var json = ViewState[ViewStateKey.GroupRequirementsState] as string;
             if ( string.IsNullOrWhiteSpace( json ) )
             {
-                GroupRequirementsState = new List<GroupRequirement>();
+                this.GroupRequirementsState = new List<GroupRequirement>();
             }
             else
             {
-                GroupRequirementsState = JsonConvert.DeserializeObject<List<GroupRequirement>>( json ) ?? new List<GroupRequirement>();
+                this.GroupRequirementsState = JsonConvert.DeserializeObject<List<GroupRequirement>>( json ) ?? new List<GroupRequirement>();
             }
 
             // Get any GroupRole records from the database that weren't serialized.
-            var groupRoleIds = GroupRequirementsState
+            var groupRoleIds = this.GroupRequirementsState
                 .Where( r => r.GroupRoleId.HasValue && r.GroupRole == null )
                 .Select( r => r.GroupRoleId.Value )
                 .Distinct()
@@ -305,7 +305,7 @@ namespace RockWeb.Blocks.SignUp
                 using ( var rockContext = new RockContext() )
                 {
                     var groupRoles = new GroupTypeRoleService( rockContext ).GetByIds( groupRoleIds );
-                    GroupRequirementsState.ForEach( r =>
+                    this.GroupRequirementsState.ForEach( r =>
                     {
                         if ( r.GroupRoleId.HasValue )
                         {
@@ -318,11 +318,11 @@ namespace RockWeb.Blocks.SignUp
             json = ViewState[ViewStateKey.OpportunitiesState] as string;
             if ( string.IsNullOrWhiteSpace( json ) )
             {
-                OpportunitiesState = new List<Opportunity>();
+                this.OpportunitiesState = new List<Opportunity>();
             }
             else
             {
-                OpportunitiesState = JsonConvert.DeserializeObject<List<Opportunity>>( json ) ?? new List<Opportunity>();
+                this.OpportunitiesState = JsonConvert.DeserializeObject<List<Opportunity>>( json ) ?? new List<Opportunity>();
             }
         }
 
@@ -408,8 +408,8 @@ namespace RockWeb.Blocks.SignUp
             };
 
             ViewState[ViewStateKey.ProjectTypeHelpText] = rblProjectType.Help;
-            ViewState[ViewStateKey.GroupRequirementsState] = JsonConvert.SerializeObject( GroupRequirementsState, Formatting.None, jsonSetting );
-            ViewState[ViewStateKey.OpportunitiesState] = JsonConvert.SerializeObject( OpportunitiesState, Formatting.None, jsonSetting );
+            ViewState[ViewStateKey.GroupRequirementsState] = JsonConvert.SerializeObject( this.GroupRequirementsState, Formatting.None, jsonSetting );
+            ViewState[ViewStateKey.OpportunitiesState] = JsonConvert.SerializeObject( this.OpportunitiesState, Formatting.None, jsonSetting );
 
             return base.SaveViewState();
         }
@@ -425,7 +425,7 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void ddlGroupType_SelectedIndexChanged( object sender, EventArgs e )
         {
-            GroupTypeId = ddlGroupType.SelectedValueAsInt() ?? 0;
+            this.GroupTypeId = ddlGroupType.SelectedValueAsInt() ?? 0;
 
             SetIsCampusRequired();
 
@@ -434,16 +434,16 @@ namespace RockWeb.Blocks.SignUp
                 BuildGroupRequirementsList( true, rockContext );
 
                 Group group;
-                if ( GroupId == 0 )
+                if ( this.GroupId == 0 )
                 {
                     group = new Group();
                 }
                 else
                 {
-                    group = new GroupService( rockContext ).GetNoTracking( GroupId );
+                    group = new GroupService( rockContext ).GetNoTracking( this.GroupId );
                 }
 
-                group.GroupTypeId = GroupTypeId;
+                group.GroupTypeId = this.GroupTypeId;
                 group.LoadAttributes();
 
                 BuildEditModeAttributesControls( group );
@@ -477,7 +477,7 @@ namespace RockWeb.Blocks.SignUp
                 var groupService = new GroupService( rockContext );
                 var groupRequirementService = new GroupRequirementService( rockContext );
 
-                if ( GroupId == 0 )
+                if ( this.GroupId == 0 )
                 {
                     isNewGroup = true;
                     group = new Group();
@@ -488,7 +488,7 @@ namespace RockWeb.Blocks.SignUp
                     group = groupService.Queryable()
                         .Include( g => g.ParentGroup ) // Parent group is needed to properly check for edit authorization.
                         .Include( g => g.GroupRequirements )
-                        .FirstOrDefault( g => g.Id == GroupId );
+                        .FirstOrDefault( g => g.Id == this.GroupId );
 
                     // Make sure the user is authorized to edit the retrieved group with the existing parent group and group type.
                     if ( !IsAuthorizedToEdit( group ) )
@@ -499,9 +499,9 @@ namespace RockWeb.Blocks.SignUp
                 }
 
                 var parentGroup = group.ParentGroup;
-                if ( parentGroup == null && PageParentGroupId.HasValue )
+                if ( parentGroup == null && this.PageParentGroupId.HasValue )
                 {
-                    parentGroup = groupService.Get( PageParentGroupId.Value );
+                    parentGroup = groupService.Get( this.PageParentGroupId.Value );
                 }
 
                 if ( parentGroup == null )
@@ -513,7 +513,7 @@ namespace RockWeb.Blocks.SignUp
                 // Re-check edit authorization with new parent group and group type assigned.
                 group.ParentGroup = parentGroup;
                 group.ParentGroupId = parentGroup.Id;
-                group.GroupTypeId = GroupTypeId;
+                group.GroupTypeId = this.GroupTypeId;
 
                 if ( !IsAuthorizedToEdit( group ) )
                 {
@@ -523,17 +523,17 @@ namespace RockWeb.Blocks.SignUp
 
                 // Ensure the group type is allowed.
                 var allowedGroupTypeIds = GetAllowedGroupTypeIds( group.ParentGroup.GroupTypeId );
-                if ( !allowedGroupTypeIds.Contains( GroupTypeId ) )
+                if ( !allowedGroupTypeIds.Contains( this.GroupTypeId ) )
                 {
-                    nbGroupTypeNotAllowed.Text = $"The {group.ParentGroup.Name} group does not allow child groups with a {CurrentGroupType.Name} group type.";
+                    nbGroupTypeNotAllowed.Text = $"The {group.ParentGroup.Name} group does not allow child groups with a {this.CurrentGroupType.Name} group type.";
                     nbGroupTypeNotAllowed.Visible = true;
 
-                    GroupTypeId = allowedGroupTypeIds.FirstOrDefault();
+                    this.GroupTypeId = allowedGroupTypeIds.FirstOrDefault();
                     InitializeGroupTypesDropDownList( group, rockContext );
                     return;
                 }
 
-                group.GroupType = new GroupTypeService( rockContext ).Get( GroupTypeId );
+                group.GroupType = new GroupTypeService( rockContext ).Get( this.GroupTypeId );
                 group.Name = tbName.Text;
                 group.IsActive = cbIsActive.Checked;
                 group.Description = tbDescription.Text;
@@ -586,7 +586,7 @@ namespace RockWeb.Blocks.SignUp
                 if ( !isNewGroup )
                 {
                     // Remove any group requirements that were removed in the UI.
-                    var currentGroupRequirementGuids = GroupRequirementsState.Select( r => r.Guid );
+                    var currentGroupRequirementGuids = this.GroupRequirementsState.Select( r => r.Guid );
                     foreach ( var existingGroupRequirement in group.GroupRequirements.Where( r => !currentGroupRequirementGuids.Contains( r.Guid ) ).ToList() )
                     {
                         groupRequirementService.Delete( existingGroupRequirement );
@@ -595,7 +595,7 @@ namespace RockWeb.Blocks.SignUp
 
                 // Add/Update any group requirements that were added or changed in the UI.
                 var groupRequirementsToInsert = new List<GroupRequirement>();
-                foreach ( var currentGroupRequirement in GroupRequirementsState )
+                foreach ( var currentGroupRequirement in this.GroupRequirementsState )
                 {
                     var groupRequirement = group.GroupRequirements.FirstOrDefault( r => r.Guid.Equals( currentGroupRequirement.Guid ) );
                     if ( groupRequirement == null )
@@ -638,13 +638,13 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void btnCancel_Click( object sender, EventArgs e )
         {
-            if ( GroupId == 0 )
+            if ( this.GroupId == 0 )
             {
                 TryNavigateToParentGroup();
             }
             else
             {
-                ShowDetails( GroupId, false );
+                ShowDetails( this.GroupId, false );
             }
         }
 
@@ -723,12 +723,12 @@ namespace RockWeb.Blocks.SignUp
                     FieldTypeCache.GetId( Rock.SystemGuid.FieldType.DATE_TIME.AsGuid() ).Value
                 };
 
-                if ( GroupId > 0 )
+                if ( this.GroupId > 0 )
                 {
                     var group = new GroupService( rockContext )
                         .Queryable()
                         .AsNoTracking()
-                        .FirstOrDefault( g => g.Id == GroupId );
+                        .FirstOrDefault( g => g.Id == this.GroupId );
 
                     if ( group == null )
                     {
@@ -745,7 +745,7 @@ namespace RockWeb.Blocks.SignUp
                 }
             }
 
-            var selectedGroupRequirement = GroupRequirementsState.FirstOrDefault( r => r.Guid.Equals( groupRequirementGuid ) );
+            var selectedGroupRequirement = this.GroupRequirementsState.FirstOrDefault( r => r.Guid.Equals( groupRequirementGuid ) );
             if ( selectedGroupRequirement != null )
             {
                 // Edit existing group requirement.
@@ -775,7 +775,7 @@ namespace RockWeb.Blocks.SignUp
                 ddlGroupRequirementType.SelectedIndex = 0;
                 ToggleGroupRequirementDueDateControls( groupRequirementTypes );
 
-                grpGroupRequirementGroupRole.GroupTypeId = GroupTypeId;
+                grpGroupRequirementGroupRole.GroupTypeId = this.GroupTypeId;
                 rblAppliesToAgeClassification.SetValue( AppliesToAgeClassification.All.ToString() );
                 dvpAppliesToDataView.SetValue( null );
                 cbAllowLeadersToOverride.Checked = false;
@@ -808,14 +808,14 @@ namespace RockWeb.Blocks.SignUp
         {
             var groupRequirementGuid = hfGroupRequirementGuid.Value.AsGuid();
 
-            var groupRequirement = GroupRequirementsState.FirstOrDefault( r => r.Guid.Equals( groupRequirementGuid ) );
+            var groupRequirement = this.GroupRequirementsState.FirstOrDefault( r => r.Guid.Equals( groupRequirementGuid ) );
             if ( groupRequirement == null )
             {
                 groupRequirement = new GroupRequirement
                 {
                     Guid = Guid.NewGuid()
                 };
-                GroupRequirementsState.Add( groupRequirement );
+                this.GroupRequirementsState.Add( groupRequirement );
             }
 
             using ( var rockContext = new RockContext() )
@@ -856,7 +856,7 @@ namespace RockWeb.Blocks.SignUp
                 groupRequirement.MustMeetRequirementToAddMember = cbMembersMustMeetRequirementOnAdd.Checked;
 
                 // Make sure we aren't adding a duplicate group requirement (same group requirement type and role)
-                var duplicateGroupRequirementExists = GroupRequirementsState.Any( r =>
+                var duplicateGroupRequirementExists = this.GroupRequirementsState.Any( r =>
                     r.GroupRequirementTypeId == groupRequirement.GroupRequirementTypeId
                         && r.GroupRoleId == groupRequirement.GroupRoleId
                         && r.Guid != groupRequirement.Guid );
@@ -865,7 +865,7 @@ namespace RockWeb.Blocks.SignUp
                 {
                     nbDuplicateGroupRequirement.Text = $"This group already has a group requirement of {groupRequirement.GroupRequirementType.Name}{( groupRequirement.GroupRoleId.HasValue ? $" for group role {groupRequirement.GroupRole.Name}" : string.Empty )}.";
                     nbDuplicateGroupRequirement.Visible = true;
-                    GroupRequirementsState.Remove( groupRequirement );
+                    this.GroupRequirementsState.Remove( groupRequirement );
                 }
                 else
                 {
@@ -884,7 +884,7 @@ namespace RockWeb.Blocks.SignUp
         protected void gGroupRequirements_Delete( object sender, RowEventArgs e )
         {
             var rowGuid = ( Guid ) e.RowKeyValue;
-            GroupRequirementsState.RemoveEntity( rowGuid );
+            this.GroupRequirementsState.RemoveEntity( rowGuid );
 
             using ( var context = new RockContext() )
             {
@@ -1010,7 +1010,7 @@ namespace RockWeb.Blocks.SignUp
             var keys = e.RowKeyValues;
             var qryParams = new Dictionary<string, string>
             {
-                { PageParameterKey.GroupId, GroupId.ToString() },
+                { PageParameterKey.GroupId, this.GroupId.ToString() },
                 { PageParameterKey.LocationId, keys[DataKeyName.LocationId].ToString() },
                 { PageParameterKey.ScheduleId, keys[DataKeyName.ScheduleId].ToString() }
             };
@@ -1025,7 +1025,7 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void btnEdit_Click( object sender, EventArgs e )
         {
-            ShowDetails( GroupId, true );
+            ShowDetails( this.GroupId, true );
         }
 
         /// <summary>
@@ -1043,7 +1043,7 @@ namespace RockWeb.Blocks.SignUp
                 var groupService = new GroupService( rockContext );
                 var group = groupService.Queryable()
                     .Include( g => g.ParentGroup ) // Parent group is needed to properly check for edit authorization.
-                    .FirstOrDefault( g => g.Id == GroupId );
+                    .FirstOrDefault( g => g.Id == this.GroupId );
 
                 if ( group == null )
                 {
@@ -1132,7 +1132,7 @@ namespace RockWeb.Blocks.SignUp
 
             if ( groupLocationId.HasValue && scheduleId.HasValue )
             {
-                opportunity = OpportunitiesState.FirstOrDefault( o => o.GroupLocationId == groupLocationId.Value && o.ScheduleId == scheduleId.Value );
+                opportunity = this.OpportunitiesState.FirstOrDefault( o => o.GroupLocationId == groupLocationId.Value && o.ScheduleId == scheduleId.Value );
             }
 
             mdAddOpportunity.Title = opportunity != null ? "Edit Opportunity" : "Add Opportunity";
@@ -1140,13 +1140,13 @@ namespace RockWeb.Blocks.SignUp
             nbNoAllowedLocationPickerModes.Visible = false;
             var shouldShowDialog = true;
 
-            if ( !AnyAllowedScheduleTypes )
+            if ( !this.AnyAllowedScheduleTypes )
             {
                 ShowNoAllowedScheduleTypesMessage();
                 shouldShowDialog = false;
             }
 
-            if ( !AnyAllowedLocationPickerModes )
+            if ( !this.AnyAllowedLocationPickerModes )
             {
                 ShowNoAllowedLocationPickerModesMessage();
                 shouldShowDialog = false;
@@ -1173,8 +1173,8 @@ namespace RockWeb.Blocks.SignUp
                 }
             }
 
-            EditGroupLocationId = opportunity.GroupLocationId;
-            EditScheduleId = opportunity.ScheduleId;
+            this.EditGroupLocationId = opportunity.GroupLocationId;
+            this.EditScheduleId = opportunity.ScheduleId;
 
             tbOpportunityName.Text = opportunity.Name;
 
@@ -1311,10 +1311,10 @@ namespace RockWeb.Blocks.SignUp
                 // Local function to 1) find a GroupLocation whose Group and Location match the new opportunity or 2) create and add a new GroupLocation.
                 GroupLocation GetNewOrMatchingGroupLocation()
                 {
-                    var groupLocation = GetExistingGroupLocation( gl => gl.GroupId == GroupId && gl.LocationId == newLocationId.Value );
+                    var groupLocation = GetExistingGroupLocation( gl => gl.GroupId == this.GroupId && gl.LocationId == newLocationId.Value );
                     if ( groupLocation == null )
                     {
-                        groupLocation = new GroupLocation { GroupId = GroupId, LocationId = newLocationId.Value };
+                        groupLocation = new GroupLocation { GroupId = this.GroupId, LocationId = newLocationId.Value };
                         groupLocationService.Add( groupLocation );
                     }
 
@@ -1340,9 +1340,9 @@ namespace RockWeb.Blocks.SignUp
                     shouldDeleteExistingScheduleConfig = true;
                 }
 
-                if ( EditGroupLocationId > 0 && EditScheduleId > 0 )
+                if ( this.EditGroupLocationId > 0 && this.EditScheduleId > 0 )
                 {
-                    existingGroupLocation = GetExistingGroupLocation( gl => gl.Id == EditGroupLocationId );
+                    existingGroupLocation = GetExistingGroupLocation( gl => gl.Id == this.EditGroupLocationId );
                 }
 
                 if ( existingGroupLocation == null )
@@ -1379,7 +1379,7 @@ namespace RockWeb.Blocks.SignUp
                         groupLocationToSave = existingGroupLocation;
                     }
 
-                    existingSchedule = existingGroupLocation.Schedules.FirstOrDefault( s => s.Id == EditScheduleId );
+                    existingSchedule = existingGroupLocation.Schedules.FirstOrDefault( s => s.Id == this.EditScheduleId );
                     if ( existingSchedule != null )
                     {
                         if ( groupLocationChanged )
@@ -1441,7 +1441,7 @@ namespace RockWeb.Blocks.SignUp
                                 if ( shouldUpdateExistingScheduleConfig )
                                 {
                                     // Ensure we update to the latest Config values.
-                                    var config = existingGroupLocation.GroupLocationScheduleConfigs.FirstOrDefault( c => c.ScheduleId == EditScheduleId );
+                                    var config = existingGroupLocation.GroupLocationScheduleConfigs.FirstOrDefault( c => c.ScheduleId == this.EditScheduleId );
                                     if ( config != null )
                                     {
                                         shouldAddNewScheduleConfig = false;
@@ -1463,9 +1463,9 @@ namespace RockWeb.Blocks.SignUp
                         // Save these members for later; we'll add them to the new Schedule/Location combo below.
                         membersToReassign = groupMemberAssignmentService
                             .Queryable()
-                            .Where( gma => gma.ScheduleId == EditScheduleId
+                            .Where( gma => gma.ScheduleId == this.EditScheduleId
                                 && gma.LocationId == existingGroupLocation.LocationId
-                                && gma.GroupMember.GroupId == GroupId )
+                                && gma.GroupMember.GroupId == this.GroupId )
                             .ToList();
 
                         groupMemberAssignmentService.DeleteRange( membersToReassign );
@@ -1488,7 +1488,7 @@ namespace RockWeb.Blocks.SignUp
                     if ( shouldDeleteExistingScheduleConfig )
                     {
                         // Manually delete this Config record, as it's parent GroupLocation might be sticking around (so it won't get auto-deleted in this case).
-                        var existingConfig = existingGroupLocation.GroupLocationScheduleConfigs.FirstOrDefault( c => c.ScheduleId == EditScheduleId );
+                        var existingConfig = existingGroupLocation.GroupLocationScheduleConfigs.FirstOrDefault( c => c.ScheduleId == this.EditScheduleId );
                         if ( existingConfig != null )
                         {
                             existingGroupLocation.GroupLocationScheduleConfigs.Remove( existingConfig );
@@ -1836,7 +1836,7 @@ namespace RockWeb.Blocks.SignUp
                     FollowingsHelper.SetFollowing( group, pnlFollowing, this.CurrentPerson );
                 }
 
-                GroupRequirementsState = new List<GroupRequirement>();
+                this.GroupRequirementsState = new List<GroupRequirement>();
 
                 if ( group == null )
                 {
@@ -1892,7 +1892,7 @@ namespace RockWeb.Blocks.SignUp
                         return;
                     }
 
-                    ProjectName = group.Name;
+                    this.ProjectName = group.Name;
                     pdAuditDetails.SetEntity( group, ResolveRockUrl( "~" ) );
 
                     var isReadOnly = !IsAuthorizedToEdit( group );
@@ -1909,7 +1909,7 @@ namespace RockWeb.Blocks.SignUp
 
                     if ( group.GroupRequirements?.Any() == true )
                     {
-                        GroupRequirementsState = group.GroupRequirements.ToList();
+                        this.GroupRequirementsState = group.GroupRequirements.ToList();
                     }
 
                     if ( isEditMode )
@@ -1933,8 +1933,8 @@ namespace RockWeb.Blocks.SignUp
         /// </returns>
         private bool IsGroupSignUpType( Group group )
         {
-            var isSignUpType = group.GroupTypeId == SignUpGroupTypeId
-                || group.GroupType.InheritedGroupTypeId.GetValueOrDefault() == SignUpGroupTypeId;
+            var isSignUpType = group.GroupTypeId == this.SignUpGroupTypeId
+                || group.GroupType.InheritedGroupTypeId.GetValueOrDefault() == this.SignUpGroupTypeId;
 
             return isSignUpType;
         }
@@ -1955,7 +1955,7 @@ namespace RockWeb.Blocks.SignUp
                 .Queryable()
                 .AsNoTracking()
                 .Include( g => g.GroupType )
-                .FirstOrDefault( g => g.Id == PageParentGroupId.Value );
+                .FirstOrDefault( g => g.Id == this.PageParentGroupId.Value );
 
             if ( parentGroup == null )
             {
@@ -1978,7 +1978,7 @@ namespace RockWeb.Blocks.SignUp
             var projectTypeAttributeValue = parentGroup.GetAttributeValue( AttributeKey.ProjectType );
             group.SetAttributeValue( AttributeKey.ProjectType, projectTypeAttributeValue );
 
-            GroupTypeId = parentGroup.GroupTypeId;
+            this.GroupTypeId = parentGroup.GroupTypeId;
             _isProjectTypeInPerson = GetIsProjectTypeInPerson( projectTypeAttributeValue );
 
             return true;
@@ -2005,7 +2005,7 @@ namespace RockWeb.Blocks.SignUp
             }
             else
             {
-                lGroupType.Text = CurrentGroupType.Name;
+                lGroupType.Text = this.CurrentGroupType.Name;
                 lGroupType.Visible = true;
                 ddlGroupType.Visible = false;
             }
@@ -2035,8 +2035,8 @@ namespace RockWeb.Blocks.SignUp
         {
             SetEditMode( false );
 
-            GroupId = group.Id;
-            GroupTypeId = group.GroupTypeId;
+            this.GroupId = group.Id;
+            this.GroupTypeId = group.GroupTypeId;
             _isProjectTypeInPerson = GetIsProjectTypeInPerson( group.GetAttributeValue( AttributeKey.ProjectType ) );
 
             SetHighlightLabelVisibility( group );
@@ -2139,7 +2139,7 @@ namespace RockWeb.Blocks.SignUp
                 .All( rockContext )
                 .Where( gt =>
                     GetAllowedGroupTypeIds( group.ParentGroup.GroupTypeId ).Contains( gt.Id )
-                    && ( gt.Id == SignUpGroupTypeId || gt.InheritedGroupTypeId == SignUpGroupTypeId ) )
+                    && ( gt.Id == this.SignUpGroupTypeId || gt.InheritedGroupTypeId == this.SignUpGroupTypeId ) )
                 .OrderBy( gt => gt.Name )
                 .ToList();
 
@@ -2169,7 +2169,7 @@ namespace RockWeb.Blocks.SignUp
         /// </summary>
         private void SetIsCampusRequired()
         {
-            cpCampus.Required = CurrentGroupType?.GroupsRequireCampus ?? false;
+            cpCampus.Required = this.CurrentGroupType?.GroupsRequireCampus ?? false;
         }
 
         /// <summary>
@@ -2211,18 +2211,18 @@ namespace RockWeb.Blocks.SignUp
                 .Queryable()
                 .AsNoTracking()
                 .Include( r => r.GroupRequirementType )
-                .Where( r => r.GroupTypeId == GroupTypeId )
+                .Where( r => r.GroupTypeId == this.GroupTypeId )
                 .OrderBy( r => r.GroupRequirementType.Name )
                 .ToList();
 
             var anyGroupTypeGroupRequirements = groupTypeGroupRequirements.Any();
-            var groupGroupRequirements = GroupRequirementsState.OrderBy( r => r.GroupRequirementType.Name ).ToList();
+            var groupGroupRequirements = this.GroupRequirementsState.OrderBy( r => r.GroupRequirementType.Name ).ToList();
             var anyGroupGroupRequirments = groupGroupRequirements.Any();
             var anyGroupRequirements = anyGroupTypeGroupRequirements || anyGroupGroupRequirments;
 
             if ( isEditMode )
             {
-                var areSpecificGroupRequirementsEnabled = CurrentGroupType.EnableSpecificGroupRequirements;
+                var areSpecificGroupRequirementsEnabled = this.CurrentGroupType.EnableSpecificGroupRequirements;
 
                 if ( !anyGroupRequirements && !areSpecificGroupRequirementsEnabled )
                 {
@@ -2234,7 +2234,7 @@ namespace RockWeb.Blocks.SignUp
 
                 if ( anyGroupTypeGroupRequirements )
                 {
-                    lGroupTypeGroupRequirements.Text = $"(From <a href='{CurrentGroupTypeUrl}' target='_blank'>{CurrentGroupType.Name}</a>)";
+                    lGroupTypeGroupRequirements.Text = $"(From <a href='{this.CurrentGroupTypeUrl}' target='_blank'>{this.CurrentGroupType.Name}</a>)";
 
                     gGroupTypeGroupRequirements.DataSource = groupTypeGroupRequirements;
                     gGroupTypeGroupRequirements.DataBind();
@@ -2399,7 +2399,7 @@ namespace RockWeb.Blocks.SignUp
         {
             var qryParams = GetCommonQueryParams();
 
-            parentGroupId = parentGroupId.HasValue ? parentGroupId : PageParentGroupId;
+            parentGroupId = parentGroupId.HasValue ? parentGroupId : this.PageParentGroupId;
             if ( parentGroupId.HasValue && parentGroupId.Value > 0 )
             {
                 qryParams[PageParameterKey.GroupId] = parentGroupId.ToString();
@@ -2729,14 +2729,14 @@ namespace RockWeb.Blocks.SignUp
                     .Queryable()
                     .AsNoTracking()
                     .Include( g => g.Campus )
-                    .FirstOrDefault( g => g.Id == GroupId );
+                    .FirstOrDefault( g => g.Id == this.GroupId );
 
-                if ( shouldForceRefresh || OpportunitiesState?.Any() != true )
+                if ( shouldForceRefresh || this.OpportunitiesState?.Any() != true )
                 {
                     var opportunities = new GroupLocationService( rockContext )
                         .Queryable()
                         .AsNoTracking()
-                        .Where( gl => gl.GroupId == GroupId )
+                        .Where( gl => gl.GroupId == this.GroupId )
                         .SelectMany( gl => gl.Schedules, ( gl, s ) => new
                         {
                             GroupLocationId = gl.Id,
@@ -2747,14 +2747,14 @@ namespace RockWeb.Blocks.SignUp
                         .ToList();
 
 
-                    OpportunitiesState = opportunities
+                    this.OpportunitiesState = opportunities
                         .Select( o =>
                         {
                             var nextStartDateTime = o.Schedule.NextStartDateTime;
 
                             return new Opportunity
                             {
-                                GroupId = GroupId,
+                                GroupId = this.GroupId,
                                 GroupLocationId = o.GroupLocationId,
                                 LocationId = o.Location.Id,
                                 ScheduleId = o.Schedule.Id,
@@ -2774,7 +2774,7 @@ namespace RockWeb.Blocks.SignUp
 
                 Enum.TryParse( bgOpportunitiesTimeframe.SelectedValue, out OpportunityTimeframe timeframe );
 
-                var timeframeOpportunities = OpportunitiesState.Where( o => o.IsUpcoming == ( timeframe == OpportunityTimeframe.Upcoming ) );
+                var timeframeOpportunities = this.OpportunitiesState.Where( o => o.IsUpcoming == ( timeframe == OpportunityTimeframe.Upcoming ) );
 
                 // Load SlotsFilled on demand (to prevent auto-loading counts for past opportunities).
                 var gmaService = new GroupMemberAssignmentService( rockContext );
@@ -2806,7 +2806,7 @@ namespace RockWeb.Blocks.SignUp
         /// </summary>
         private void ShowOpportunityAlreadyExistsMessage()
         {
-            nbOpportunityAlreadyExists.Text = $"A {ProjectName} opportunity already exists for the selected Location & Schedule combination.<br />Please edit the existing opportunity or choose a different Location and/or Schedule to add a new opportunity.";
+            nbOpportunityAlreadyExists.Text = $"A {this.ProjectName} opportunity already exists for the selected Location & Schedule combination.<br />Please edit the existing opportunity or choose a different Location and/or Schedule to add a new opportunity.";
             nbOpportunityAlreadyExists.Visible = true;
         }
 
@@ -2815,7 +2815,7 @@ namespace RockWeb.Blocks.SignUp
         /// </summary>
         private void ShowNoAllowedScheduleTypesMessage()
         {
-            nbNoAllowedScheduleTypes.Text = $"The <b>{CurrentGroupType.Name}</b> group type does not allow Custom or Named Group Schedule Options. Please <a href='{CurrentGroupTypeUrl}' target='_blank'>enable at least one of these types</a> to edit opportunities.";
+            nbNoAllowedScheduleTypes.Text = $"The <b>{this.CurrentGroupType.Name}</b> group type does not allow Custom or Named Group Schedule Options. Please <a href='{this.CurrentGroupTypeUrl}' target='_blank'>enable at least one of these types</a> to edit opportunities.";
             nbNoAllowedScheduleTypes.Visible = true;
         }
 
@@ -2824,7 +2824,7 @@ namespace RockWeb.Blocks.SignUp
         /// </summary>
         private void ShowNoAllowedLocationPickerModesMessage()
         {
-            nbNoAllowedLocationPickerModes.Text = $"The <b>{CurrentGroupType.Name}</b> group type does not allow any Location Selection Modes. Please <a href='{CurrentGroupTypeUrl}' target='_blank'>enable at least one mode</a> to edit opportunities.";
+            nbNoAllowedLocationPickerModes.Text = $"The <b>{this.CurrentGroupType.Name}</b> group type does not allow any Location Selection Modes. Please <a href='{this.CurrentGroupTypeUrl}' target='_blank'>enable at least one mode</a> to edit opportunities.";
             nbNoAllowedLocationPickerModes.Visible = true;
         }
 
@@ -2843,8 +2843,8 @@ namespace RockWeb.Blocks.SignUp
             spSchedule.SetValue( null );
 
             // If we got here, one of these (and maybe both of them) are allowed by this group type.
-            var isCustomScheduleAllowed = AllowedScheduleTypes.HasFlag( ScheduleType.Custom );
-            var isNamedScheduleAllowed = AllowedScheduleTypes.HasFlag( ScheduleType.Named );
+            var isCustomScheduleAllowed = this.AllowedScheduleTypes.HasFlag( ScheduleType.Custom );
+            var isNamedScheduleAllowed = this.AllowedScheduleTypes.HasFlag( ScheduleType.Named );
 
             ScheduleType selectedScheduleType;
 
@@ -2930,7 +2930,7 @@ namespace RockWeb.Blocks.SignUp
         /// </summary>
         private void ShowScheduleTypeNotAllowed()
         {
-            nbScheduleTypeNotAllowed.Text = $"The <b>{CurrentGroupType.Name}</b> group type does not allow this opportunity's current schedule; please add a new schedule below.";
+            nbScheduleTypeNotAllowed.Text = $"The <b>{this.CurrentGroupType.Name}</b> group type does not allow this opportunity's current schedule; please add a new schedule below.";
             nbScheduleTypeNotAllowed.Visible = true;
         }
 
@@ -2966,7 +2966,7 @@ namespace RockWeb.Blocks.SignUp
         /// </summary>
         private void ShowLocationPickerModeNotAllowed()
         {
-            nbLocationModeNotAllowed.Text = $"The <b>{CurrentGroupType.Name}</b> group type does not allow this opportunity's current location; please add a new location below.";
+            nbLocationModeNotAllowed.Text = $"The <b>{this.CurrentGroupType.Name}</b> group type does not allow this opportunity's current location; please add a new location below.";
             nbLocationModeNotAllowed.Visible = true;
         }
 
@@ -3045,7 +3045,7 @@ namespace RockWeb.Blocks.SignUp
             }
 
             // If selected Schedule is Named, ensure Schedule & Location combo doesn't already exist for the current Sign-Up Group.
-            if ( parsed.NewScheduleId.HasValue && OpportunitiesState.Any( o => o.GroupLocationId != EditGroupLocationId
+            if ( parsed.NewScheduleId.HasValue && this.OpportunitiesState.Any( o => o.GroupLocationId != this.EditGroupLocationId
                 && o.ScheduleId == parsed.NewScheduleId
                 && o.LocationId == parsed.NewLocationId.Value ) )
             {
