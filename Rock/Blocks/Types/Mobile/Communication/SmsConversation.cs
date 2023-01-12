@@ -21,9 +21,11 @@ using System.Data.Entity;
 using System.Linq;
 
 using Rock.Attribute;
+using Rock.Communication;
 using Rock.Data;
 using Rock.Model;
 using Rock.Reporting;
+using Rock.ViewModels.Utility;
 using Rock.Web.Cache;
 
 namespace Rock.Blocks.Types.Mobile.Communication
@@ -39,6 +41,13 @@ namespace Rock.Blocks.Types.Mobile.Communication
     [IconCssClass( "fa fa-comments" )]
 
     #region Block Attributes
+
+    [CustomDropdownListField( "Snippet Type",
+        Description = "The type of snippets to make available when sending a message.",
+        IsRequired = false,
+        ListSource = "SELECT [Guid] AS [Value], [Name] AS [Text] FROM [SnippetType] ORDER BY [Name]",
+        Key = AttributeKey.SnippetType,
+        Order = 0 )]
 
     [IntegerField( "Database Timeout",
         Description = "The number of seconds to wait before reporting a database timeout.",
@@ -61,6 +70,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
         private static class AttributeKey
         {
             public const string DatabaseTimeoutSeconds = "DatabaseTimeoutSeconds";
+            public const string SnippetType = "SnippetType";
         }
 
         #endregion
@@ -225,14 +235,46 @@ namespace Rock.Blocks.Types.Mobile.Communication
                 .ToList();
         }
 
+        /// <summary>
+        /// Gets the list item bags that represent the snippets which can be
+        /// used by the individual.
+        /// </summary>
+        /// <param name="rockContext">The rock context to use when accessing the database.</param>
+        /// <returns>A collection of bags that represent the snippets.</returns>
+        private List<ListItemBag> GetSnippetBags( RockContext rockContext )
+        {
+            var snippetTypeGuid = GetAttributeValue( AttributeKey.SnippetType ).AsGuidOrNull();
+            var currentPersonId = RequestContext.CurrentPerson?.Id;
+
+            if ( !snippetTypeGuid.HasValue )
+            {
+                return new List<ListItemBag>();
+            }
+
+            return new SnippetService( rockContext )
+                .GetAuthorizedSnippets( RequestContext.CurrentPerson,
+                    s => s.SnippetType.Guid == snippetTypeGuid.Value )
+                .OrderBy( s => s.Order )
+                .ThenBy( s => s.Name )
+                .Select( s =>
+                {
+                    var bag = s.ToListItemBag();
+
+                    bag.Category = s.OwnerPersonAliasId.HasValue ? "Personal" : "Shared";
+
+                    return bag;
+                } )
+                .ToList();
+        }
+
         #endregion
 
         #region Action Methods
 
         [BlockAction]
-        public BlockActionResult GetConversationDetails( Guid phoneNumberGuid, Guid? personGuid = null, Guid? personAliasGuid = null )
+        public BlockActionResult GetConversationDetails( Guid rockPhoneNumberGuid, Guid? personGuid = null, Guid? personAliasGuid = null )
         {
-            var rockPhoneNumber = DefinedValueCache.Get( phoneNumberGuid );
+            var rockPhoneNumber = DefinedValueCache.Get( rockPhoneNumberGuid );
 
             if ( rockPhoneNumber == null )
             {
@@ -282,14 +324,18 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     .GetCommunicationConversationForPerson( person.Id, rockPhoneNumber.Id );
 
                 var messages = ToMessageBags( responses );
+                var snippets = GetSnippetBags( rockContext );
 
                 var bag = new ConversationDetailBag
                 {
+                    ConversationKey = $"SMS:{rockPhoneNumber.Guid}:{person.PrimaryAlias.Guid}",
                     FullName = person.FullName,
                     IsNamelessPerson = person.IsNameless(),
                     Messages = messages,
+                    PersonGuid = person.Guid,
                     PhoneNumber = person.PhoneNumbers.GetFirstSmsNumber(),
-                    PhotoUrl = photoUrl
+                    PhotoUrl = photoUrl,
+                    Snippets = snippets
                 };
 
                 return ActionOk( bag );
@@ -299,14 +345,14 @@ namespace Rock.Blocks.Types.Mobile.Communication
         /// <summary>
         /// Gets all messages for the specified conversation.
         /// </summary>
-        /// <param name="phoneNumberGuid">The unique identifier of the phone number to retrieve conversations for.</param>
+        /// <param name="rockPhoneNumberGuid">The unique identifier of the phone number to retrieve conversations for.</param>
         /// <param name="personGuid">The unique identifier of the person to be communicated with.</param>
         /// <param name="personAliasGuid">The unique identifier of the person alias to be communicated with.</param>
         /// <returns>A collection of message objects or an HTTP error.</returns>
         [BlockAction]
-        public BlockActionResult GetMessages( Guid phoneNumberGuid, Guid? personGuid, Guid? personAliasGuid )
+        public BlockActionResult GetMessages( Guid rockPhoneNumberGuid, Guid? personGuid, Guid? personAliasGuid )
         {
-            var rockPhoneNumber = DefinedValueCache.Get( phoneNumberGuid );
+            var rockPhoneNumber = DefinedValueCache.Get( rockPhoneNumberGuid );
 
             if ( rockPhoneNumber == null )
             {
@@ -364,12 +410,140 @@ namespace Rock.Blocks.Types.Mobile.Communication
             }
         }
 
+        /// <summary>
+        /// Resolves the snippet text and returns it.
+        /// </summary>
+        /// <param name="snippetGuid">The unique identifier of the snippet to be resolved.</param>
+        /// <param name="personGuid">The unique identifier of the person who will receive the snippet.</param>
+        /// <returns>A string that represents the snippet text.</returns>
+        [BlockAction]
+        public BlockActionResult ResolveSnippetText( Guid snippetGuid, Guid personGuid )
+        {
+            var snippetTypeGuid = GetAttributeValue( AttributeKey.SnippetType ).AsGuidOrNull();
+            var currentPersonId = RequestContext.CurrentPerson?.Id;
+
+            if ( !snippetTypeGuid.HasValue )
+            {
+                return ActionNotFound( "Snippet could not be found." );
+            }
+
+            using ( var rockContext = new RockContext() )
+            {
+                var snippet = new SnippetService( rockContext )
+                    .GetAuthorizedSnippets( RequestContext.CurrentPerson,
+                        s => s.Guid == snippetGuid && s.SnippetType.Guid == snippetTypeGuid.Value )
+                    .FirstOrDefault();
+
+                if ( snippet == null )
+                {
+                    return ActionNotFound( "Snippet was not found." );
+                }
+
+                var person = new PersonService( rockContext ).Get( personGuid );
+
+                if ( person == null )
+                {
+                    return ActionNotFound( "Person could not be found." );
+                }
+
+                var mergeFields = RequestContext.GetCommonMergeFields();
+
+                mergeFields.Add( "Person", person );
+
+                var text = snippet.Content.ResolveMergeFields( mergeFields );
+
+                return ActionOk( text );
+            }
+        }
+
+        [BlockAction]
+        public BlockActionResult SendMessage( Guid rockPhoneNumberGuid, Guid personGuid, string message, Guid? attachmentGuid = null )
+        {
+            var rockPhoneNumber = DefinedValueCache.Get( rockPhoneNumberGuid );
+
+            if ( rockPhoneNumber == null )
+            {
+                return ActionNotFound( "Rock phone number was not found." );
+            }
+
+            if ( RequestContext.CurrentPerson == null )
+            {
+                return ActionBadRequest( "Must be logged in to send messages." );
+            }
+
+            using ( var rockContext = new RockContext() )
+            {
+                try
+                {
+                    // The sender is the logged in user.
+                    var fromPersonAliasId = RequestContext.CurrentPerson.PrimaryAliasId.Value;
+
+                    var responseCode = Rock.Communication.Medium.Sms.GenerateResponseCode( rockContext );
+                    var toPrimaryAliasId = new PersonAliasService( rockContext ).GetPrimaryAliasId( personGuid );
+
+                    List<BinaryFile> attachments = null;
+
+                    if ( attachmentGuid.HasValue )
+                    {
+                        var binaryFile = new BinaryFileService( rockContext )
+                            .Get( attachmentGuid.Value );
+
+                        if ( binaryFile != null )
+                        {
+                            attachments = new List<BinaryFile>
+                            {
+                                binaryFile
+                            };
+                        }
+                    }
+
+                    // Create and enqueue the communication
+                    var communication = Rock.Communication.Medium.Sms.CreateSmsCommunication( RequestContext.CurrentPerson, toPrimaryAliasId, message, rockPhoneNumber, responseCode, rockContext, attachments );
+
+                    if ( communication.Recipients.Count == 0 )
+                    {
+                        return ActionInternalServerError( "Unable to determine recipient of message." );
+                    }
+
+                    // Must use a new context in order to get an object that
+                    // has valid navigation properties.
+                    using ( var rockContext2 = new RockContext() )
+                    {
+                        var recipientId = communication.Recipients.First().Id;
+
+                        var messageBag = new CommunicationRecipientService( rockContext2 )
+                            .GetConversationMessageBag( recipientId );
+
+                        return ActionOk( messageBag );
+                    }
+                }
+                catch ( Exception ex )
+                {
+                    ExceptionLogService.LogException( ex );
+
+                    return ActionInternalServerError( "Unexpected error encountered when trying to send message." );
+                }
+            }
+        }
+
         #endregion
 
         #region Support Classes
 
         private class ConversationDetailBag
         {
+            /// <summary>
+            /// Gets or sets the conversation key.
+            /// </summary>
+            /// <value>The conversation key.</value>
+            public string ConversationKey { get; set; }
+
+            /// <summary>
+            /// Gets or sets the person unique identifier.
+            /// </summary>
+            /// <value>The person unique identifier.</value>
+            public Guid PersonGuid { get; set; }
+
             /// <summary>
             /// Gets or sets the full name of the person being communicated with.
             /// </summary>
@@ -402,6 +576,12 @@ namespace Rock.Blocks.Types.Mobile.Communication
             /// </summary>
             /// <value>The initial messages to be displayed.</value>
             public List<ConversationMessageBag> Messages { get; set; }
+
+            /// <summary>
+            /// Gets or sets the snippets available to use when sending a message.
+            /// </summary>
+            /// <value>The snippets available to use when sending a message.</value>
+            public List<ListItemBag> Snippets { get; set; }
         }
 
         internal class ConversationMessageBag

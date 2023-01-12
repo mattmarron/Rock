@@ -18,6 +18,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+
 using Rock.Communication;
 using Rock.Data;
 using Rock.Web.Cache;
@@ -522,6 +524,44 @@ namespace Rock.Model
                 .Where( c => queuedQry.Any( c2 => c2.Id == c.Id ) )
                 .Where( c => communicationListQry.Any( c2 => c2.Id == c.Id ) );
             return returnQry;
+        }
+
+        /// <summary>
+        /// Send all real time notifications for an outbound SMS message.
+        /// </summary>
+        /// <param name="communicationRecipientId">The identifier of the <see cref="CommunicationRecipient"/> object that is the source of the notification.</param>
+        /// <returns>A Task representing the asynchronous operation.</returns>
+        internal static async Task SendOutboundSmsRealTimeNotificationsAsync( int communicationRecipientId )
+        {
+            using ( var rockContext = new RockContext() )
+            {
+                var messageBag = new CommunicationRecipientService( rockContext )
+                    .GetConversationMessageBag( communicationRecipientId );
+
+                await RealTime.RealTimeHelper.GetTopicContext<RealTime.Topics.IConversationParticipant>()
+                    .Clients
+                    .Channel( "sms" )
+                    .NewSmsMessage( messageBag );
+            }
+        }
+
+        /// <summary>
+        /// Send all real time notifications for an inbound SMS message.
+        /// </summary>
+        /// <param name="communicationResponseId">The identifier of the <see cref="CommunicationResponse"/> object that is the source of the notification.</param>
+        /// <returns>A Task representing the asynchronous operation.</returns>
+        internal static async Task SendInboundSmsRealTimeNotificationsAsync( int communicationResponseId )
+        {
+            using ( var rockContext = new RockContext() )
+            {
+                var messageBag = new CommunicationResponseService( rockContext )
+                    .GetConversationMessageBag( communicationResponseId );
+
+                await RealTime.RealTimeHelper.GetTopicContext<RealTime.Topics.IConversationParticipant>()
+                    .Clients
+                    .Channel( "sms" )
+                    .NewSmsMessage( messageBag );
+            }
         }
 
         /// <summary>

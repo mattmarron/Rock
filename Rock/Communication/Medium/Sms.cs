@@ -335,48 +335,13 @@ namespace Rock.Communication.Medium
 
             Task.Run( async () =>
             {
-                using ( var rc = new RockContext() )
+                try
                 {
-                    var publicUrl = GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" );
-                    var namelessRecordValueId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_NAMELESS.AsGuid() ).Value;
-                    var cr = new CommunicationResponseService( rc ).Get( communicationResponse.Id );
-
-                    var messageBag = new ConversationMessageBag
-                    {
-                        ConversationKey = $"SMS:{rockSmsFromPhoneDv.Guid}:{cr.FromPersonAlias.Person.PrimaryAlias.Guid}",
-                        MessageKey = $"R:{cr.Guid}",
-                        MessageDateTime = cr.CreatedDateTime,
-                        IsRead = cr.IsRead,
-                        Message = cr.Response,
-                        IsOutbound = false,
-                        IsNamelessPerson = namelessRecordValueId == cr.FromPersonAlias.Person.RecordTypeValueId,
-                        PersonAliasGuid = cr.FromPersonAlias.Person.PrimaryAlias.Guid,
-                        FullName = cr.FromPersonAlias.Person.FullName,
-                        ContactKey = cr.MessageKey,
-                        Attachments = new List<ConversationAttachmentBag>()
-                    };
-
-                    if ( cr.FromPersonAlias.Person.PhotoId.HasValue )
-                    {
-                        messageBag.PhotoUrl = $"{publicUrl}GetImage.ashx?Id={cr.FromPersonAlias.Person.PhotoId}&maxwidth=256&maxheight=256";
-                    }
-
-                    if ( attachments != null )
-                    {
-                        foreach ( var attachment in attachments )
-                        {
-                            messageBag.Attachments.Add( new ConversationAttachmentBag
-                            {
-                                Url = $"{publicUrl}GetFile.ashx?Guid={attachment.Guid}",
-                                ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}&maxwidth=512&maxheight=512"
-                            } );
-                        }
-                    }
-
-                    await Rock.RealTime.RealTimeHelper.GetTopicContext<Rock.RealTime.Topics.IConversationParticipant>()
-                        .Clients
-                        .Channel( "sms" )
-                        .NewSmsMessage( messageBag );
+                    await CommunicationService.SendInboundSmsRealTimeNotificationsAsync( communicationResponse.Id );
+                }
+                catch ( Exception ex )
+                {
+                    ExceptionLogService.LogException( ex );
                 }
             } );
         }
@@ -450,6 +415,21 @@ namespace Rock.Communication.Medium
         /// <param name="attachments">The attachments.</param>
         public static void CreateCommunicationMobile( Person fromPerson, int? toPersonAliasId, string message, DefinedValueCache fromPhone, string responseCode, Rock.Data.RockContext rockContext, List<BinaryFile> attachments )
         {
+            CreateSmsCommunication( fromPerson, toPersonAliasId, message, fromPhone, responseCode, rockContext, attachments );
+        }
+
+        /// <summary>
+        /// Creates the communication to the recipient's mobile device with attachments.
+        /// </summary>
+        /// <param name="fromPerson">From person.</param>
+        /// <param name="toPersonAliasId">To person alias identifier.</param>
+        /// <param name="message">The message.</param>
+        /// <param name="fromPhone">From phone.</param>
+        /// <param name="responseCode">The response code.</param>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="attachments">The attachments.</param>
+        internal static Model.Communication CreateSmsCommunication( Person fromPerson, int? toPersonAliasId, string message, DefinedValueCache fromPhone, string responseCode, RockContext rockContext, List<BinaryFile> attachments )
+        {
             // NOTE: fromPerson should never be null since a Nameless Person record should have been created if a regular person record wasn't found
             string communicationName = fromPerson != null ? string.Format( "From: {0}", fromPerson.FullName ) : "From: unknown person";
 
@@ -467,13 +447,13 @@ namespace Rock.Communication.Medium
             };
 
             Rock.Model.Communication communication = communicationService.CreateSMSCommunication( createSMSCommunicationArgs );
-            
+
             rockContext.SaveChanges();
 
             // Now that we have a communication ID we can add the attachments
             if ( attachments != null && attachments.Any() )
             {
-                foreach( var attachment in attachments )
+                foreach ( var attachment in attachments )
                 {
                     var communicationAttachment = new CommunicationAttachment
                     {
@@ -495,6 +475,25 @@ namespace Rock.Communication.Medium
             };
 
             transaction.Send();
+
+            var recipientId = communication.Recipients.FirstOrDefault()?.Id;
+
+            if ( recipientId.HasValue )
+            {
+                Task.Run( async () =>
+                {
+                    try
+                    {
+                        await CommunicationService.SendOutboundSmsRealTimeNotificationsAsync( recipientId.Value );
+                    }
+                    catch ( Exception ex )
+                    {
+                        ExceptionLogService.LogException( ex );
+                    }
+                } );
+            }
+
+            return communication;
         }
 
         /// <summary>

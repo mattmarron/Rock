@@ -22,6 +22,7 @@ using System.Data.Entity;
 using System.Linq;
 
 using Rock.Data;
+using Rock.ViewModels.Communication;
 using Rock.Web.Cache;
 
 namespace Rock.Model
@@ -411,6 +412,65 @@ namespace Rock.Model
             var communicationResponsesToUpdate = Queryable().Where( a => a.FromPersonAliasId.HasValue && personAliasIdQuery.Contains( a.FromPersonAliasId.Value ) && a.RelatedSmsFromDefinedValueId == relatedSmsFromDefinedValueId && a.IsRead == false );
 
             this.Context.BulkUpdate( communicationResponsesToUpdate, a => new CommunicationResponse { IsRead = true } );
+        }
+
+        /// <summary>
+        /// Gets the conversation message bag that will represent the specified
+        /// communication response.
+        /// </summary>
+        /// <param name="communicationResponseId">The communication response identifier.</param>
+        /// <returns>A <see cref="ConversationMessageBag"/> that will represent the communication response message.</returns>
+        internal ConversationMessageBag GetConversationMessageBag( int communicationResponseId )
+        {
+            var publicUrl = GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" );
+            var namelessRecordValueId = DefinedValueCache.GetId( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_NAMELESS.AsGuid() ).Value;
+
+            var cr = Get( communicationResponseId );
+
+            var rockPhoneNumber = DefinedValueCache.Get( cr.RelatedSmsFromDefinedValueId ?? 0 );
+
+            // Response must have an associated Rock phone number.
+            if ( rockPhoneNumber == null )
+            {
+                throw new Exception( "Unable to determine Rock phone number." );
+            }
+
+            // Response must have a sender person.
+            if ( !cr.FromPersonAliasId.HasValue )
+            {
+                throw new Exception( "Unable to determine message sender." );
+            }
+
+            var messageBag = new ConversationMessageBag
+            {
+                ConversationKey = $"SMS:{rockPhoneNumber.Guid}:{cr.FromPersonAlias.Person.PrimaryAlias.Guid}",
+                MessageKey = $"R:{cr.Guid}",
+                MessageDateTime = cr.CreatedDateTime,
+                IsRead = cr.IsRead,
+                Message = cr.Response,
+                IsOutbound = false,
+                IsNamelessPerson = namelessRecordValueId == cr.FromPersonAlias.Person.RecordTypeValueId,
+                PersonAliasGuid = cr.FromPersonAlias.Person.PrimaryAlias.Guid,
+                FullName = cr.FromPersonAlias.Person.FullName,
+                ContactKey = cr.MessageKey,
+                Attachments = new List<ConversationAttachmentBag>()
+            };
+
+            if ( cr.FromPersonAlias.Person.PhotoId.HasValue )
+            {
+                messageBag.PhotoUrl = $"{publicUrl}GetImage.ashx?Id={cr.FromPersonAlias.Person.PhotoId}&maxwidth=256&maxheight=256";
+            }
+
+            foreach ( var attachment in cr.Attachments )
+            {
+                messageBag.Attachments.Add( new ConversationAttachmentBag
+                {
+                    Url = $"{publicUrl}GetFile.ashx?Guid={attachment.Guid}",
+                    ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}&maxwidth=512&maxheight=512"
+                } );
+            }
+
+            return messageBag;
         }
 
         #region Obsolete
