@@ -14,16 +14,25 @@
 
                 <div class="panel-body">
                     <div class="grid grid-panel">
-                        <Rock:GridFilter ID="gfOpportunities" runat="server" OnDisplayFilterValue="gfOpportunities_DisplayFilterValue" OnApplyFilterClick="gfOpportunities_ApplyFilterClick" OnClearFilterClick="gfOpportunities_ClearFilterClick">
-                            <Rock:RockTextBox ID="tbProjectName" runat="server" Label="Project Name" />
+                        <Rock:GridFilter ID="gfOpportunities" runat="server" OnDisplayFilterValue="gfOpportunities_DisplayFilterValue" OnApplyFilterClick="gfOpportunities_ApplyFilterClick" OnClearFilterClick="gfOpportunities_ClearFilterClick" FieldLayout="Custom">
+                            <div class="d-flex justify-content-between flex-wrap">
+                                <Rock:SlidingDateRangePicker ID="sdrpDateRange" runat="server" Label="Schedule Date Range" />
+                                <Rock:GroupPicker ID="gpParentGroup" runat="server" Label="Parent Group" />
+                            </div>
+                            <Rock:RockControlWrapper ID="rcwSlotsAvailableFilter" runat="server" Label="Slots Available">
+                                <div class="form-control-group key-value-rows">
+                                    <Rock:RockDropDownList ID="ddlSlotsAvailableComparisonType" runat="server" CssClass="input-width-lg controls-row" OnTextChanged="ddlSlotsAvailableComparisonType_TextChanged" AutoPostBack="true" />
+                                    <Rock:NumberBox ID="nbSlotsAvailableFilterCompareValue" runat="server" CssClass="input-width-sm controls-row" />
+                                </div>
+                            </Rock:RockControlWrapper>
                         </Rock:GridFilter>
                         <Rock:Grid ID="gOpportunities" runat="server" DataKeyNames="Guid,GroupId,LocationId,ScheduleId" DisplayType="Full" AllowSorting="true" CssClass="js-grid-opportunities" RowItemText="Opportunity" OnDataBinding="gOpportunities_DataBinding" OnRowDataBound="gOpportunities_RowDataBound" OnGridRebind="gOpportunities_GridRebind" OnRowSelected="gOpportunities_RowSelected" ExportSource="ColumnOutput" ShowConfirmDeleteDialog="true">
                             <Columns>
                                 <Rock:SelectField />
-                                <Rock:RockBoundField DataField="ProjectName" HeaderText="Project Name" ExcelExportBehavior="AlwaysInclude" />
-                                <Rock:RockBoundField DataField="FriendlySchedule" HeaderText="Schedule" ExcelExportBehavior="AlwaysInclude" />
-                                <Rock:RockBoundField DataField="LeaderCount" HeaderText="Leader Count" ExcelExportBehavior="AlwaysInclude" />
-                                <Rock:RockLiteralField ID="lParticipantCountBadgeHtml" HeaderText="Participant Count" ExcelExportBehavior="NeverInclude" />
+                                <Rock:RockBoundField DataField="ProjectName" HeaderText="Project Name" SortExpression="ProjectName" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:RockBoundField DataField="FriendlySchedule" HeaderText="Schedule" SortExpression="NextOrLastStartDateTime" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:RockBoundField DataField="LeaderCount" HeaderText="Leader Count" SortExpression="LeaderCount" ExcelExportBehavior="AlwaysInclude" />
+                                <Rock:RockLiteralField ID="lParticipantCountBadgeHtml" HeaderText="Participant Count" SortExpression="ParticipantCount" ExcelExportBehavior="NeverInclude" />
                                 <Rock:LinkButtonField ID="lbOpportunityDetail" Text="<i class='fa fa-users'></i>" CssClass="btn btn-default btn-sm btn-square" OnClick="lbOpportunityDetail_Click" HeaderStyle-HorizontalAlign="Center" ItemStyle-HorizontalAlign="Center" />
                                 <Rock:DeleteField ID="dfOpportunities" OnClick="dfOpportunities_Click" />
 

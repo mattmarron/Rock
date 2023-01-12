@@ -8,12 +8,17 @@ using System.Web.UI.WebControls;
 using Newtonsoft.Json;
 using Rock;
 using Rock.Attribute;
+using Rock.Constants;
 using Rock.Data;
 using Rock.Model;
+using Rock.Reporting;
 using Rock.Security;
+using Rock.Utility;
 using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
+
+using static Rock.Reporting.ComparisonHelper;
 
 namespace RockWeb.Blocks.SignUp
 {
@@ -63,7 +68,9 @@ namespace RockWeb.Blocks.SignUp
 
         private static class GridFilterKey
         {
-            public const string ProjectName = "ProjectName";
+            public const string DateRange = "DateRange";
+            public const string ParentGroup = "ParentGroup";
+            public const string SlotsAvailable = "SlotsAvailable";
         }
 
         private static class DataKeyName
@@ -87,11 +94,13 @@ namespace RockWeb.Blocks.SignUp
 
         private static class MergeFieldKey
         {
-            public static string Group = EntityTypeCache.Get( Rock.SystemGuid.EntityType.GROUP ).Name;
-            public static string GroupLocation = EntityTypeCache.Get( Rock.SystemGuid.EntityType.GROUP_LOCATION ).Name;
-            public static string Location = EntityTypeCache.Get( Rock.SystemGuid.EntityType.LOCATION ).Name;
-            public static string Schedule = EntityTypeCache.Get( Rock.SystemGuid.EntityType.SCHEDULE ).Name;
+            public const string Opportunities = "Opportunities";
+        }
+
+        private static class SortExpression
+        {
             public const string ProjectName = "ProjectName";
+            public const string NextOrLastStartDateTime = "NextOrLastStartDateTime";
             public const string LeaderCount = "LeaderCount";
             public const string ParticipantCount = "ParticipantCount";
         }
@@ -176,8 +185,8 @@ namespace RockWeb.Blocks.SignUp
 
             if ( !this.Page.IsPostBack )
             {
-                BindOpportunitiesGrid();
                 SetGridFilters();
+                BindOpportunitiesGrid();
             }
         }
 
@@ -250,9 +259,31 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="e">The e.</param>
         protected void gfOpportunities_DisplayFilterValue( object sender, GridFilter.DisplayFilterValueArgs e )
         {
-            if ( e.Key == GridFilterKey.ProjectName )
+            if ( e.Key == GridFilterKey.DateRange )
             {
-                return;
+                e.Value = SlidingDateRangePicker.FormatDelimitedValues( e.Value );
+            }
+            else if ( e.Key == GridFilterKey.ParentGroup )
+            {
+                int? groupId = e.Value.AsIntegerOrNull();
+                e.Value = string.Empty;
+                if ( groupId.HasValue )
+                {
+                    Group group;
+                    using ( var rockContext = new RockContext() )
+                    {
+                        group = new GroupService( rockContext ).GetNoTracking( groupId.Value );
+                    }
+
+                    if ( group != null )
+                    {
+                        e.Value = group.ToString();
+                    }
+                }
+            }
+            else if ( e.Key == GridFilterKey.SlotsAvailable )
+            {
+                e.Value = NumberComparisonFilter.ValueAsFriendlyString( e.Value );
             }
             else
             {
@@ -267,7 +298,12 @@ namespace RockWeb.Blocks.SignUp
         /// <param name="e">The <see cref="System.EventArgs" /> instance containing the event data.</param>
         protected void gfOpportunities_ApplyFilterClick( object sender, System.EventArgs e )
         {
-            gfOpportunities.SaveUserPreference( GridFilterKey.ProjectName, "Project Name", tbProjectName.Text );
+            gfOpportunities.SaveUserPreference( GridFilterKey.DateRange, "Date Range", sdrpDateRange.DelimitedValues );
+            gfOpportunities.SaveUserPreference( GridFilterKey.ParentGroup, "Parent Group", gpParentGroup.SelectedValue );
+            gfOpportunities.SaveUserPreference( GridFilterKey.SlotsAvailable, "Slots Available", NumberComparisonFilter.SelectedValueAsDelimited(
+                ddlSlotsAvailableComparisonType,
+                nbSlotsAvailableFilterCompareValue
+            ) );
 
             BindOpportunitiesGrid();
         }
@@ -282,6 +318,19 @@ namespace RockWeb.Blocks.SignUp
             gfOpportunities.DeleteUserPreferences();
 
             SetGridFilters();
+        }
+
+        /// <summary>
+        /// Handles the TextChanged event of the ddlSlotsAvailableComparisonType control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void ddlSlotsAvailableComparisonType_TextChanged( object sender, EventArgs e )
+        {
+            if ( ddlSlotsAvailableComparisonType.SelectedValue == None.IdValue )
+            {
+                nbSlotsAvailableFilterCompareValue.Text = default;
+            }
         }
 
         /// <summary>
@@ -525,9 +574,44 @@ namespace RockWeb.Blocks.SignUp
         /// </summary>
         private void SetGridFilters()
         {
-            tbProjectName.Text = gfOpportunities.GetUserPreference( GridFilterKey.ProjectName );
+            sdrpDateRange.DelimitedValues = gfOpportunities.GetUserPreference( GridFilterKey.DateRange );
+
+            var signUpGroupTypeIds = GroupTypeCache
+                .All()
+                .Where( gt => gt.Id == SignUpGroupTypeId || gt.InheritedGroupTypeId == SignUpGroupTypeId )
+                .Select( gt => gt.Id )
+                .ToList();
+
+            gpParentGroup.IncludedGroupTypeIds = signUpGroupTypeIds;
+
+            var parentGroupId = gfOpportunities.GetUserPreference( GridFilterKey.ParentGroup ).AsIntegerOrNull();
+            Group group = null;
+            if ( parentGroupId.HasValue )
+            {
+                /*
+                 *  Don't wrap this RockContext in a using statement.
+                 *  The GroupPicker performs somewhat unpredictable lookups throughout its lifetime, and
+                 *  a disposed context will likely lead to an unhandled exception somewhere along the way.
+                 */
+                group = new GroupService( new RockContext() )
+                    .Queryable()
+                    .AsNoTracking()
+                    .Include( g => g.ParentGroup )
+                    .FirstOrDefault( g => g.Id == parentGroupId.Value );
+            }
+
+            gpParentGroup.SetValue( group );
+
+            NumberComparisonFilter.SetValue(
+                gfOpportunities.GetUserPreference( GridFilterKey.SlotsAvailable ),
+                ddlSlotsAvailableComparisonType,
+                nbSlotsAvailableFilterCompareValue
+            );
         }
 
+        /// <summary>
+        /// This runtime class will be used to populate the Opportunities grid within this block.
+        /// </summary>
         private class Opportunity
         {
             private class BadgeType
@@ -581,8 +665,6 @@ namespace RockWeb.Blocks.SignUp
 
             public DateTime? NextStartDateTime { get; set; }
 
-            public string FriendlySchedule { get; set; }
-
             public int? SlotsMin { get; set; }
 
             public int? SlotsDesired { get; set; }
@@ -600,6 +682,76 @@ namespace RockWeb.Blocks.SignUp
                     return $"<span class='badge badge-{this.ParticipantCountBadgeType} participant-count-badge'>{this.ParticipantCount}</span>";
                 }
             }
+
+            // Give preference to NextStartDateTime, but if not available, fall back to LastStartDateTime. We need something to sort on and display.
+            public DateTime? NextOrLastStartDateTime
+            {
+                get
+                {
+                    return this.NextStartDateTime.HasValue
+                        ? this.NextStartDateTime
+                        : this.LastStartDateTime;
+                }
+            }
+
+            public string FriendlySchedule
+            {
+                get
+                {
+                    return NextOrLastStartDateTime?.ToString( "dddd MMM d" );
+                }
+            }
+
+            public int SlotsAvailable
+            {
+                get
+                {
+                    /*
+                     * This more complex approach uses a dynamic/floating minuend (the first number in a subtraction problem):
+                     * 1) If the max value is defined, use that;
+                     * 2) Else, if the desired value is defined, use that;
+                     * 3) Else, if the min value is defined, use that;
+                     * 4) Else, use int.MaxValue (there is no limit to the slots available).
+                     */
+                    //var minuend = this.SlotsMax.GetValueOrDefault() > 0
+                    //    ? this.SlotsMax.Value
+                    //    : this.SlotsDesired.GetValueOrDefault() > 0
+                    //        ? this.SlotsDesired.Value
+                    //        : this.SlotsMin.GetValueOrDefault() > 0
+                    //            ? this.SlotsMin.Value
+                    //            : int.MaxValue;
+
+                    /*
+                     * This approach still uses a dynamic minuend, but it's much simpler:
+                     * 1) If the max value is defined, use that;
+                     * 2) Else, use int.MaxValue (there is no limit to the slots available).
+                     */
+                    var minuend = this.SlotsMax.GetValueOrDefault() > 0
+                        ? this.SlotsMax.Value
+                        : int.MaxValue;
+
+                    return minuend - this.ParticipantCount;
+                }
+            }
+        }
+
+        /// <summary>
+        /// This runtime class will be used to populate [CommunicationRecipient].[AdditionalMergeValuesJson] when sending bulk Communications.
+        /// </summary>
+        /// <seealso cref="Rock.Utility.RockDynamic" />
+        private class OpportunitySummary : RockDynamic
+        {
+            public string ProjectName { get; set; }
+
+            public string OpportunityName { get; set; }
+
+            public string FormattedAddress { get; set; }
+
+            public DateTime? NextStartDateTime { get; set; }
+
+            public int LeaderCount { get; set; }
+
+            public int ParticipantCount { get; set; }
         }
 
         /// <summary>
@@ -627,8 +779,6 @@ namespace RockWeb.Blocks.SignUp
         /// <returns></returns>
         private List<Opportunity> GetOpportunities( RockContext rockContext )
         {
-            rockContext.SqlLogging( true );
-
             var qry = new GroupLocationService( rockContext )
                 .Queryable()
                 .AsNoTracking()
@@ -636,13 +786,6 @@ namespace RockWeb.Blocks.SignUp
                     gl.Group.IsActive
                     && ( gl.Group.GroupTypeId == this.SignUpGroupTypeId || gl.Group.GroupType.InheritedGroupTypeId == this.SignUpGroupTypeId )
                 );
-
-            // Filter by project name.
-            var projectName = tbProjectName.Text;
-            if ( !string.IsNullOrWhiteSpace( projectName ) )
-            {
-                qry = qry.Where( gl => gl.Group.Name.StartsWith( projectName ) );
-            }
 
             // Get the current opportunities (GroupLocationSchedules).
             var qryGroupLocationSchedules = qry
@@ -653,8 +796,34 @@ namespace RockWeb.Blocks.SignUp
                     gl.Location,
                     Schedule = s,
                     Config = gl.GroupLocationScheduleConfigs.FirstOrDefault( glsc => glsc.ScheduleId == s.Id )
-                } )
-                .Where( gls => !gls.Schedule.EffectiveEndDate.HasValue || gls.Schedule.EffectiveEndDate >= RockDateTime.Now );
+                } );
+
+            // Filter by date range.
+            var dateRange = SlidingDateRangePicker.CalculateDateRangeFromDelimitedValues( sdrpDateRange.DelimitedValues );
+            if ( dateRange == null || ( !dateRange.Start.HasValue && !dateRange.End.HasValue ) )
+            {
+                // Default date range filter.
+                qryGroupLocationSchedules = qryGroupLocationSchedules.Where( gls => !gls.Schedule.EffectiveEndDate.HasValue || gls.Schedule.EffectiveEndDate >= RockDateTime.Now );
+            }
+            else
+            {
+                if ( dateRange.Start.HasValue )
+                {
+                    qryGroupLocationSchedules = qryGroupLocationSchedules.Where( gls => gls.Schedule.EffectiveStartDate.HasValue && gls.Schedule.EffectiveStartDate >= dateRange.Start );
+                }
+
+                if ( dateRange.End.HasValue )
+                {
+                    qryGroupLocationSchedules = qryGroupLocationSchedules.Where( gls => gls.Schedule.EffectiveEndDate.HasValue && gls.Schedule.EffectiveEndDate < dateRange.End );
+                }
+            }
+
+            // Filter by parent group.
+            var parentGroupId = gpParentGroup.SelectedValueAsId();
+            if ( parentGroupId.HasValue )
+            {
+                qryGroupLocationSchedules = qryGroupLocationSchedules.Where( gls => gls.Group.ParentGroupId == parentGroupId.Value );
+            }
 
             // Get all attendees for all current opportunities; we'll hook them up to their respective opportunities below.
             var attendees = new GroupMemberAssignmentService( rockContext )
@@ -689,22 +858,90 @@ namespace RockWeb.Blocks.SignUp
                         LocationId = locationId,
                         ScheduleId = scheduleId,
                         ProjectName = gls.Group.Name,
-                        NextStartDateTime = nextStartDateTime,
-                        FriendlySchedule = nextStartDateTime?.ToRelativeDateString(),
+                        LastStartDateTime = gls.Schedule.EffectiveEndDate,
+                        NextStartDateTime = gls.Schedule.NextStartDateTime,
                         SlotsMin = gls.Config?.MinimumCapacity,
                         SlotsDesired = gls.Config?.DesiredCapacity,
                         SlotsMax = gls.Config?.MaximumCapacity,
                         LeaderCount = participants.Count( p => p.GroupMember.GroupRole.IsLeader ),
                         ParticipantCount = participants.Count
                     };
-                } )
-                .ToList();
+                } );
 
-            this.OpportunitiesState = opportunities;
+            // Filter by slots available.
+            var comparisonType = NumberComparisonFilter.SelectedComparisonType( ddlSlotsAvailableComparisonType );
+            var comparisonValue = NumberComparisonFilter.SelectedComparisonValue( nbSlotsAvailableFilterCompareValue );
+            if ( comparisonType.HasValue && comparisonValue.HasValue )
+            {
+                opportunities = opportunities
+                    .Where( o =>
+                    {
+                        switch ( comparisonType )
+                        {
+                            case ComparisonType.EqualTo:
+                                return o.SlotsAvailable == comparisonValue.Value;
+                            case ComparisonType.NotEqualTo:
+                                return o.SlotsAvailable != comparisonValue.Value;
+                            case ComparisonType.GreaterThan:
+                                return o.SlotsAvailable > comparisonValue.Value;
+                            case ComparisonType.GreaterThanOrEqualTo:
+                                return o.SlotsAvailable >= comparisonValue.Value;
+                            case ComparisonType.LessThan:
+                                return o.SlotsAvailable < comparisonValue.Value;
+                            case ComparisonType.LessThanOrEqualTo:
+                                return o.SlotsAvailable <= comparisonValue.Value;
+                            default:
+                                return false;
+                        }
+                    } );
+            }
 
-            rockContext.SqlLogging( false );
+            // Sort.
+            List<Opportunity> sortedOpportunities = null;
 
-            return opportunities;
+            if ( gOpportunities.SortProperty != null )
+            {
+                // Because this is a runtime object that we've constructed from a few different Entities, sorting needs to be one manually.
+                var direction = gOpportunities.SortProperty.Direction;
+
+                switch ( gOpportunities.SortProperty.Property )
+                {
+                    case SortExpression.ProjectName:
+                        sortedOpportunities = direction == SortDirection.Ascending
+                            ? opportunities.OrderBy( o => o.ProjectName ).ToList()
+                            : opportunities.OrderByDescending( o => o.ProjectName ).ToList();
+                        break;
+                    case SortExpression.NextOrLastStartDateTime:
+                        sortedOpportunities = direction == SortDirection.Ascending
+                            ? opportunities.OrderBy( o => o.NextOrLastStartDateTime ).ToList()
+                            : opportunities.OrderByDescending( o => o.NextOrLastStartDateTime ).ToList();
+                        break;
+                    case SortExpression.LeaderCount:
+                        sortedOpportunities = direction == SortDirection.Ascending
+                            ? opportunities.OrderBy( o => o.LeaderCount ).ToList()
+                            : opportunities.OrderByDescending( o => o.LeaderCount ).ToList();
+                        break;
+                    case SortExpression.ParticipantCount:
+                        sortedOpportunities = direction == SortDirection.Ascending
+                            ? opportunities.OrderBy( o => o.ParticipantCount ).ToList()
+                            : opportunities.OrderByDescending( o => o.ParticipantCount ).ToList();
+                        break;
+                }
+            }
+
+            if ( sortedOpportunities == null )
+            {
+                // This is the default sort.
+                sortedOpportunities = opportunities
+                    .OrderBy( o => o.NextOrLastStartDateTime )
+                    .ThenBy( o => o.ProjectName )
+                    .ThenByDescending( o => o.ParticipantCount )
+                    .ToList();
+            }
+
+            this.OpportunitiesState = sortedOpportunities;
+
+            return sortedOpportunities;
         }
 
         /// <summary>
@@ -783,36 +1020,44 @@ namespace RockWeb.Blocks.SignUp
 
                 // Get the primary aliases.
                 var personAliasService = new PersonAliasService( rockContext );
-                var primaryAliasList = new List<PersonAlias>( distinctPersonIds.Count );
+                var distinctPrimaryAliases = new List<PersonAlias>( distinctPersonIds.Count );
 
                 // Get the data in chunks just in case we have a large list of PersonIds (to avoid a SQL Expression limit error).
                 var chunkedPersonIds = distinctPersonIds.Take( 1000 );
                 var skipCount = 0;
                 while ( chunkedPersonIds.Any() )
                 {
-                    var chunkedPrimaryAliasList = personAliasService
+                    var chunkedPrimaryAliases = personAliasService
                         .Queryable()
                         .AsNoTracking()
                         .Where( pa => pa.PersonId == pa.AliasPersonId && chunkedPersonIds.Contains( pa.PersonId ) )
                         .ToList();
 
-                    primaryAliasList.AddRange( chunkedPrimaryAliasList );
+                    distinctPrimaryAliases.AddRange( chunkedPrimaryAliases );
 
                     skipCount += 1000;
                     chunkedPersonIds = distinctPersonIds.Skip( skipCount ).Take( 1000 );
                 }
+
+                // Get Groups, Locations, Schedules & GroupLocationScheduleConfigs.
+                var groupLocations = new GroupLocationService( rockContext )
+                    .Queryable()
+                    .AsNoTracking()
+                    .Include( gl => gl.Group )
+                    .Include( gl => gl.Location )
+                    .Include( gl => gl.Schedules )
+                    .Include( gl => gl.GroupLocationScheduleConfigs )
+                    .Where( gl => distinctGroupIds.Contains( gl.GroupId )
+                        && distinctLocationIds.Contains( gl.LocationId )
+                    )
+                    .ToList();
 
                 var currentPersonAliasId = this.RockPage.CurrentPersonAliasId;
 
                 // Add custom merge fields.
                 var mergeFields = new List<string>
                 {
-                    MergeFieldKey.Group,
-                    MergeFieldKey.Location,
-                    MergeFieldKey.Schedule,
-                    MergeFieldKey.ProjectName,
-                    MergeFieldKey.LeaderCount,
-                    MergeFieldKey.ParticipantCount
+                    MergeFieldKey.Opportunities
                 };
 
                 // Create communication.
@@ -834,30 +1079,57 @@ namespace RockWeb.Blocks.SignUp
 
                 var now = RockDateTime.Now;
 
-                var communicationRecipientList = primaryAliasList
-                    .Select( a =>
+                var communicationRecipientList = distinctPrimaryAliases
+                    .Select( alias =>
                     {
-                        var participant = participants.FirstOrDefault( p => p.PersonId == a.PersonId );
-                        var opportunity = participant != null
-                            ? opportunities.FirstOrDefault( o =>
+                        var opportunitySummaries = new List<OpportunitySummary>();
+                        foreach ( var participant in participants.Where( p => p.PersonId == alias.PersonId ) )
+                        {
+                            var opportunity = opportunities.FirstOrDefault( o =>
                                 o.GroupId == participant.GroupId
                                 && o.LocationId == participant.LocationId.ToIntSafe()
                                 && o.ScheduleId == participant.ScheduleId.ToIntSafe()
-                            )
-                            : null;
+                            );
+
+                            if ( opportunity != null )
+                            {
+                                var groupLocation = groupLocations.FirstOrDefault( gl =>
+                                    gl.GroupId == opportunity.GroupId
+                                    && gl.LocationId == opportunity.LocationId
+                                );
+
+                                Group group = null;
+                                Location location = null;
+                                Schedule schedule = null;
+                                GroupLocationScheduleConfig config = null;
+
+                                if ( groupLocation != null )
+                                {
+                                    group = groupLocation.Group;
+                                    location = groupLocation.Location;
+                                    schedule = groupLocation.Schedules.FirstOrDefault( s => s.Id == opportunity.ScheduleId );
+                                    config = groupLocation.GroupLocationScheduleConfigs.FirstOrDefault( c => c.ScheduleId == opportunity.ScheduleId );
+                                }
+
+                                opportunitySummaries.Add( new OpportunitySummary
+                                {
+                                    ProjectName = group?.Name,
+                                    OpportunityName = config?.ConfigurationName,
+                                    FormattedAddress = location?.FormattedAddress,
+                                    NextStartDateTime = schedule?.NextStartDateTime,
+                                    LeaderCount = opportunity.LeaderCount,
+                                    ParticipantCount = opportunity.ParticipantCount
+                                } );
+                            }
+                        }
 
                         return new CommunicationRecipient
                         {
                             CommunicationId = communication.Id,
-                            PersonAliasId = a.Id,
+                            PersonAliasId = alias.Id,
                             AdditionalMergeValues = new Dictionary<string, object>
                             {
-                                { MergeFieldKey.Group, opportunity?.GroupId },
-                                { MergeFieldKey.Location, opportunity?.LocationId },
-                                { MergeFieldKey.Schedule, opportunity?.ScheduleId },
-                                { MergeFieldKey.ProjectName, opportunity?.ProjectName },
-                                { MergeFieldKey.LeaderCount, opportunity?.LeaderCount },
-                                { MergeFieldKey.ParticipantCount, opportunity?.ParticipantCount },
+                                { MergeFieldKey.Opportunities, opportunitySummaries }
                             },
                             CreatedByPersonAliasId = currentPersonAliasId,
                             ModifiedByPersonAliasId = currentPersonAliasId,
