@@ -164,11 +164,14 @@ DECLARE @DefinedValueGuid_ProjectType_ProjectDue [uniqueidentifier] = 'C999D489-
 DECLARE @Now [datetime] = (SELECT GETDATE());
 DECLARE @DateTimeString_Now [char](15) = (SELECT FORMAT(@Now, 'yyyyMMddTHHmmss'));
 
-DECLARE @DateString_OneWeekInFuture [char](8) = (SELECT FORMAT (DATEADD(day, 7, @Now), 'yyyyMMdd'));
-DECLARE @DateString_OneWeekInPast [char](8) = (SELECT FORMAT (DATEADD(day, -7, @Now), 'yyyyMMdd'));
+DECLARE @DateString_OneWeekInPast [char](8) = (SELECT FORMAT (DATEADD(week, -1, @Now), 'yyyyMMdd'));
+DECLARE @DateString_OneWeekInFuture [char](8) = (SELECT FORMAT (DATEADD(week, 1, @Now), 'yyyyMMdd'));
 
-DECLARE @DateString_TwoWeeksInFuture [char](8) = (SELECT FORMAT (DATEADD(day, 14, @Now), 'yyyyMMdd'));
-DECLARE @DateString_TwoWeeksInPast [char](8) = (SELECT FORMAT (DATEADD(day, -14, @Now), 'yyyyMMdd'));
+DECLARE @DateString_TwoWeeksInPast [char](8) = (SELECT FORMAT (DATEADD(week, -2, @Now), 'yyyyMMdd'));
+DECLARE @DateString_TwoWeeksInFuture [char](8) = (SELECT FORMAT (DATEADD(week, 2, @Now), 'yyyyMMdd'));
+
+DECLARE @DateString_OneYearInPast [char](8) = (SELECT FORMAT (DATEADD(year, -1, @Now), 'yyyyMMdd'));
+DECLARE @DateString_OneYearInFuture [char](8) = (SELECT FORMAT (DATEADD(year, 1, @Now), 'yyyyMMdd'));
 
 DECLARE @ParentGroupGuid [uniqueidentifier]
     , @GroupGuid [uniqueidentifier]
@@ -195,6 +198,95 @@ BEGIN -- region Feed My Starving Children
         , 'Turn hunger into hope with your own two hands by packing nutritious meals for hungry children around the world.' -- [Description] [nvarchar](max) NULL
     );
 
+    SET @LocationGuid = '31346174-0643-45E1-96D0-0A6FDE33A76A';
+    SET @ScheduleGuid = 'EDF0FBD3-4F93-46CD-BEA8-8DD2351F5AB1';
+    SET @OpportunityGuid = '719CF517-9516-4509-890F-081E8D681967';
+
+    INSERT INTO @Locations
+    VALUES
+    (
+        @LocationGuid -- [Guid] [uniqueidentifier] NOT NULL
+        , NULL -- [Name] [nvarchar](100) NULL
+        , 0xE6100000010C1973D712F2B1404042B28009DCF65BC0 -- [GeoPoint] [geography] NULL
+        , '1345 S Alma School Rd' -- [Street1] [nvarchar](100) NULL
+        , NULL -- [Street2] [nvarchar](100) NULL
+        , 'Mesa' -- [City] [nvarchar](50) NULL
+        , 'AZ' -- [State] [nvarchar](50) NULL
+        , 'US' -- [Country] [nvarchar](50) NULL
+        , '85210-2085' -- [PostalCode] [nvarchar](50) NULL
+        , 'Maricopa' -- [County] [varchar](50) NULL
+    );
+
+    INSERT INTO @Schedules
+    VALUES
+    (
+        @ScheduleGuid -- [Guid] [uniqueidentifier] NOT NULL
+        , CONCAT('BEGIN:VCALENDAR
+PRODID:-//github.com/rianjs/ical.net//NONSGML ical.net 4.0//EN
+VERSION:2.0
+BEGIN:VEVENT
+DTEND:', @DateString_OneYearInPast,'T110000
+DTSTAMP:', @DateTimeString_Now,'
+DTSTART:', @DateString_OneYearInPast, 'T090000
+SEQUENCE:0
+UID:3FC3D2DA-A89C-4958-8D73-6500C0D22ABC
+END:VEVENT
+END:VCALENDAR
+') -- [iCalendarContent] [nvarchar](max) NOT NULL
+        , @DateString_OneYearInPast -- [EffectiveStartDate] [date] NULL
+        , @DateString_OneYearInPast -- [EffectiveEndDate] [date] NULL
+        , NULL -- [Name] [nvarchar](50) NULL
+    );
+
+    INSERT INTO @Opportunities
+    VALUES
+    (
+        @OpportunityGuid -- [Guid] [uniqueidentifier] NOT NULL
+        , @GroupGuid -- [GroupGuid] [uniqueidentifier] NOT NULL
+        , @LocationGuid -- [LocationGuid] [uniqueidentifier] NOT NULL
+        , @ScheduleGuid -- [ScheduleGuid] [uniqueidentifier] NOT NULL
+        , 'Inagural FMSC Event - East Valley (Permanant Site)' -- [Name] [nvarchar](100) NULL
+        , 5 -- [MinimumCapacity] [int] NULL
+        , 8 -- [DesiredCapacity] [int] NULL
+        , 10 -- [MaximumCapacity] [int] NULL
+        , NULL -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
+        , NULL -- [ReminderAdditionalDetails] [nvarchar](max) NULL
+    );
+
+    INSERT INTO @Members
+    VALUES
+    (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '8FEDC6EE-8630-41ED-9FC5-C7157FD1EAA4' -- Ted Decker
+        , 1 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , 'B71494DB-D809-451A-A950-28898D0FD92C' -- Cindy Decker
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '32AAB9E4-970D-4551-A17E-385E66113BD5' -- Noah Decker
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '27919690-3CCE-4FA6-95C4-CD21419EB51F' -- Alex Decker
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '69DC0FDC-B451-4303-BD91-EF17C0015D23' -- Alisha Marble
+        , 0 -- [IsLeader] [bit] NOT NULL
+    )
+    , (
+        @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
+        , '1EA811BB-3118-42D1-B020-32A82BC8081A' -- Bill Marble
+        , 0 -- [IsLeader] [bit] NOT NULL
+    );
+
+    -----------------------------------------------------------------------------------------------
     SET @LocationGuid = '31346174-0643-45E1-96D0-0A6FDE33A76A';
     SET @ScheduleGuid = '53B79AD0-0304-4B5F-B15D-77FFFE570DA4';
     SET @OpportunityGuid = '67C8C422-5B92-4C9D-8953-421CD827DE87';
@@ -326,7 +418,7 @@ END:VCALENDAR
         @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
         , '773AD0F9-369A-47BC-BEBB-2E8EE4C5FEF5' -- Sheryl Tennant
         , 0 -- [IsLeader] [bit] NOT NULL
-    )
+    );
 
     -----------------------------------------------------------------------------------------------
     SET @LocationGuid = 'EBFBF7D0-F9DF-4079-8ABF-87FACD5B43E1';
@@ -430,7 +522,7 @@ END:VCALENDAR
         @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
         , '92D04619-3F97-4EFF-932E-61DA56441995' -- Brian Gilbert
         , 0 -- [IsLeader] [bit] NOT NULL
-    )
+    );
 
     -----------------------------------------------------------------------------------------------
     SET @LocationGuid = 'EBFBF7D0-F9DF-4079-8ABF-87FACD5B43E1';
@@ -549,7 +641,63 @@ END:VCALENDAR
         @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
         , '988195A3-1895-492E-839B-653C35307862' -- Nancy Sweeney
         , 0 -- [IsLeader] [bit] NOT NULL
-    )
+    );
+
+    -----------------------------------------------------------------------------------------------
+    SET @LocationGuid = '31346174-0643-45E1-96D0-0A6FDE33A76A';
+    SET @ScheduleGuid = '32B15116-6E09-4B24-8025-9175EF91B0C9';
+    SET @OpportunityGuid = 'E4CB449F-4D5F-4100-838C-910866ACF215';
+
+    INSERT INTO @Locations
+    VALUES
+    (
+        @LocationGuid -- [Guid] [uniqueidentifier] NOT NULL
+        , NULL -- [Name] [nvarchar](100) NULL
+        , 0xE6100000010C1973D712F2B1404042B28009DCF65BC0 -- [GeoPoint] [geography] NULL
+        , '1345 S Alma School Rd' -- [Street1] [nvarchar](100) NULL
+        , NULL -- [Street2] [nvarchar](100) NULL
+        , 'Mesa' -- [City] [nvarchar](50) NULL
+        , 'AZ' -- [State] [nvarchar](50) NULL
+        , 'US' -- [Country] [nvarchar](50) NULL
+        , '85210-2085' -- [PostalCode] [nvarchar](50) NULL
+        , 'Maricopa' -- [County] [varchar](50) NULL
+    );
+
+    INSERT INTO @Schedules
+    VALUES
+    (
+        @ScheduleGuid -- [Guid] [uniqueidentifier] NOT NULL
+        , CONCAT('BEGIN:VCALENDAR
+PRODID:-//github.com/rianjs/ical.net//NONSGML ical.net 4.0//EN
+VERSION:2.0
+BEGIN:VEVENT
+DTEND:', @DateString_OneYearInFuture,'T110000
+DTSTAMP:', @DateTimeString_Now,'
+DTSTART:', @DateString_OneYearInFuture, 'T090000
+SEQUENCE:0
+UID:2346E461-A98C-4C40-86A2-91F4A2C829C4
+END:VEVENT
+END:VCALENDAR
+') -- [iCalendarContent] [nvarchar](max) NOT NULL
+        , @DateString_OneYearInFuture -- [EffectiveStartDate] [date] NULL
+        , @DateString_OneYearInFuture -- [EffectiveEndDate] [date] NULL
+        , NULL -- [Name] [nvarchar](50) NULL
+    );
+
+    INSERT INTO @Opportunities
+    VALUES
+    (
+        @OpportunityGuid -- [Guid] [uniqueidentifier] NOT NULL
+        , @GroupGuid -- [GroupGuid] [uniqueidentifier] NOT NULL
+        , @LocationGuid -- [LocationGuid] [uniqueidentifier] NOT NULL
+        , @ScheduleGuid -- [ScheduleGuid] [uniqueidentifier] NOT NULL
+        , 'FMSC Event - East Valley (Permanant Site)' -- [Name] [nvarchar](100) NULL
+        , 30 -- [MinimumCapacity] [int] NULL
+        , 50 -- [DesiredCapacity] [int] NULL
+        , 60 -- [MaximumCapacity] [int] NULL
+        , NULL -- [ConfirmationAdditionalDetails] [nvarchar](max) NULL
+        , NULL -- [ReminderAdditionalDetails] [nvarchar](max) NULL
+    );
 END
 
 ---------------------------------------------------------------------------------------------------
@@ -701,7 +849,7 @@ END:VCALENDAR
         @OpportunityGuid -- [OpportunityGuid] [uniqueidentifier] NOT NULL
         , '773AD0F9-369A-47BC-BEBB-2E8EE4C5FEF5' -- Sheryl Tennant
         , 0 -- [IsLeader] [bit] NOT NULL
-    )
+    );
 
     -----------------------------------------------------------------------------------------------
     SET @GroupGuid = '46D9BD61-BCF3-4D04-B2D8-9B68B1665715';

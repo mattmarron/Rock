@@ -2863,7 +2863,7 @@ namespace RockWeb.Blocks.SignUp
                 if ( timeframe == OpportunityTimeframe.Upcoming )
                 {
                     sortedOpportunities = timeframeOpportunities
-                        .OrderBy( o => o.NextOrLastStartDateTime )
+                        .OrderBy( o => o.NextOrLastStartDateTime.HasValue ? o.NextOrLastStartDateTime.Value : DateTime.MaxValue )
                         .ThenBy( o => o.Name )
                         .ThenByDescending( o => o.SlotsFilled )
                         .ToList();
@@ -2871,7 +2871,7 @@ namespace RockWeb.Blocks.SignUp
                 else
                 {
                     sortedOpportunities = timeframeOpportunities
-                        .OrderByDescending( o => o.NextOrLastStartDateTime )
+                        .OrderByDescending( o => o.NextOrLastStartDateTime.HasValue ? o.NextOrLastStartDateTime.Value : DateTime.MinValue )
                         .ThenBy( o => o.Name )
                         .ThenByDescending( o => o.SlotsFilled )
                         .ToList();
@@ -2883,10 +2883,10 @@ namespace RockWeb.Blocks.SignUp
                 var nameColumn = gOpportunities.ColumnsOfType<RockBoundField>().FirstOrDefault( c => c.DataField == "Name" );
                 if ( nameColumn != null )
                 {
-                    nameColumn.Visible = timeframeOpportunities.Any( o => !string.IsNullOrWhiteSpace( o.Name ) );
+                    nameColumn.Visible = sortedOpportunities.Any( o => !string.IsNullOrWhiteSpace( o.Name ) );
                 }
 
-                gOpportunities.DataSource = timeframeOpportunities;
+                gOpportunities.DataSource = sortedOpportunities;
                 gOpportunities.DataBind();
             }
         }

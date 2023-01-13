@@ -708,7 +708,14 @@ namespace RockWeb.Blocks.SignUp
             {
                 get
                 {
-                    return NextOrLastStartDateTime?.ToString( "dddd MMM d" );
+                    var friendlySchedule = NextOrLastStartDateTime?.ToString( "dddd MMM d" );
+
+                    if ( NextOrLastStartDateTime.HasValue && NextOrLastStartDateTime.Value.Year != RockDateTime.Now.Year )
+                    {
+                        friendlySchedule = $"{friendlySchedule} ({NextOrLastStartDateTime.Value.Year})";
+                    }
+
+                    return friendlySchedule;
                 }
             }
 
@@ -943,7 +950,7 @@ namespace RockWeb.Blocks.SignUp
             {
                 // This is the default sort.
                 sortedOpportunities = opportunities
-                    .OrderBy( o => o.NextOrLastStartDateTime )
+                    .OrderBy( o => o.NextOrLastStartDateTime.HasValue ? o.NextOrLastStartDateTime.Value : DateTime.MaxValue )
                     .ThenBy( o => o.ProjectName )
                     .ThenByDescending( o => o.ParticipantCount )
                     .ToList();
