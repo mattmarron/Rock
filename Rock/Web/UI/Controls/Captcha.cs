@@ -466,7 +466,6 @@ namespace Rock.Web.UI.Controls
             writer.AddAttribute( HtmlTextWriterAttribute.Id, ClientID );
             writer.AddAttribute( "data-required", Required.ToString().ToLower() );
             writer.AddAttribute( "data-required-error-message", errorMessage );
-            writer.AddAttribute( "data-callback", "javascriptCallback" );
             writer.AddAttribute( "data-sitekey", SiteKey );
             writer.AddAttribute( HtmlTextWriterAttribute.Class, "cf-turnstile js-captcha " + CssClass );
             writer.RenderBeginTag( HtmlTextWriterTag.Div );
