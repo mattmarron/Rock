@@ -21,10 +21,10 @@ using System.Data.Entity;
 using System.Linq;
 
 using Rock.Attribute;
-using Rock.Communication;
 using Rock.Data;
 using Rock.Model;
 using Rock.Reporting;
+using Rock.ViewModels.Communication;
 using Rock.ViewModels.Utility;
 using Rock.Web.Cache;
 
@@ -139,14 +139,31 @@ namespace Rock.Blocks.Types.Mobile.Communication
             {
                 using ( var rockContext = new RockContext() )
                 {
-                    var attachmentGuids = response.GetBinaryFileGuids( rockContext );
+                    var attachments = response.CommunicationId.HasValue
+                        ? new CommunicationAttachmentService( rockContext ).Queryable()
+                            .Where( ca => ca.CommunicationId == response.CommunicationId.Value )
+                            .Select( ca => new
+                            {
+                                ca.BinaryFile.Guid,
+                                ca.BinaryFile.FileName
+                            } )
+                            .ToList()
+                        : new CommunicationResponseAttachmentService( rockContext ).Queryable()
+                            .Where( cra => cra.CommunicationResponseId == response.CommunicationResponseId.Value )
+                            .Select( cra => new
+                            {
+                                cra.BinaryFile.Guid,
+                                cra.BinaryFile.FileName
+                            } )
+                            .ToList();
 
-                    foreach ( var guid in attachmentGuids )
+                    foreach ( var attachment in attachments )
                     {
                         bag.Attachments.Add( new ConversationAttachmentBag
                         {
-                            Url = $"{publicUrl}GetImage.ashx?Guid={guid}",
-                            ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={guid}&maxwidth=512&maxheight=512"
+                            FileName = attachment.FileName,
+                            Url = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}",
+                            ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}&maxwidth=512&maxheight=512"
                         } );
                     }
                 }
@@ -158,7 +175,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
         internal static List<ConversationMessageBag> ToMessageBags( ICollection<CommunicationRecipientResponse> responses )
         {
             var publicUrl = GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" );
-            var attachments = new Dictionary<string, List<Guid>>();
+            var attachmentsLookup = new Dictionary<string, List<(Guid Guid, string FileName)>>();
 
             // Load the attachments for all responses in two queries rather
             // than executing a query for every single response.
@@ -176,19 +193,21 @@ namespace Rock.Blocks.Types.Mobile.Communication
                 {
                     var communicationIds = communicationIdMap.Keys.ToList();
 
-                    var results = new CommunicationService( rockContext )
+                    var results = new CommunicationAttachmentService( rockContext )
                         .Queryable()
-                        .Where( c => communicationIds.Contains( c.Id ) )
-                        .Select( c => new
+                        .Where( ca => communicationIds.Contains( ca.CommunicationId ) )
+                        .Select( ca => new
                         {
-                            c.Id,
-                            AttachmentGuids = c.Attachments.Select( a => a.BinaryFile.Guid ).ToList()
+                            ca.CommunicationId,
+                            ca.BinaryFile.Guid,
+                            ca.BinaryFile.FileName
                         } )
-                        .ToList();
+                        .ToList()
+                        .GroupBy( ca => ca.CommunicationId );
 
                     foreach ( var result in results )
                     {
-                        attachments.AddOrReplace( communicationIdMap[result.Id], result.AttachmentGuids );
+                        attachmentsLookup.AddOrReplace( communicationIdMap[result.Key], result.Select( r => (r.Guid, r.FileName) ).ToList() );
                     }
                 }
 
@@ -196,19 +215,21 @@ namespace Rock.Blocks.Types.Mobile.Communication
                 {
                     var communicationResponseIds = communicationResponseIdMap.Keys.ToList();
 
-                    var results = new CommunicationResponseService( rockContext )
+                    var results = new CommunicationResponseAttachmentService( rockContext )
                         .Queryable()
-                        .Where( c => communicationResponseIds.Contains( c.Id ) )
-                        .Select( c => new
+                        .Where( cra => communicationResponseIds.Contains( cra.CommunicationResponseId ) )
+                        .Select( cra => new
                         {
-                            c.Id,
-                            AttachmentGuids = c.Attachments.Select( a => a.BinaryFile.Guid ).ToList()
+                            cra.CommunicationResponseId,
+                            cra.BinaryFile.Guid,
+                            cra.BinaryFile.FileName
                         } )
-                        .ToList();
+                        .ToList()
+                        .GroupBy( cra => cra.CommunicationResponseId );
 
                     foreach ( var result in results )
                     {
-                        attachments.AddOrReplace( communicationResponseIdMap[result.Id], result.AttachmentGuids );
+                        attachmentsLookup.AddOrReplace( communicationResponseIdMap[result.Key], result.Select( r => (r.Guid, r.FileName ) ).ToList() );
                     }
                 }
             }
@@ -218,14 +239,15 @@ namespace Rock.Blocks.Types.Mobile.Communication
                 {
                     var bag = ToMessageBag( response, false );
 
-                    if ( attachments.TryGetValue( bag.MessageKey, out var attachmentGuids ) )
+                    if ( attachmentsLookup.TryGetValue( bag.MessageKey, out var attachments ) )
                     {
-                        foreach ( var guid in attachmentGuids )
+                        foreach ( var attachment in attachments )
                         {
                             bag.Attachments.Add( new ConversationAttachmentBag
                             {
-                                Url = $"{publicUrl}GetImage.ashx?Guid={guid}",
-                                ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={guid}&maxwidth=512&maxheight=512"
+                                FileName = attachment.FileName,
+                                Url = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}",
+                                ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}&maxwidth=512&maxheight=512"
                             } );
                         }
                     }
@@ -582,129 +604,6 @@ namespace Rock.Blocks.Types.Mobile.Communication
             /// </summary>
             /// <value>The snippets available to use when sending a message.</value>
             public List<ListItemBag> Snippets { get; set; }
-        }
-
-        internal class ConversationMessageBag
-        {
-            /// <summary>
-            /// Gets or sets the unique identifier of the conversation that
-            /// this message belongs to.
-            /// </summary>
-            /// <value>
-            /// The unique identifier of the conversation.
-            /// </value>
-            public string ConversationKey { get; set; }
-
-            /// <summary>
-            /// Gets or sets the unique identifier for this message. This can
-            /// be used to determine if the message has already been seen.
-            /// </summary>
-            /// <value>
-            /// The unique identifier for this message.
-            /// </value>
-            public string MessageKey { get; set; }
-
-            /// <summary>
-            /// Gets or sets the contact key of the recipient. This would contain
-            /// a phone number, e-mail address, or other transport specific key
-            /// to allow communication.
-            /// </summary>
-            /// <value>The contact key of the recipient.</value>
-            public string ContactKey { get; set; }
-
-            /// <summary>
-            /// Gets or sets the created date time of the most recent message.
-            /// </summary>
-            /// <value>
-            /// The created date time of the most recent message.
-            /// </value>
-            public DateTimeOffset? MessageDateTime { get; set; }
-
-            /// <summary>
-            /// Gets or sets a value indicating whether the message was sent from Rock.
-            /// </summary>
-            /// <value>
-            ///   <c>true</c> if message was sent from Rock; otherwise, <c>false</c>.
-            /// </value>
-            public bool IsOutbound { get; set; }
-
-            /// <summary>
-            /// Gets or sets the content of the most recent message.
-            /// </summary>
-            /// <value>The content of the most recent message.</value>
-            public string Message { get; set; }
-
-            /// <summary>
-            /// Gets or sets a value indicating whether the most recent
-            /// message has been read.
-            /// </summary>
-            /// <value>
-            ///   <c>true</c> if the most recent message has been read; otherwise, <c>false</c>.
-            /// </value>
-            public bool IsRead { get; set; }
-
-            /// <summary>
-            /// Gets or sets the unique identifier of the person alias being
-            /// communicated with.
-            /// </summary>
-            /// <value>The person alias unique identifier.</value>
-            public Guid PersonAliasGuid { get; set; }
-
-            /// <summary>
-            /// Gets or sets the full name of the person being communicated with.
-            /// </summary>
-            /// <value>
-            /// The full name of the person being communicated with.
-            /// </value>
-            public string FullName { get; set; }
-
-            /// <summary>
-            /// Gets or sets the photo URL for the person. Value will be <c>null</c>
-            /// if no photo is available.
-            /// </summary>
-            /// <value>The photo URL of the person.</value>
-            public string PhotoUrl { get; set; }
-
-            /// <summary>
-            /// Gets or sets a value indicating whether the recipient is a nameless person.
-            /// </summary>
-            /// <value><c>true</c> if the recipient is a nameless person; otherwise, <c>false</c>.</value>
-            public bool IsNamelessPerson { get; set; }
-
-            /// <summary>
-            /// Gets or sets the full name of the person that send the message from
-            /// Rock. This is only valid if <see cref="IsOutbound"/> is true.
-            /// </summary>
-            /// <value>
-            /// The full name of the person that sent the message from Rock.
-            /// </value>
-            public string OutboundSenderFullName { get; set; }
-
-            /// <summary>
-            /// Gets or sets the attachments to this message.
-            /// </summary>
-            /// <value>
-            /// The attachments to this message.
-            /// </value>
-            public List<ConversationAttachmentBag> Attachments { get; set; }
-        }
-
-        /// <summary>
-        /// A single attachment to a conversation message.
-        /// </summary>
-        internal class ConversationAttachmentBag
-        {
-            /// <summary>
-            /// Gets or sets the thumbnail URL.
-            /// </summary>
-            /// <value>The thumbnail URL.</value>
-            public string ThumbnailUrl { get; set; }
-
-            /// <summary>
-            /// Gets or sets the URL.
-            /// </summary>
-            /// <value>The URL.</value>
-            public string Url { get; set; }
         }
 
         #endregion

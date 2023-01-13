@@ -23,6 +23,12 @@ namespace Rock.ViewModels.Communication
     public class ConversationAttachmentBag
     {
         /// <summary>
+        /// Gets or sets the name of the file.
+        /// </summary>
+        /// <value>The name of the file.</value>
+        public string FileName { get; set; }
+
+        /// <summary>
         /// Gets or sets the thumbnail URL.
         /// </summary>
         /// <value>The thumbnail URL.</value>

@@ -41,6 +41,13 @@ namespace Rock.ViewModels.Communication
         public string MessageKey { get; set; }
 
         /// <summary>
+        /// Gets or sets the contact key of the Rock side of the conversation.
+        /// For an SMS message this would be the Guid of the Rock phone number.
+        /// </summary>
+        /// <value>The contact key of the Rock side of the conversation.</value>
+        public string RockContactKey { get; set; }
+
+        /// <summary>
         /// Gets or sets the contact key of the recipient. This would contain
         /// a phone number, e-mail address, or other transport specific key
         /// to allow communication.

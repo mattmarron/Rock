@@ -26,8 +26,6 @@ using Rock.Model;
 using Rock.Reporting;
 using Rock.Web.Cache;
 
-using ConversationMessageBag = Rock.Blocks.Types.Mobile.Communication.SmsConversation.ConversationMessageBag;
-
 namespace Rock.Blocks.Types.Mobile.Communication
 {
     /// <summary>
@@ -234,7 +232,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     int? personId = null;
 
                     var communicationResponseService = new CommunicationResponseService( rockContext );
-                    var responseListItems = communicationResponseService.GetCommunicationResponseRecipients( phoneNumber.Id, startDateTime, maxConversations, CommunicationMessageFilter.ShowUnreadReplies, personId );
+                    var responseListItems = communicationResponseService.GetCommunicationResponseRecipients( phoneNumber.Id, startDateTime, maxConversations, CommunicationMessageFilter.ShowAllReplies, personId );
 
                     var personAliasIds = responseListItems
                         .Where( ri => ri.RecipientPersonAliasId.HasValue )

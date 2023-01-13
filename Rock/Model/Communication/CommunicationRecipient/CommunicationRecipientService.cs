@@ -78,6 +78,7 @@ namespace Rock.Model
             {
                 ConversationKey = $"SMS:{rockPhoneNumber.Guid}:{recipient.PersonAlias.Person.PrimaryAlias.Guid}",
                 MessageKey = $"C:{recipient.Guid}",
+                RockContactKey = rockPhoneNumber.Guid.ToString(),
                 ContactKey = recipient.PersonAlias.Person.IsNameless() ? recipient.PersonAlias.Person.PhoneNumbers.FirstOrDefault()?.Number : null,
                 MessageDateTime = recipient.CreatedDateTime,
                 Message = recipient.SentMessage.IsNotNullOrWhiteSpace() ? recipient.SentMessage : recipient.Communication.SMSMessage,
@@ -100,12 +101,13 @@ namespace Rock.Model
                 .Select( ca => ca.Guid )
                 .ToList();
 
-            foreach ( var guid in attachmentGuids )
+            foreach ( var attachment in recipient.Communication.Attachments )
             {
                 bag.Attachments.Add( new ConversationAttachmentBag
                 {
-                    Url = $"{publicUrl}GetImage.ashx?Guid={guid}",
-                    ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={guid}&maxwidth=512&maxheight=512"
+                    FileName = attachment.BinaryFile.FileName,
+                    Url = $"{publicUrl}GetImage.ashx?Guid={attachment.BinaryFile.Guid}",
+                    ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={attachment.BinaryFile.Guid}&maxwidth=512&maxheight=512"
                 } );
             }
 

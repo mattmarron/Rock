@@ -497,6 +497,7 @@ namespace Rock.Model
             {
                 ConversationKey = $"SMS:{rockPhoneNumber.Guid}:{cr.FromPersonAlias.Person.PrimaryAlias.Guid}",
                 MessageKey = $"R:{cr.Guid}",
+                RockContactKey = rockPhoneNumber.Guid.ToString(),
                 MessageDateTime = cr.CreatedDateTime,
                 IsRead = cr.IsRead,
                 Message = cr.Response,
@@ -517,8 +518,9 @@ namespace Rock.Model
             {
                 messageBag.Attachments.Add( new ConversationAttachmentBag
                 {
-                    Url = $"{publicUrl}GetFile.ashx?Guid={attachment.Guid}",
-                    ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}&maxwidth=512&maxheight=512"
+                    FileName = attachment.BinaryFile.FileName,
+                    Url = $"{publicUrl}GetFile.ashx?Guid={attachment.BinaryFile.Guid}",
+                    ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={attachment.BinaryFile.Guid}&maxwidth=512&maxheight=512"
                 } );
             }
 

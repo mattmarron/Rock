@@ -15,7 +15,14 @@
 // </copyright>
 //
 
+using System;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
+
+using Rock.Data;
+using Rock.Model;
+using Rock.ViewModels.Communication;
+using Rock.Web.Cache;
 
 namespace Rock.RealTime.Topics
 {
@@ -24,9 +31,92 @@ namespace Rock.RealTime.Topics
     {
         public override async Task OnConnectedAsync()
         {
-            await Channels.AddToChannelAsync( Context.ConnectionId, "sms" );
-
             await base.OnConnectedAsync();
+        }
+
+        public async Task JoinSmsNumber( Guid rockPhoneNumber )
+        {
+            var state = this.GetConnectionState<ConversationState>( Context.ConnectionId );
+            var definedValue = DefinedValueCache.Get( rockPhoneNumber );
+
+            if ( definedValue == null )
+            {
+                throw new RealTimeException( "Phone number was not found." );
+            }
+
+            using ( var rockContext = new RockContext() )
+            {
+                var person = Context.CurrentPersonId.HasValue
+                    ? new PersonService( rockContext ).Get( Context.CurrentPersonId.Value )
+                    : null;
+
+                if ( !definedValue.IsAuthorized( Security.Authorization.VIEW, person ) )
+                {
+                    throw new RealTimeException( "You are not authorized for this phone number." );
+                }
+
+                // Multiple blocks could be monitoring the number, so increment
+                // a join count and if it is our first one then join the channel.
+                var newValue = state.JoinCount.AddOrUpdate( rockPhoneNumber, 1, ( key, oldValue ) => oldValue + 1 );
+
+                if ( newValue == 1 )
+                {
+                    await Channels.AddToChannelAsync( Context.ConnectionId, GetChannelForPhoneNumber( definedValue ) );
+                }
+            }
+        }
+
+        public async Task LeaveSmsNumber( Guid rockPhoneNumber )
+        {
+            var state = this.GetConnectionState<ConversationState>( Context.ConnectionId );
+            var definedValue = DefinedValueCache.Get( rockPhoneNumber );
+
+            if ( definedValue == null )
+            {
+                throw new RealTimeException( "Phone number was not found." );
+            }
+
+            // Multiple blocks could be monitoring the number, so decrement
+            // our join count for this number and if it hits zero then leave
+            // the channel.
+            var newValue = state.JoinCount.AddOrUpdate( rockPhoneNumber, 0, ( key, oldValue ) => oldValue > 0 ? oldValue - 1 : 0 );
+
+            if ( newValue == 0 )
+            {
+                await Channels.RemoveFromChannelAsync( Context.ConnectionId, GetChannelForPhoneNumber( definedValue ) );
+            }
+        }
+
+        /// <summary>
+        /// Gets the channel name that should be used to send the message.
+        /// </summary>
+        /// <param name="message">The message to be sent.</param>
+        /// <returns>A string that represents the RealTime channel name.</returns>
+        public static string GetChannelForMessage( ConversationMessageBag message )
+        {
+            if ( message.ConversationKey.StartsWith( "SMS" ) )
+            {
+                return $"sms:{message.RockContactKey}";
+            }
+            else
+            {
+                throw new Exception( "Message bag is not setup for use by the RealTime system." );
+            }
+        }
+
+        /// <summary>
+        /// Gets the channel to use when sending messages for the Rock phone number.
+        /// </summary>
+        /// <param name="rockPhoneNumber">The rock phone number.</param>
+        /// <returns>A string that represents the RealTime channel name.</returns>
+        private static string GetChannelForPhoneNumber( DefinedValueCache rockPhoneNumber )
+        {
+            return $"sms:{rockPhoneNumber.Guid}";
+        }
+
+        private class ConversationState
+        {
+            public ConcurrentDictionary<Guid, int> JoinCount { get; } = new ConcurrentDictionary<Guid, int>();
         }
     }
 }

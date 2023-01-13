@@ -538,9 +538,11 @@ namespace Rock.Model
                 var messageBag = new CommunicationRecipientService( rockContext )
                     .GetConversationMessageBag( communicationRecipientId );
 
+                var channelName = RealTime.Topics.ConversationParticipantTopic.GetChannelForMessage( messageBag );
+
                 await RealTime.RealTimeHelper.GetTopicContext<RealTime.Topics.IConversationParticipant>()
                     .Clients
-                    .Channel( "sms" )
+                    .Channel( channelName )
                     .NewSmsMessage( messageBag );
             }
         }
@@ -557,9 +559,11 @@ namespace Rock.Model
                 var messageBag = new CommunicationResponseService( rockContext )
                     .GetConversationMessageBag( communicationResponseId );
 
+                var channelName = RealTime.Topics.ConversationParticipantTopic.GetChannelForMessage( messageBag );
+
                 await RealTime.RealTimeHelper.GetTopicContext<RealTime.Topics.IConversationParticipant>()
                     .Clients
-                    .Channel( "sms" )
+                    .Channel( channelName )
                     .NewSmsMessage( messageBag );
             }
         }
