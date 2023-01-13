@@ -1,4 +1,4 @@
-﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="SignUpOverview.ascx.cs" Inherits="RockWeb.Blocks.SignUp.SignUpOverview" %>
+﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="SignUpOverview.ascx.cs" Inherits="RockWeb.Blocks.Engagement.SignUp.SignUpOverview" %>
 
 <asp:UpdatePanel ID="upnlSignUpOverview" runat="server">
     <ContentTemplate>

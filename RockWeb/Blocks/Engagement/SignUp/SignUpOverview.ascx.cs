@@ -11,7 +11,6 @@ using Rock.Attribute;
 using Rock.Constants;
 using Rock.Data;
 using Rock.Model;
-using Rock.Reporting;
 using Rock.Security;
 using Rock.Utility;
 using Rock.Web.Cache;
@@ -20,10 +19,10 @@ using Rock.Web.UI.Controls;
 
 using static Rock.Reporting.ComparisonHelper;
 
-namespace RockWeb.Blocks.SignUp
+namespace RockWeb.Blocks.Engagement.SignUp
 {
     [DisplayName( "Sign-Up Overview" )]
-    [Category( "Sign-Up" )]
+    [Category( "Engagement > Sign-Up" )]
     [Description( "Displays an overview of sign-up projects with upcoming and recently-occurred opportunities." )]
 
     #region Block Attributes

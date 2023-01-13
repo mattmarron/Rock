@@ -1,4 +1,4 @@
-﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="SignUpDetail.ascx.cs" Inherits="RockWeb.Blocks.SignUp.SignUpDetail" %>
+﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="SignUpDetail.ascx.cs" Inherits="RockWeb.Blocks.Engagement.SignUp.SignUpDetail" %>
 
 <script type="text/javascript">
     function clearActiveDialog() {

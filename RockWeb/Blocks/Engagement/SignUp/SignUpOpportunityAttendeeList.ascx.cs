@@ -16,10 +16,10 @@ using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
 
-namespace RockWeb.Blocks.SignUp
+namespace RockWeb.Blocks.Engagement.SignUp
 {
     [DisplayName( "Sign-Up Opportunity Attendee List" )]
-    [Category( "Sign-Up" )]
+    [Category( "Engagement > Sign-Up" )]
     [Description( "Lists all the group members for the selected group, location and schedule." )]
 
     #region Block Attributes

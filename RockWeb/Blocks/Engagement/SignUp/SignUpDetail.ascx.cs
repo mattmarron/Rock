@@ -19,11 +19,11 @@ using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
 
-namespace RockWeb.Blocks.SignUp
+namespace RockWeb.Blocks.Engagement.SignUp
 {
 
     [DisplayName( "Sign-Up Detail" )]
-    [Category( "Sign-Up" )]
+    [Category( "Engagement > Sign-Up" )]
     [Description( "Displays details about the scheduled opportunities for a given project group." )]
 
     #region Block Attributes
