@@ -48,13 +48,7 @@
         // jquery ready
         $(document).ready(function () {
             // Make Dropdown Submenus possible
-            $('.dropdown-submenu').on("mouseenter", function (e) {
-                e.stopPropagation();
-                e.preventDefault();
-                $(this).toggleClass('open').next('ul').toggle();
-            });
-
-            $('.dropdown-submenu').on("mouseleave", function (e) {
+            $('.dropdown-submenu-toggle').on("click", function (e) {
                 e.stopPropagation();
                 e.preventDefault();
                 $(this).toggleClass('open').next('ul').toggle();

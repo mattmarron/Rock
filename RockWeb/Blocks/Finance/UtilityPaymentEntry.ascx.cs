@@ -126,25 +126,33 @@ namespace RockWeb.Blocks.Finance
         DefaultBooleanValue = true,
         Order = 9 )]
 
+    [BooleanField( "Enable Account Hierarchy For Additional Accounts",
+        Key = AttributeKey.EnableAccountHierarchy,
+        Description = "When enabled this will group accounts under their parents. This allows a person to keep the current behavior if desired.",
+        TrueText = "Enable",
+        FalseText = "Disable",
+        DefaultBooleanValue = false,
+        Order = 10 )]
+
     [BooleanField( "Scheduled Transactions",
         Key = AttributeKey.AllowScheduled,
         Description = "If the selected gateway(s) allow scheduled transactions, should that option be provided to user.",
         TrueText = "Allow",
         FalseText = "Don't Allow",
         DefaultBooleanValue = true,
-        Order = 10 )]
+        Order = 11 )]
 
     [BooleanField( "Prompt for Phone",
         Key = AttributeKey.DisplayPhone,
         Description = "Should the user be prompted for their phone number?",
         DefaultBooleanValue = false,
-        Order = 11 )]
+        Order = 12 )]
 
     [BooleanField( "Prompt for Email",
         Key = AttributeKey.DisplayEmail,
         Description = "Should the user be prompted for their email address?",
         DefaultBooleanValue = true,
-        Order = 12 )]
+        Order = 13 )]
 
     [GroupLocationTypeField( "Address Type",
         Key = AttributeKey.AddressType,
@@ -152,7 +160,7 @@ namespace RockWeb.Blocks.Finance
         GroupTypeGuid = Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY,
         IsRequired = false,
         DefaultValue = Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME,
-        Order = 13 )]
+        Order = 14 )]
 
     [DefinedValueField( "Connection Status",
         Key = AttributeKey.ConnectionStatus,
@@ -161,7 +169,7 @@ namespace RockWeb.Blocks.Finance
         IsRequired = true,
         AllowMultiple = false,
         DefaultValue = Rock.SystemGuid.DefinedValue.PERSON_CONNECTION_STATUS_PROSPECT,
-        Order = 14 )]
+        Order = 15 )]
 
     [DefinedValueField( "Record Status",
         Key = AttributeKey.RecordStatus,
@@ -170,32 +178,32 @@ namespace RockWeb.Blocks.Finance
         IsRequired = true,
         AllowMultiple = false,
         DefaultValue = Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_PENDING,
-        Order = 15 )]
+        Order = 16 )]
 
     [BooleanField( "Enable Comment Entry",
         Key = AttributeKey.EnableCommentEntry,
         Description = "Allows the guest to enter the value that's put into the comment field (will be appended to the 'Payment Comment Template' setting)",
         DefaultBooleanValue = false,
-        Order = 16 )]
+        Order = 17 )]
 
     [TextField( "Comment Entry Label",
         Key = AttributeKey.CommentEntryLabel,
         Description = "The label to use on the comment edit field (e.g. Trip Name to give to a specific trip).",
         IsRequired = false,
         DefaultValue = "Comment",
-        Order = 17 )]
+        Order = 18 )]
 
     [BooleanField( "Enable Business Giving",
         Key = AttributeKey.EnableBusinessGiving,
         Description = "Should the option to give as a business be displayed?",
         DefaultBooleanValue = true,
-        Order = 18 )]
+        Order = 19 )]
 
     [BooleanField( "Enable Anonymous Giving",
         Key = AttributeKey.EnableAnonymousGiving,
         Description = "Should the option to give anonymously be displayed. Giving anonymously will display the transaction as 'Anonymous' in places where it is shown publicly, for example, on a list of fundraising contributors.",
         DefaultBooleanValue = false,
-        Order = 19 )]
+        Order = 20 )]
 
     #endregion Default Category
 
@@ -476,6 +484,7 @@ namespace RockWeb.Blocks.Finance
             public const string CommentEntryLabel = "CommentEntryLabel";
             public const string EnableBusinessGiving = "EnableBusinessGiving";
             public const string EnableAnonymousGiving = "EnableAnonymousGiving";
+            public const string EnableAccountHierarchy = "EnableAccountHierarchy";
 
             // Email Templates Category
             public const string ConfirmAccountTemplate = "ConfirmAccountTemplate";
@@ -1973,6 +1982,7 @@ namespace RockWeb.Blocks.Finance
             else
             {
                 var financialAccountService = new FinancialAccountService( rockContext );
+                var enableAccountHierarchy = GetAttributeValue( AttributeKey.EnableAccountHierarchy ).AsBoolean();
 
                 var publicAccounts = financialAccountService.Queryable()
                 .Where( f =>
@@ -1980,9 +1990,16 @@ namespace RockWeb.Blocks.Finance
                     f.IsPublic.HasValue &&
                     f.IsPublic.Value &&
                     ( f.StartDate == null || f.StartDate <= RockDateTime.Today ) &&
-                    ( f.EndDate == null || f.EndDate >= RockDateTime.Today ) )
-                .OrderBy( f => f.Order )
-                .ToList();
+                    ( f.EndDate == null || f.EndDate >= RockDateTime.Today ) );
+
+                if ( enableAccountHierarchy )
+                {
+                    publicAccounts = publicAccounts.OrderBy( f => f.PublicName );
+                }
+                else
+                {
+                    publicAccounts = publicAccounts.OrderBy( f => f.Order );
+                }
 
                 var accountIds = publicAccounts.Select( f => f.Id ).ToList();
 
@@ -1995,10 +2012,15 @@ namespace RockWeb.Blocks.Finance
                 foreach ( var account in publicAccounts )
                 {
                     var accountItem = new AccountItem( account.Id, account.Order, account.Name, account.CampusId, account.PublicName, account.ParentAccountId );
-                    accountItem.HasChildren = childList.Any( v => v.ParentAccountId == accountItem.Id );
-                    accountItem.Children = childList.Where( f => f.ParentAccountId == accountItem.Id )
-                        .Select( f => new AccountItem( f.Id, f.Order, f.Name, f.CampusId, f.PublicName, f.ParentAccountId ) )
-                        .ToList();
+
+                    if ( enableAccountHierarchy )
+                    {
+                        accountItem.HasChildren = childList.Any( f => f.ParentAccountId == accountItem.Id && !publicAccounts.Any( fa => fa.ParentAccountId == f.Id ) );
+                        accountItem.Children = childList.Where( f => f.ParentAccountId == accountItem.Id && !publicAccounts.Any( fa => fa.ParentAccountId == f.Id ) )
+                            .Select( f => new AccountItem( f.Id, f.Order, f.Name, f.CampusId, f.PublicName, f.ParentAccountId ) )
+                            .ToList();
+                        accountItem.IsRootItem = (!account.ParentAccountId.HasValue && accountItem.HasChildren ) || publicAccounts.Any( f => f.ParentAccountId == account.Id );
+                    }
 
                     if ( showAll )
                     {
@@ -2072,15 +2094,17 @@ namespace RockWeb.Blocks.Finance
                 AvailableAccounts.RemoveAll( a => ( _accountCampusContextFilter == 0 && a.CampusId != _currentCampusContextId ) || ( _accountCampusContextFilter == 1 && ( a.CampusId != null && a.CampusId != _currentCampusContextId ) ) );
             }
 
-            phbtnAddAccount.Visible = AvailableAccounts.Any( a => !a.ParentAccountId.HasValue );
+            var enableAccountHierachy = GetAttributeValue( AttributeKey.EnableAccountHierarchy ).AsBoolean();
+            phbtnAddAccount.Visible = enableAccountHierachy ? AvailableAccounts.Any( a => a.IsRootItem ) : AvailableAccounts.Any();
 
-            DatabindAddAccountsButton();
+            DatabindAddAccountsButton( enableAccountHierachy );
         }
 
-        private void DatabindAddAccountsButton()
+        private void DatabindAddAccountsButton( bool enableAccountHierachy )
         {
             phbtnAddAccount.Controls.Clear();
 
+            var additionalAccounts = enableAccountHierachy ? AvailableAccounts.Where( a => a.IsRootItem ) : AvailableAccounts;
             var literal = new LiteralControl() { ID = "btnAddAccountLiteral" };
             var openingHtml = $@"
 <div class=""btn-group js-button-dropdownlist"">
@@ -2095,18 +2119,16 @@ namespace RockWeb.Blocks.Finance
 </div>
 ";
             var htmlBuilder = new StringBuilder( openingHtml );
-            foreach ( var accountItem in AvailableAccounts.Where( a => !a.ParentAccountId.HasValue ) )
+            foreach ( var accountItem in additionalAccounts )
             {
                 if ( accountItem.HasChildren )
                 {
-                    htmlBuilder.Append( "<li class=\"dropdown-submenu\"><a class=\"dropdown-submenu-toggle\" " );
+                    htmlBuilder.Append( "<li class=\"dropdown-submenu\"><a class=\"dropdown-submenu-toggle\">" );
                 }
                 else
                 {
-                    htmlBuilder.Append( "<li><a " );
+                    htmlBuilder.Append( $"<li><a href=\"javascript:__doPostBack('{upPayment.ClientID}', '{literal.ID}={accountItem.Id}')\" data-id='{accountItem.Id}'>" );
                 }
-
-                htmlBuilder.Append( $"href=\"javascript:__doPostBack('{upPayment.ClientID}', '{literal.ID}={accountItem.Id}')\" data-id='{accountItem.Id}'>" );
 
                 if ( accountItem.HasChildren )
                 {
@@ -3569,6 +3591,8 @@ namespace RockWeb.Blocks.Finance
             public int? ParentAccountId { get; set; }
 
             public bool HasChildren { get; set; }
+
+            public bool IsRootItem { get; set; }
 
             public List<AccountItem> Children { get; set; }
 
