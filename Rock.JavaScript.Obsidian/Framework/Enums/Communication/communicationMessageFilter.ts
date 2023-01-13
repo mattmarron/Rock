@@ -21,19 +21,26 @@
 // </copyright>
 //
 
-import { AddressControlBag } from "@Obsidian/ViewModels/Controls/addressControlBag";
+/** The filter applied to the GetCommunicationConversation query */
+export const CommunicationMessageFilter = {
+    /** When this option is selected, only messages that have actual replies (and with IsRead=false) are considered */
+    ShowUnreadReplies: 0,
 
-/** The results from the ValidateAddress API action of the LocationAddressPicker control. */
-export type LocationAddressPickerValidateAddressResultsBag = {
-    /** If the address is valid, this is an HTML string of the address */
-    address?: AddressControlBag | null;
+    /** When this option is selected, it would show messages that have any replies/responses (IsRead true or false) */
+    ShowAllReplies: 1,
 
-    /** If the address is valid, this is an HTML string of the address */
-    addressString?: string | null;
+    /** When this option is selected, all messages are shown regardless of any replies/responses. */
+    ShowAllMessages: 2
+} as const;
 
-    /** If invalid, this is the message stating what is wrong with the given address */
-    errorMessage?: string | null;
+/** The filter applied to the GetCommunicationConversation query */
+export const CommunicationMessageFilterDescription: Record<number, string> = {
+    0: "Show Unread Replies",
 
-    /** Whether the gvien address is valid or not */
-    isValid: boolean;
+    1: "Show All Replies",
+
+    2: "Show All Messages"
 };
+
+/** The filter applied to the GetCommunicationConversation query */
+export type CommunicationMessageFilter = typeof CommunicationMessageFilter[keyof typeof CommunicationMessageFilter];
