@@ -63,6 +63,8 @@ namespace Rock.Model
         /// <param name="showReadMessages">if set to <c>true</c> [show read messages].</param>
         /// <param name="maxCount">The maximum count.</param>
         /// <returns></returns>
+        [RockObsolete( "1.15" )]
+        [Obsolete( "Use the method that takes a CommunicationMessageFilter parameter instead." )]
         public List<CommunicationRecipientResponse> GetCommunicationResponseRecipients( int relatedSmsFromDefinedValueId, DateTime startDateTime, bool showReadMessages, int maxCount )
         {
             return GetCommunicationResponseRecipients( relatedSmsFromDefinedValueId, startDateTime, showReadMessages, maxCount, null );
@@ -77,6 +79,8 @@ namespace Rock.Model
         /// <param name="maxCount">The maximum count.</param>
         /// <param name="personId">The person identifier.</param>
         /// <returns></returns>
+        [RockObsolete( "1.15" )]
+        [Obsolete( "Use the method that takes a CommunicationMessageFilter parameter instead." )]
         public List<CommunicationRecipientResponse> GetCommunicationResponseRecipients( int relatedSmsFromDefinedValueId, DateTime startDateTime, bool showReadMessages, int maxCount, int? personId )
         {
             var relatedSmsFromDefinedValue = DefinedValueCache.Get( relatedSmsFromDefinedValueId );
@@ -227,6 +231,7 @@ namespace Rock.Model
 
             foreach ( var mostRecentResponse in mostRecentCommunicationResponseList )
             {
+                var relatedSmsFromDefinedValue = DefinedValueCache.Get( mostRecentResponse.CommunicationResponse.RelatedSmsFromDefinedValueId.Value );
                 var communicationRecipientResponse = new CommunicationRecipientResponse
                 {
                     CreatedDateTime = mostRecentResponse.CommunicationResponse.CreatedDateTime,
@@ -252,6 +257,7 @@ namespace Rock.Model
 
             foreach ( var mostRecentCommunicationRecipient in mostRecentCommunicationRecipientList )
             {
+                var relatedSmsFromDefinedValue = DefinedValueCache.Get( mostRecentCommunicationRecipient.Communication.SMSFromDefinedValueId.Value );
                 var communicationRecipientResponse = new CommunicationRecipientResponse
                 {
                     CreatedDateTime = mostRecentCommunicationRecipient.CreatedDateTime,

@@ -234,7 +234,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     int? personId = null;
 
                     var communicationResponseService = new CommunicationResponseService( rockContext );
-                    var responseListItems = communicationResponseService.GetCommunicationResponseRecipients( phoneNumber.Id, startDateTime, showRead, maxConversations, personId );
+                    var responseListItems = communicationResponseService.GetCommunicationResponseRecipients( phoneNumber.Id, startDateTime, maxConversations, CommunicationMessageFilter.ShowUnreadReplies, personId );
 
                     var personAliasIds = responseListItems
                         .Where( ri => ri.RecipientPersonAliasId.HasValue )
