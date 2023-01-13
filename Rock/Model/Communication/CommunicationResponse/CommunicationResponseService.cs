@@ -84,9 +84,7 @@ namespace Rock.Model
         [Obsolete( "Use the method that takes the CommunicationMessageFilter parameter instead." )]
         public List<CommunicationRecipientResponse> GetCommunicationResponseRecipients( int relatedSmsFromDefinedValueId, DateTime startDateTime, bool showReadMessages, int maxCount, int? personId )
         {
-            var relatedSmsFromDefinedValue = DefinedValueCache.Get( relatedSmsFromDefinedValueId );
             var smsMediumEntityTypeId = EntityTypeCache.GetId( SystemGuid.EntityType.COMMUNICATION_MEDIUM_SMS ).Value;
-            var idHasher = Utility.IdHasher.Instance;
 
             IQueryable<CommunicationResponse> communicationResponseQuery = this.Queryable()
                 .Where( r => r.RelatedMediumEntityTypeId == smsMediumEntityTypeId && r.RelatedSmsFromDefinedValueId == relatedSmsFromDefinedValueId && r.CreatedDateTime >= startDateTime && r.FromPersonAliasId.HasValue );

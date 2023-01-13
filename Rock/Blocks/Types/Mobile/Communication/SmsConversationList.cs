@@ -21,6 +21,7 @@ using System.Linq;
 
 using Rock.Attribute;
 using Rock.Data;
+using Rock.Enums.Communication;
 using Rock.Model;
 using Rock.Reporting;
 using Rock.Web.Cache;
@@ -229,7 +230,6 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     var publicUrl = GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" );
                     var months = GetAttributeValue( AttributeKey.ShowConversationsFromMonthsAgo ).AsInteger();
                     var startDateTime = RockDateTime.Now.AddMonths( -months );
-                    var showRead = true;// tglShowRead.Checked;
                     var maxConversations = GetAttributeValue( AttributeKey.MaxConversations ).AsIntegerOrNull() ?? 1000;
                     int? personId = null;
 
