@@ -33,6 +33,8 @@ namespace Rock.Plugin.HotFixes
             ShortTermServingProjects_AddSystemCommunications();
             ShortTermServingProjects_AddAdminBlockTypes();
             ShortTermServingProjects_AddAdminPagesAndBlocks();
+            ShortTermServingProjects_AddPublicBlockTypes();
+            ShortTermServingProjects_AddPublicPagesAndBlocks();
         }
 
         /// <summary>
@@ -40,6 +42,8 @@ namespace Rock.Plugin.HotFixes
         /// </summary>
         public override void Down()
         {
+            ShortTermServingProjects_DeletePublicPagesAndBlocks();
+            ShortTermServingProjects_DeletePublicBlockTypes();
             ShortTermServingProjects_DeleteAdminPagesAndBlocks();
             ShortTermServingProjects_DeleteAdminBlockTypes();
             ShortTermServingProjects_DeleteSystemCommunications();
@@ -104,7 +108,7 @@ namespace Rock.Plugin.HotFixes
         }
 
         /// <summary>
-        /// JPH: Add block types needed for Sign-Up Groups.
+        /// JPH: Add admin block types needed for Sign-Up Groups.
         /// </summary>
         private void ShortTermServingProjects_AddAdminBlockTypes()
         {
@@ -125,7 +129,7 @@ namespace Rock.Plugin.HotFixes
         }
 
         /// <summary>
-        /// JPH: Add pages and blocks needed for Sign-Up Groups.
+        /// JPH: Add admin pages and blocks needed for Sign-Up Groups.
         /// </summary>
         private void ShortTermServingProjects_AddAdminPagesAndBlocks()
         {
@@ -225,7 +229,85 @@ namespace Rock.Plugin.HotFixes
         }
 
         /// <summary>
-        /// JPH: Delete pages and blocks added for Sign-Up Groups.
+        /// JPH: Add public block types needed for Sign-Up Groups.
+        /// </summary>
+        private void ShortTermServingProjects_AddPublicBlockTypes()
+        {
+            RockMigrationHelper.UpdateMobileBlockType( "Sign-Up Finder", "Block used for finding a sign-up group/project.", "Rock.Blocks.Engagement.SignUp.SignUpFinder", "Engagement > Sign-Up", "74A20402-00DF-4A87-98D1-B5A8920F1D32" );
+            RockMigrationHelper.UpdateEntityType( "Rock.Blocks.Engagement.SignUp.SignUpFinder", "Sign Up Finder", "Rock.Blocks.Engagement.SignUp.SignUpFinder, Rock.Blocks, Version=1.15.0.10, Culture=neutral, PublicKeyToken=null", false, false, "BF09747C-786D-4979-BADF-2D0157F4CB21" );
+
+            RockMigrationHelper.UpdateMobileBlockType( "Sign-Up Register", "Block used to register for a sign-up group/project occurrence date time.", "Rock.Blocks.Engagement.SignUp.SignUpRegister", "Engagement > Sign-Up", "161587D9-7B74-4D61-BF8E-3CDB38F16A12" );
+            RockMigrationHelper.UpdateEntityType( "Rock.Blocks.Engagement.SignUp.SignUpRegister", "Sign Up Register", "Rock.Blocks.Engagement.SignUp.SignUpRegister, Rock.Blocks, Version=1.15.0.10, Culture=neutral, PublicKeyToken=null", false, false, "ED7A31F2-8D4C-469A-B2D8-7E28B8717FB8" );
+
+            RockMigrationHelper.UpdateMobileBlockType( "Sign-Up Attendance Detail", "Lists the group members for a specific sign-up group/project occurrence date time and allows selecting if they attended or not.", "Rock.Blocks.Engagement.SignUp.SignUpAttendanceDetail", "Engagement > Sign-Up", "96D160D9-5668-46EF-9941-702BD3A577DB" );
+            RockMigrationHelper.UpdateEntityType( "Rock.Blocks.Engagement.SignUp.SignUpAttendanceDetail", "Sign Up Attendance Detail", "Rock.Blocks.Engagement.SignUp.SignUpAttendanceDetail, Rock.Blocks, Version=1.15.0.10, Culture=neutral, PublicKeyToken=null", false, false, "747587A0-87E9-437D-A4ED-75431CED55B3" );
+        }
+
+        /// <summary>
+        /// JPH: Add public pages and blocks needed for Sign-Up Groups.
+        /// </summary>
+        private void ShortTermServingProjects_AddPublicPagesAndBlocks()
+        {
+            // [Page]: Connect > Sign-Up Finder
+            RockMigrationHelper.AddPage( true, "7625A63E-6650-4886-B605-53C2234FA5E1", "325B7BFD-8B80-44FD-A951-4E4763DA6C0D", "Sign-Up Finder", "", "2DC1906D-C9D5-411D-B961-A2295C9450A4", "", "3B31B9A2-DE35-4407-8E7D-3633F93906CD" );
+            RockMigrationHelper.AddPageRoute( "2DC1906D-C9D5-411D-B961-A2295C9450A4", "sign-up/finder", "37B68603-6D07-4C37-A89A-253DB72DBBE3" );
+            // [Block]: Sign-Up Finder for [Page]: Connect > Sign-Up Finder
+            RockMigrationHelper.AddBlock( true, "2DC1906D-C9D5-411D-B961-A2295C9450A4".AsGuidOrNull(), null, null, "74A20402-00DF-4A87-98D1-B5A8920F1D32".AsGuidOrNull(), "Sign-Up Finder", "Main", "", "", 0, "B9ADC017-782B-4100-AA07-DD1D703EE971" );
+
+            // [Page]: Sign-Up Finder > Sign-Up Register
+            RockMigrationHelper.AddPage( true, "2DC1906D-C9D5-411D-B961-A2295C9450A4", "325B7BFD-8B80-44FD-A951-4E4763DA6C0D", "Sign-Up Register", "", "BBB8A41D-E65F-4AFF-8987-BFF3458A46C1", "", null );
+            RockMigrationHelper.AddPageRoute( "BBB8A41D-E65F-4AFF-8987-BFF3458A46C1", "sign-up/register/{GroupId}/location/{LocationId}/schedule/{ScheduleId}", "E6685354-09C3-479F-8B6A-C6BD0A18A675" );
+            // [Block]: Sign-Up Register for [Page]: Sign-Up Finder > Sign-Up Register
+            RockMigrationHelper.AddBlock( true, "BBB8A41D-E65F-4AFF-8987-BFF3458A46C1".AsGuidOrNull(), null, null, "161587D9-7B74-4D61-BF8E-3CDB38F16A12".AsGuidOrNull(), "Sign-Up Register", "Main", "", "", 0, "9D0AF2E9-7BE2-4320-A81C-CF22D0E94BD4" );
+
+            // [Page]: Group Attendance > Sign-Up Attendance Detail
+            RockMigrationHelper.AddPage( true, "00D2DCE6-D9C0-47A0-BAE1-4591779AE2E1", "325B7BFD-8B80-44FD-A951-4E4763DA6C0D", "Sign-Up Attendance Detail", "", "73FC6F39-6194-483A-BF0D-7FDD1DD91C91", "", "0C00CD89-BF4C-4B19-9B0D-E1FA2CFF5DD7" );
+            RockMigrationHelper.AddPageRoute( "73FC6F39-6194-483A-BF0D-7FDD1DD91C91", "sign-up/attendance/{GroupId}/location/{LocationId}/schedule/{ScheduleId}", "33DE9AF2-456C-413D-8559-A58DEA78D62A" );
+            // [Block]: Sign Up Attendance Detail for [Page]: Group Attendance > Sign-Up Attendance Detail
+            RockMigrationHelper.AddBlock( true, "73FC6F39-6194-483A-BF0D-7FDD1DD91C91".AsGuidOrNull(), null, null, "96D160D9-5668-46EF-9941-702BD3A577DB".AsGuidOrNull(), "Sign Up Attendance Detail", "Main", "", "", 0, "5ED5DD3E-7280-4617-8BB1-0A6CF2DFED6D" );
+        }
+
+        /// <summary>
+        /// JPH: Delete public pages and blocks added for Sign-Up Groups.
+        /// </summary>
+        private void ShortTermServingProjects_DeletePublicPagesAndBlocks()
+        {
+            // [Block]: Sign Up Attendance Detail for [Page]: Group Attendance > Sign-Up Attendance Detail
+            RockMigrationHelper.DeleteBlock( "5ED5DD3E-7280-4617-8BB1-0A6CF2DFED6D" );
+            // [Page]: Group Attendance > Sign-Up Attendance Detail
+            RockMigrationHelper.DeletePageRoute( "33DE9AF2-456C-413D-8559-A58DEA78D62A" );
+            RockMigrationHelper.DeletePage( "73FC6F39-6194-483A-BF0D-7FDD1DD91C91" );
+
+            // [Block]: Sign-Up Register for [Page]: Sign-Up Finder > Sign-Up Register
+            RockMigrationHelper.DeleteBlock( "9D0AF2E9-7BE2-4320-A81C-CF22D0E94BD4" );
+            // [Page]: Sign-Up Finder > Sign-Up Register
+            RockMigrationHelper.DeletePageRoute( "E6685354-09C3-479F-8B6A-C6BD0A18A675" );
+            RockMigrationHelper.DeletePage( "BBB8A41D-E65F-4AFF-8987-BFF3458A46C1" );
+
+            // [Block]: Sign-Up Finder for [Page]: Connect > Sign-Up Finder
+            RockMigrationHelper.DeleteBlock( "B9ADC017-782B-4100-AA07-DD1D703EE971" );
+            // [Page]: Connect > Sign-Up Finder
+            RockMigrationHelper.DeletePageRoute( "37B68603-6D07-4C37-A89A-253DB72DBBE3" );
+            RockMigrationHelper.DeletePage( "2DC1906D-C9D5-411D-B961-A2295C9450A4" );
+        }
+
+        /// <summary>
+        /// JPH: Delete public block types added for Sign-Up Groups.
+        /// </summary>
+        private void ShortTermServingProjects_DeletePublicBlockTypes()
+        {
+            RockMigrationHelper.DeleteBlockType( "74A20402-00DF-4A87-98D1-B5A8920F1D32" );
+            RockMigrationHelper.DeleteEntityType( "BF09747C-786D-4979-BADF-2D0157F4CB21" );
+
+            RockMigrationHelper.DeleteBlockType( "161587D9-7B74-4D61-BF8E-3CDB38F16A12" );
+            RockMigrationHelper.DeleteEntityType( "ED7A31F2-8D4C-469A-B2D8-7E28B8717FB8" );
+
+            RockMigrationHelper.DeleteBlockType( "96D160D9-5668-46EF-9941-702BD3A577DB" );
+            RockMigrationHelper.DeleteEntityType( "747587A0-87E9-437D-A4ED-75431CED55B3" );
+        }
+
+        /// <summary>
+        /// JPH: Delete admin pages and blocks added for Sign-Up Groups.
         /// </summary>
         private void ShortTermServingProjects_DeleteAdminPagesAndBlocks()
         {
@@ -325,7 +407,7 @@ namespace Rock.Plugin.HotFixes
         }
 
         /// <summary>
-        /// JPH: Delete block types added for Sign-Up Groups.
+        /// JPH: Delete admin block types added for Sign-Up Groups.
         /// </summary>
         private void ShortTermServingProjects_DeleteAdminBlockTypes()
         {
