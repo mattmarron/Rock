@@ -16,9 +16,12 @@
 //
 
 using System.ComponentModel;
+using System.Linq;
 
 using Rock.Attribute;
 using Rock.Model;
+using Rock.ViewModels.Utility;
+using Rock.Web.Cache;
 
 namespace Rock.Blocks.Utility
 {
@@ -47,7 +50,18 @@ namespace Rock.Blocks.Utility
         /// <inheritdoc/>
         public override object GetObsidianBlockInitialization()
         {
-            return null;
+            var definedType = DefinedTypeCache.Get( SystemGuid.DefinedType.COMMUNICATION_SMS_FROM );
+
+            return new
+            {
+                PhoneNumbers = definedType.DefinedValues
+                    .Select( v => new ListItemBag
+                    {
+                        Value = v.Value,
+                        Text = v.Description.IsNotNullOrWhiteSpace() ? $"{v.Value} ({v.Description})" : v.Value
+                    } )
+                    .ToList()
+            };
         }
 
         #endregion
