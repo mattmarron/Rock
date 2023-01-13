@@ -44,6 +44,7 @@
     <Content Include="Framework\Controls\dayOfWeekPicker.obs" />
     <Content Include="Framework\Controls\definedValueEditor.obs" />
     <Content Include="Framework\Controls\definedValuePicker.obs" />
+    <Content Include="Framework\Controls\ethnicityPicker.obs" />
     <Content Include="Framework\Controls\eventCalendarPicker.obs" />
     <Content Include="Framework\Controls\geoPicker.obs" />
     <Content Include="Framework\Controls\geoPickerMap.obs" />
@@ -53,8 +54,10 @@
     <Content Include="Framework\Controls\locationAddressPicker.obs" />
     <Content Include="Framework\Controls\locationList.obs" />
     <Content Include="Framework\Controls\locationPicker.obs" />
+    <Content Include="Framework\Controls\mediaElementPicker.obs" />
     <Content Include="Framework\Controls\monthDayPicker.obs" />
     <Content Include="Framework\Controls\monthYearPicker.obs" />
+    <Content Include="Framework\Controls\racePicker.obs" />
     <Content Include="Framework\Controls\scheduleBuilder.obs" />
     <Content Include="Framework\Controls\timeIntervalPicker.obs" />
     <Content Include="Framework\Controls\treeItemPicker.obs" />
@@ -133,6 +136,7 @@
     <Folder Include="Framework\ViewModels\Blocks\Cms\PersonalLinkSectionDetail\" />
     <Folder Include="Framework\ViewModels\Blocks\Communication\" />
     <Folder Include="Framework\ViewModels\Blocks\Communication\SnippetDetail\" />
+    <Folder Include="Framework\ViewModels\Blocks\Communication\SnippetTypeDetail\" />
     <Folder Include="Framework\ViewModels\Blocks\Core\" />
     <Folder Include="Framework\ViewModels\Blocks\Core\CampusDetail\" />
     <Folder Include="Framework\ViewModels\Blocks\Crm\" />
@@ -543,6 +547,8 @@
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Cms\PersonalLinkSectionDetail\personalLinkSectionDetailOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Communication\SnippetDetail\snippetBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Communication\SnippetDetail\snippetDetailOptionsBag.d.ts" />
+    <TypeScriptCompile Include="Framework\ViewModels\Blocks\Communication\SnippetTypeDetail\snippetTypeBag.d.ts" />
+    <TypeScriptCompile Include="Framework\ViewModels\Blocks\Communication\SnippetTypeDetail\snippetTypeDetailOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Core\CampusDetail\campusBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Core\CampusDetail\campusDetailOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Core\CampusDetail\campusScheduleBag.d.ts" />
@@ -872,6 +878,7 @@
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\entityTagListRemoveEntityTagOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\entityTagListTagBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\entityTypePickerGetEntityTypesOptionsBag.d.ts" />
+    <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\ethnicityPickerGetEthnicitiesResultsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\eventItemPickerGetEventItemsOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\financialGatewayPickerGetFinancialGatewaysOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\followingGetFollowingOptionsBag.d.ts" />
@@ -890,6 +897,10 @@
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\locationListGetLocationsOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\locationListSaveNewLocationOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\locationListSaveNewValueOptionsBag.d.ts" />
+    <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\mediaElementPickerGetMediaElementsOptionsBag.d.ts" />
+    <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\mediaElementPickerGetMediaFoldersOptionsBag.d.ts" />
+    <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\mediaElementPickerGetMediaTreeOptionsBag.d.ts" />
+    <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\mediaElementPickerGetMediaTreeResultsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\mergeTemplatePickerGetMergeTemplatesOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\metricCategoryPickerGetChildrenOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\metricItemPickerGetChildrenOptionsBag.d.ts" />
@@ -899,6 +910,7 @@
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\pagePickerGetSelectedPageHierarchyOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\pageRouteValueBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\personPickerSearchOptionsBag.d.ts" />
+    <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\racePickerGetRacesResultsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\registrationTemplatePickerGetChildrenOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\reportPickerGetChildrenOptionsBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Rest\Controls\saveFinancialAccountFormSaveAccountOptionsBag.d.ts" />

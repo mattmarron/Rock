@@ -215,6 +215,8 @@
                     <a id="DropDowns"></a>
                     <h1 runat="server">Drop Downs</h1>
 
+                    <Rock:RacePicker Label="My Race" runat="server" />
+
                     <a id="DataDropDownList"></a>
                     <div runat="server" class="r-example">
                         <Rock:DataDropDownList ID="ddlDataExample" runat="server" Label="Rock:DataDropDownList/RockDropDownList" SourceTypeName="Rock.Model.GroupType, Rock" PropertyName="Name" />
@@ -529,7 +531,7 @@
 
                     <a id="MediaElementPicker"></a>
                     <div runat="server" class="r-example">
-                        <Rock:MediaElementPicker ID="mediaElementPicker" runat="server" Label="Rock:MediaElementPicker" />
+                        <Rock:MediaElementPicker ID="mediaElementPicker" runat="server" Label="Rock:MediaElementPicker" MediaElementId="3" />
                     </div>
 
                     <h2>Groups and Group Types</h2>
