@@ -479,7 +479,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
         }
 
         [BlockAction]
-        public BlockActionResult SendMessage( Guid rockPhoneNumberGuid, Guid personGuid, string message, Guid? attachmentGuid = null )
+        public BlockActionResult SendMessage( Guid rockPhoneNumberGuid, Guid personGuid, string message, List<Guid> attachments )
         {
             var rockPhoneNumber = DefinedValueCache.Get( rockPhoneNumberGuid );
 
@@ -493,6 +493,12 @@ namespace Rock.Blocks.Types.Mobile.Communication
                 return ActionBadRequest( "Must be logged in to send messages." );
             }
 
+            // If no message and no attachments then fail.
+            if ( message.IsNullOrWhiteSpace() && attachments?.Any() != true )
+            {
+                return ActionBadRequest( "Must provide either message or attachments." );
+            }
+
             using ( var rockContext = new RockContext() )
             {
                 try
@@ -503,24 +509,24 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     var responseCode = Rock.Communication.Medium.Sms.GenerateResponseCode( rockContext );
                     var toPrimaryAliasId = new PersonAliasService( rockContext ).GetPrimaryAliasId( personGuid );
 
-                    List<BinaryFile> attachments = null;
+                    var attachmentFiles = new List<BinaryFile>();
 
-                    if ( attachmentGuid.HasValue )
+                    if ( attachments != null )
                     {
-                        var binaryFile = new BinaryFileService( rockContext )
-                            .Get( attachmentGuid.Value );
-
-                        if ( binaryFile != null )
+                        var binaryFileService = new BinaryFileService( rockContext );
+                        foreach ( var attachmentGuid in attachments )
                         {
-                            attachments = new List<BinaryFile>
+                            var binaryFile = binaryFileService.Get( attachmentGuid );
+
+                            if ( binaryFile != null )
                             {
-                                binaryFile
-                            };
+                                attachmentFiles.Add( binaryFile );
+                            }
                         }
                     }
 
                     // Create and enqueue the communication
-                    var communication = Rock.Communication.Medium.Sms.CreateSmsCommunication( RequestContext.CurrentPerson, toPrimaryAliasId, message, rockPhoneNumber, responseCode, rockContext, attachments );
+                    var communication = Rock.Communication.Medium.Sms.CreateSmsCommunication( RequestContext.CurrentPerson, toPrimaryAliasId, message, rockPhoneNumber, responseCode, rockContext, attachmentFiles );
 
                     if ( communication.Recipients.Count == 0 )
                     {
