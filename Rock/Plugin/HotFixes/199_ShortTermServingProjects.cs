@@ -35,6 +35,7 @@ namespace Rock.Plugin.HotFixes
             ShortTermServingProjects_AddAdminPagesAndBlocks();
             ShortTermServingProjects_AddPublicBlockTypes();
             ShortTermServingProjects_AddPublicPagesAndBlocks();
+            ShortTermServingProjects_UpdateExistingBlockValues();
         }
 
         /// <summary>
@@ -42,6 +43,7 @@ namespace Rock.Plugin.HotFixes
         /// </summary>
         public override void Down()
         {
+            ShortTermServingProjects_RevertChangesToExistingBlockValues();
             ShortTermServingProjects_DeletePublicPagesAndBlocks();
             ShortTermServingProjects_DeletePublicBlockTypes();
             ShortTermServingProjects_DeleteAdminPagesAndBlocks();
@@ -265,6 +267,23 @@ namespace Rock.Plugin.HotFixes
             RockMigrationHelper.AddPageRoute( "73FC6F39-6194-483A-BF0D-7FDD1DD91C91", "sign-up/attendance/{GroupId}/location/{LocationId}/schedule/{ScheduleId}", "33DE9AF2-456C-413D-8559-A58DEA78D62A" );
             // [Block]: Sign Up Attendance Detail for [Page]: Group Attendance > Sign-Up Attendance Detail
             RockMigrationHelper.AddBlock( true, "73FC6F39-6194-483A-BF0D-7FDD1DD91C91".AsGuidOrNull(), null, null, "96D160D9-5668-46EF-9941-702BD3A577DB".AsGuidOrNull(), "Sign Up Attendance Detail", "Main", "", "", 0, "5ED5DD3E-7280-4617-8BB1-0A6CF2DFED6D" );
+        }
+
+        /// <summary>
+        /// JPH: Update existing block values for Sign-Up Groups.
+        /// </summary>
+        private void ShortTermServingProjects_UpdateExistingBlockValues()
+        {
+            // Update the Group Viewer page's Group Tree View to exclude groups of type "Sign-Up Group", since we're adding new blocks to manage groups of this type.
+            RockMigrationHelper.AddBlockAttributeValue( "95612FCE-C40B-4CBB-AE26-800B52BE5FCD", "D8EEB91B-745E-4D63-911B-728D8F1B0B6E", "499b1367-06b3-4538-9d56-56d53f55dcb1", true );
+        }
+
+        /// <summary>
+        /// JPH: Revert changes made to existing block values for Sign-Up Groups.
+        /// </summary>
+        private void ShortTermServingProjects_RevertChangesToExistingBlockValues()
+        {
+            // No consistent way to revert the changes we've made to the Group Viewer page's Group Tree View's "Group Types Exclude" attribute; we'll just leave an invalid value in this setting's comma-separated Guid list, which will cause no harm.
         }
 
         /// <summary>

@@ -562,8 +562,9 @@ namespace RockWeb.Blocks.Engagement.SignUp
         {
             gOpportunities.ExportFilename = $"{this.SignUpGroupType.Name} Opportunities";
 
-            // we'll have custom javascript (see SignUpOverview.ascx ) do this instead.
+            // We'll have custom javascript (see SignUpOverview.ascx) do this instead.
             gOpportunities.ShowConfirmDeleteDialog = false;
+
             gOpportunities.IsDeleteEnabled = _canEdit;
 
             _ddlAction = new RockDropDownList();

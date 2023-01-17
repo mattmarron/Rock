@@ -88,7 +88,7 @@ namespace RockWeb.Blocks.Engagement.SignUp
 
         #region Fields
 
-        private bool _isAuthorizedToEdit;
+        private bool _canEdit;
         private bool _isProjectTypeInPerson;
 
         #endregion
@@ -276,8 +276,8 @@ namespace RockWeb.Blocks.Engagement.SignUp
         {
             base.LoadViewState( savedState );
 
-            _isAuthorizedToEdit = ( bool ) ViewState[ViewStateKey.IsAuthorizedToEdit];
-            gOpportunities.Actions.ShowAdd = _isAuthorizedToEdit;
+            _canEdit = ( bool ) ViewState[ViewStateKey.IsAuthorizedToEdit];
+            gOpportunities.Actions.ShowAdd = _canEdit;
 
             _isProjectTypeInPerson = ( bool ) ViewState[ViewStateKey.IsProjectTypeInPerson];
 
@@ -397,7 +397,7 @@ namespace RockWeb.Blocks.Engagement.SignUp
         /// </returns>
         protected override object SaveViewState()
         {
-            ViewState[ViewStateKey.IsAuthorizedToEdit] = _isAuthorizedToEdit;
+            ViewState[ViewStateKey.IsAuthorizedToEdit] = _canEdit;
             ViewState[ViewStateKey.IsProjectTypeInPerson] = _isProjectTypeInPerson;
 
             var jsonSetting = new JsonSerializerSettings
@@ -983,7 +983,7 @@ namespace RockWeb.Blocks.Engagement.SignUp
                 }
             }
 
-            if ( !_isAuthorizedToEdit )
+            if ( !_canEdit )
             {
                 var editField = gOpportunities.ColumnsOfType<EditField>().FirstOrDefault( c => c.ID == "efOpportunities" );
                 if ( editField != null )
@@ -1756,10 +1756,10 @@ namespace RockWeb.Blocks.Engagement.SignUp
         /// </returns>
         private bool IsAuthorizedToEdit( Group group )
         {
-            _isAuthorizedToEdit = IsUserAuthorized( Authorization.EDIT )
+            _canEdit = IsUserAuthorized( Authorization.EDIT )
                 && group?.IsSystem == false
                 && group?.IsAuthorized( Authorization.EDIT, this.CurrentPerson ) == true;
-            return _isAuthorizedToEdit;
+            return _canEdit;
         }
 
         /// <summary>
