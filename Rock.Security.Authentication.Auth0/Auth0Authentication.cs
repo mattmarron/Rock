@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -15,9 +15,9 @@
 // </copyright>
 //
 using System;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
-using System.Linq;
 using System.Net;
 using System.Web;
 using RestSharp;
@@ -71,7 +71,13 @@ namespace Rock.Security.Authentication.Auth0
         /// <returns></returns>
         public override bool IsReturningFromAuthentication( System.Web.HttpRequest request )
         {
-            return !string.IsNullOrWhiteSpace( request.QueryString["code"] ) && !string.IsNullOrWhiteSpace( request.QueryString["state"] );
+            return IsFromExternalAuthentication( request.QueryString );
+        }
+
+        /// <inheritdoc/>
+        public override bool IsFromExternalAuthentication( NameValueCollection queryString )
+        {
+            return !string.IsNullOrWhiteSpace( queryString["code"] ) && !string.IsNullOrWhiteSpace( queryString["state"] );
         }
 
         /// <summary>
@@ -81,15 +87,20 @@ namespace Rock.Security.Authentication.Auth0
         /// <returns></returns>
         public override Uri GenerateLoginUrl( System.Web.HttpRequest request )
         {
-            // see: https://auth0.com/docs/api/authentication#support
-            string returnUrl = request.QueryString["returnurl"] ?? System.Web.Security.FormsAuthentication.DefaultUrl;
-            string redirectUri = GetRedirectUrl( request );
-            string authDomain = this.GetAttributeValue( "ClientDomain" );
-            string scope = HttpUtility.UrlEncode( "openid profile email phone_number birthdate" );
-            string audience = $"https://{authDomain}/userinfo";
-            string clientId = this.GetAttributeValue( "ClientID" );
+            return GenerateLoginUrl( GetRedirectUrl( request ), request.QueryString["returnurl"] );
+        }
 
-            string authorizeUrl = $"https://{authDomain}/authorize?response_type=code&scope={scope}&audience={audience}&client_id={clientId}&redirect_uri={redirectUri}&state={returnUrl}";
+        /// <inheritdoc/>
+        public override Uri GenerateLoginUrl( string redirectUri, string returnUrl )
+        {
+            // see: https://auth0.com/docs/api/authentication#support
+            returnUrl = returnUrl ?? System.Web.Security.FormsAuthentication.DefaultUrl;
+            var authDomain = this.GetAttributeValue( "ClientDomain" );
+            var scope = HttpUtility.UrlEncode( "openid profile email phone_number birthdate" );
+            var audience = $"https://{authDomain}/userinfo";
+            var clientId = this.GetAttributeValue( "ClientID" );
+
+            var authorizeUrl = $"https://{authDomain}/authorize?response_type=code&scope={scope}&audience={audience}&client_id={clientId}&redirect_uri={redirectUri}&state={returnUrl}";
 
             return new Uri( authorizeUrl );
         }
@@ -103,14 +114,19 @@ namespace Rock.Security.Authentication.Auth0
         /// <returns></returns>
         public override bool Authenticate( System.Web.HttpRequest request, out string userName, out string returnUrl )
         {
-            string authDomain = this.GetAttributeValue( "ClientDomain" );
-            string clientId = this.GetAttributeValue( "ClientID" );
-            string clientSecret = this.GetAttributeValue( "ClientSecret" );
+            return Authenticate( GetRedirectUrl( request ), request.QueryString, out userName, out returnUrl );
+        }
+
+        /// <inheritdoc/>
+        public override bool Authenticate( string redirectUri, NameValueCollection queryString, out string userName, out string returnUrl )
+        {
+            var authDomain = this.GetAttributeValue( "ClientDomain" );
+            var clientId = this.GetAttributeValue( "ClientID" );
+            var clientSecret = this.GetAttributeValue( "ClientSecret" );
 
             userName = string.Empty;
-            returnUrl = request.QueryString["state"];
-            string code = request.QueryString["code"];
-            string redirectUri = GetRedirectUrl( request );
+            returnUrl = queryString["state"];
+            var code = queryString["code"];
 
             // see: https://auth0.com/docs/api/authentication#support
             var restClient = new RestClient( $"https://{authDomain}" );

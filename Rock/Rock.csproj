@@ -546,6 +546,7 @@
     <Compile Include="Attribute\DocumentTypeFieldAttribute.cs" />
     <Compile Include="Attribute\MetricFieldAttribute.cs" />
     <Compile Include="Attribute\ReminderTypeFieldAttribute.cs" />
+    <Compile Include="Attribute\SecondaryAuthsFieldAttribute.cs" />
     <Compile Include="Attribute\RockInternalAttribute.cs" />
     <Compile Include="Attribute\SignatureDocumentTemplateFieldAttribute.cs" />
     <Compile Include="Attribute\RockPlatformSupportAttribute.cs" />
@@ -892,6 +893,7 @@
     <Compile Include="Field\ReferencedProperty.cs" />
     <Compile Include="Field\Types\GroupMemberRequirementFieldType.cs" />
     <Compile Include="Field\Types\ReminderTypeFieldType.cs" />
+    <Compile Include="Field\Types\SecondaryAuthsFieldType.cs" />
     <Compile Include="IpAddress\Classes\IpLocation.cs" />
     <Compile Include="IpAddress\IpLocationUtilities.cs" />
     <Compile Include="Jobs\IndexContentCollections.cs" />
@@ -960,6 +962,8 @@
     <Compile Include="Model\Group\GroupMember\GroupMemberService.WebForms.cs" />
     <Compile Include="Model\Event\InteractiveExperienceScheduleCampus\InteractiveExperienceScheduleCampus.cs" />
     <Compile Include="Model\Group\GroupMemberRequirement\GroupMemberRequirementService.cs" />
+    <Compile Include="Model\Security\RemoteAuthenticationSessionExtensions.cs" />
+    <Compile Include="Model\Security\RemoteAuthenticationSessionService.cs" />
     <Compile Include="Personalization\PersonalizationRequestFilters\EnvironmentRequestFilter.cs" />
     <Compile Include="Net\IRequest.cs" />
     <Compile Include="Personalization\PersonalizationSegmentFilter.cs" />
@@ -1043,6 +1047,7 @@
     <Compile Include="Reporting\DataFilter\GroupMembers\GroupMemberGroupTypeFilter.cs" />
     <Compile Include="Reporting\DataFilter\Person\PersonalDevicesFilter.cs" />
     <Compile Include="Bulk\SampleData\SampleDataManager.cs" />
+    <Compile Include="Security\Authentication\PasswordlessAuthentication.cs" />
     <Compile Include="SystemGuid\DuplicateSystemGuidException.cs" />
     <Compile Include="SystemGuid\BlockTypeGuidAttribute.cs" />
     <Compile Include="SystemGuid\EntityTypeGuidAttribute.cs" />
@@ -1905,6 +1910,7 @@
     <Compile Include="Web\UI\Controls\GroupMemberRequirementCard.cs" />
     <Compile Include="Web\UI\Controls\GroupMemberRequirementsContainer.cs" />
     <Compile Include="Web\UI\Controls\Pickers\RacePicker.cs" />
+    <Compile Include="Web\UI\Controls\Pickers\SecondaryAuthsPicker.cs" />
     <Compile Include="Web\UI\Controls\TagLiteral.cs" />
     <Compile Include="Web\UI\Controls\Pickers\CategorizedValuePicker.cs" />
     <Compile Include="Web\UI\Controls\TaskActivityProgressReporter.cs" />
@@ -3856,6 +3862,7 @@
     <Compile Include="Web\UI\RouteUtils.cs" />
     <Compile Include="Web\UI\Validation\DataAnnotationValidator.cs" />
     <Compile Include="Web\Utilities\HtmlSanitizer.cs" />
+    <Compile Include="Web\Utilities\PathHelper.cs" />
     <Compile Include="Web\Utilities\RockUpdateHelper.cs" />
     <Compile Include="Web\Utilities\Enums\DotNetVersionCheckResult.cs" />
     <Compile Include="Web\Utilities\WebDebugHelper.cs" />

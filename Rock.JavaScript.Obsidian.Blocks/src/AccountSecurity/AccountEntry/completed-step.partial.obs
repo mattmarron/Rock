@@ -1,0 +1,61 @@
+<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <div v-if="options.isPlainCaption && options.caption" v-html="options.caption"></div>
+    <Alert v-else-if="options.caption" v-html="options.caption" alertType="success"></Alert>
+
+    <RockButton v-if="options.redirectUrl" :btnType="primaryBtnType" :disabled="disabled" @click="onContinueClicked">Continue</RockButton>
+</template>
+
+<script setup lang="ts">
+    import Alert from "@Obsidian/Controls/alert.obs";
+    import RockButton from "@Obsidian/Controls/rockButton";
+    import { BtnType } from "@Obsidian/Enums/Controls/btnType";
+    import { AccountEntryCompletedStepBag } from "@Obsidian/ViewModels/Blocks/AccountSecurity/AccountEntry/accountEntryCompletedStepBag";
+    import { onMounted, PropType } from "vue";
+
+    const props = defineProps({
+        disabled: {
+            type: Boolean as PropType<boolean>,
+            required: false,
+            default: false
+        },
+        options: {
+            type: Object as PropType<AccountEntryCompletedStepBag>,
+            required: true
+        }
+    });
+
+    const emit = defineEmits<{
+        (e: "navigate", value: string): void
+    }>();
+
+    //#region Values
+
+    const primaryBtnType = BtnType.Primary;
+
+    //#endregion
+
+    //#region Event Handlers
+
+    function onContinueClicked(): void {
+        tryNavigate(props.options.redirectUrl);
+    }
+
+    //#endregion
+
+    //#region Functions
+
+    function tryNavigate(url: string | null | undefined): void {
+        if (url) {
+            emit("navigate", url);
+        }
+    }
+
+    //#endregion
+
+    onMounted(() => {
+        if (props.options.isRedirectAutomatic) {
+            tryNavigate(props.options.redirectUrl);
+        }
+    });
+</script>

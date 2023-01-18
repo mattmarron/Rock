@@ -18,11 +18,11 @@ import type { RulesPropType, ValidationResult, ValidationRule, ValidationRuleFun
 import { asBooleanOrNull } from "@Obsidian/Utility/booleanUtils";
 import DateKey from "@Obsidian/Utility/dateKey";
 import { isEmail } from "@Obsidian/Utility/email";
+import { isPhone } from "@Obsidian/Utility/phoneNumber";
 import { toNumberOrNull } from "@Obsidian/Utility/numberUtils";
 import { isNullOrWhiteSpace } from "@Obsidian/Utility/stringUtils";
 import { isUrl } from "@Obsidian/Utility/url";
 import { containsRequiredRule, defineRule, normalizeRules, parseRule, rulesPropType, validateValue } from "@Obsidian/Utility/validationRules";
-import { triggerAsyncId } from "async_hooks";
 
 // For backwards compatibility:
 export {
@@ -355,4 +355,60 @@ defineRule("startswith", (value: unknown, params?: unknown[]) => {
     }
 
     return `must start with "${compare}"`;
+});
+
+defineRule("phone", (value: unknown) => {
+    // Field is empty, should pass
+    if (isNullOrWhiteSpace(value)) {
+        return true;
+    }
+
+    if (isPhone(String(value))) {
+        return true;
+    }
+
+    return "must be a valid phone number";
+});
+
+defineRule("or", (value: unknown, params?: unknown[]) => {
+    const rules: ValidationRule[] = params && params.length >= 1 ? params.map(param => param as ValidationRule).filter(param => !!param) : [];
+
+    const errors: string[] = [];
+
+    for (const rule of rules) {
+        const results = validateValue(value, rule);
+
+        if (!results || results.length === 0) {
+            return true;
+        }
+
+        errors.push(...results);
+    }
+
+    return errors.join(" or ");
+});
+
+defineRule("equalsfield", (value: unknown, params?: unknown[]) => {
+    // Validator params are comma "," delimited.
+    // The first param is the name of the field to display in the error message.
+    // The remaining params need to be joined together into a single string for comparison.
+    const error = params && params.length >= 1 ? params[0] : undefined;
+    const compare = params ? params.slice(1).join(",") : "";
+
+    if (isNumeric(value) && isNumeric(compare)) {
+        if (convertToNumber(value) === convertToNumber(compare)) {
+            return true;
+        }
+    }
+    else if (typeof value === "boolean") {
+        if (value === asBooleanOrNull(compare)) {
+            return true;
+        }
+    }
+    else if (value === compare) {
+        return true;
+    }
+
+    // Do not expose the value in case we are matching sensitive confirmation fields.
+    return typeof error === "string" ? error : "must match value";
 });

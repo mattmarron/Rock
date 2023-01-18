@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -15,6 +15,7 @@
 // </copyright>
 //
 using System;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.Net;
@@ -75,10 +76,16 @@ namespace Rock.Security.ExternalAuthentication
         /// </summary>
         /// <param name="request">The request.</param>
         /// <returns></returns>
-        public override Boolean IsReturningFromAuthentication( HttpRequest request )
+        public override bool IsReturningFromAuthentication( HttpRequest request )
         {
-            return ( !String.IsNullOrWhiteSpace( request.QueryString["code"] ) &&
-                !String.IsNullOrWhiteSpace( request.QueryString["state"] ) );
+            return IsFromExternalAuthentication( request.QueryString );
+        }
+
+        /// <inheritdoc/>
+        public override bool IsFromExternalAuthentication( NameValueCollection queryString )
+        {
+            return !string.IsNullOrWhiteSpace( queryString["code"] ) &&
+                !string.IsNullOrWhiteSpace( queryString["state"] );
         }
 
         /// <summary>
@@ -88,18 +95,22 @@ namespace Rock.Security.ExternalAuthentication
         /// <returns></returns>
         public override Uri GenerateLoginUrl( HttpRequest request )
         {
-            string returnUrl = request.QueryString["returnurl"];
-            string redirectUri = GetRedirectUrl( request );
-
-            return new Uri( string.Format( "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id={0}&redirect_uri={1}&state={2}&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile",
+            return GenerateLoginUrl( GetRedirectUrl( request ), request.QueryString["returnurl"] );
+        }
+        
+        /// <inheritdoc/>
+        public override Uri GenerateLoginUrl( string redirectUrl, string returnUrl )
+        {
+            return new Uri( string.Format(
+                "https://accounts.google.com/o/oauth2/auth?response_type=code&client_id={0}&redirect_uri={1}&state={2}&scope=https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile",
                 GetAttributeValue( "ClientID" ),
-                HttpUtility.UrlEncode( redirectUri ),
+                HttpUtility.UrlEncode( redirectUrl ),
                 HttpUtility.UrlEncode( returnUrl ?? FormsAuthentication.DefaultUrl ) ) );
         }
 
-        ///<summary>
-        ///JSON Class for Access Token Response
-        ///</summary>
+        /// <summary>
+        /// JSON Class for Access Token Response
+        /// </summary>
         public class AccessTokenResponse
         {
             /// <summary>
@@ -131,21 +142,26 @@ namespace Rock.Security.ExternalAuthentication
         /// Authenticates the specified request.
         /// </summary>
         /// <param name="request">The request.</param>
-        /// <param name="username">The username.</param>
+        /// <param name="userName">The username.</param>
         /// <param name="returnUrl">The return URL.</param>
         /// <returns></returns>
-        public override Boolean Authenticate( HttpRequest request, out string username, out string returnUrl )
+        public override bool Authenticate( HttpRequest request, out string userName, out string returnUrl )
         {
-            username = string.Empty;
-            returnUrl = request.QueryString["State"];
-            string redirectUri = GetRedirectUrl( request );
+            return Authenticate( GetRedirectUrl( request ), request.QueryString, out userName, out returnUrl );
+        }
+
+        /// <inheritdoc/>
+        public override bool Authenticate( string redirectUri, NameValueCollection queryString, out string userName, out string returnUrl )
+        {
+            userName = string.Empty;
+            returnUrl = queryString["State"];
 
             try
             {
                 // Get a new OAuth Access Token for the 'code' that was returned from the Google user consent redirect
                 var restClient = new RestClient( "https://www.googleapis.com/oauth2/v4/token" );
                 var restRequest = new RestRequest( Method.POST );
-                restRequest.AddParameter( "code", request.QueryString["code"] );
+                restRequest.AddParameter( "code", queryString["code"] );
                 restRequest.AddParameter( "client_id", GetAttributeValue( "ClientID" ) );
                 restRequest.AddParameter( "client_secret", GetAttributeValue( "ClientSecret" ) );
                 restRequest.AddParameter( "redirect_uri", redirectUri );
@@ -167,17 +183,16 @@ namespace Rock.Security.ExternalAuthentication
                     if ( restResponse.StatusCode == HttpStatusCode.OK )
                     {
                         GoogleUser googleUser = JsonConvert.DeserializeObject<GoogleUser>( restResponse.Content );
-                        username = GetGoogleUser( googleUser, accessToken );
+                        userName = GetGoogleUser( googleUser, accessToken );
                     }
                 }
             }
-
             catch ( Exception ex )
             {
                 ExceptionLogService.LogException( ex, HttpContext.Current );
             }
 
-            return !string.IsNullOrWhiteSpace( username );
+            return !string.IsNullOrWhiteSpace( userName );
         }
 
         /// <summary>
@@ -185,7 +200,7 @@ namespace Rock.Security.ExternalAuthentication
         /// </summary>
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public override String ImageUrl()
+        public override string ImageUrl()
         {
             return string.Empty;
         }
@@ -377,7 +392,6 @@ namespace Rock.Security.ExternalAuthentication
 
             using ( var rockContext = new RockContext() )
             {
-
                 // Query for an existing user
                 var userLoginService = new UserLoginService( rockContext );
                 user = userLoginService.GetByUserName( userName );
@@ -446,7 +460,6 @@ namespace Rock.Security.ExternalAuthentication
                              int typeId = EntityTypeCache.Get( typeof( Google ) ).Id;
                              user = UserLoginService.Create( rockContext, person, AuthenticationServiceType.External, typeId, userName, "goog", true );
                          }
-
                      } );
                 }
 

@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -16,6 +16,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.Dynamic;
@@ -79,10 +80,15 @@ namespace Rock.Security.ExternalAuthentication
         /// </summary>
         /// <param name="request">The request.</param>
         /// <returns></returns>
-        public override Boolean IsReturningFromAuthentication( HttpRequest request )
+        public override bool IsReturningFromAuthentication( HttpRequest request )
         {
-            return ( !String.IsNullOrWhiteSpace( request.QueryString["code"] ) &&
-                !String.IsNullOrWhiteSpace( request.QueryString["state"] ) );
+            return IsFromExternalAuthentication( request.QueryString );
+        }
+
+        /// <inheritdoc/>
+        public override bool IsFromExternalAuthentication( NameValueCollection queryString )
+        {
+            return !string.IsNullOrWhiteSpace( queryString["code"] ) && !string.IsNullOrWhiteSpace( queryString["state"] );
         }
 
         /// <summary>
@@ -92,13 +98,18 @@ namespace Rock.Security.ExternalAuthentication
         /// <returns></returns>
         public override Uri GenerateLoginUrl( HttpRequest request )
         {
-            string returnUrl = request.QueryString["returnurl"];
-            string redirectUri = GetRedirectUrl( request );
-            string scopeUserFriends = ( GetAttributeValue( "SyncFriends" ).AsBoolean( false ) ) ? ",user_friends" : string.Empty;
+            return GenerateLoginUrl( GetRedirectUrl( request ), request.QueryString["returnurl"] );
+        }
 
-            return new Uri( string.Format( "https://www.facebook.com/dialog/oauth?client_id={0}&redirect_uri={1}&state={2}&scope=public_profile,email" + scopeUserFriends,
+        /// <inheritdoc/>
+        public override Uri GenerateLoginUrl( string redirectUrl, string returnUrl )
+        {
+            string scopeUserFriends = GetAttributeValue( "SyncFriends" ).AsBoolean( false ) ? ",user_friends" : string.Empty;
+
+            return new Uri( string.Format(
+                "https://www.facebook.com/dialog/oauth?client_id={0}&redirect_uri={1}&state={2}&scope=public_profile,email" + scopeUserFriends,
                 GetAttributeValue( "AppID" ),
-                HttpUtility.UrlEncode( redirectUri ),
+                HttpUtility.UrlEncode( redirectUrl ),
                 HttpUtility.UrlEncode( returnUrl ?? FormsAuthentication.DefaultUrl ) ) );
         }
 
@@ -106,24 +117,29 @@ namespace Rock.Security.ExternalAuthentication
         /// Authenticates the specified request.
         /// </summary>
         /// <param name="request">The request.</param>
-        /// <param name="username">The username.</param>
+        /// <param name="userName">The username.</param>
         /// <param name="returnUrl">The return URL.</param>
         /// <returns></returns>
-        public override Boolean Authenticate( HttpRequest request, out string username, out string returnUrl )
+        public override bool Authenticate( HttpRequest request, out string userName, out string returnUrl )
         {
-            username = string.Empty;
-            returnUrl = request.QueryString["State"];
-            string redirectUri = GetRedirectUrl( request );
+            return Authenticate( GetRedirectUrl( request ), request.QueryString, out userName, out returnUrl );
+        }
+
+        /// <inheritdoc/>
+        public override bool Authenticate( string redirectUri, NameValueCollection queryString, out string userName, out string returnUrl )
+        {
+            userName = string.Empty;
+            returnUrl = queryString["State"];
 
             try
             {
                 // Get a new Facebook Access Token for the 'code' that was returned from the Facebook login redirect
-                var restClient = new RestClient(
-                    string.Format( "https://graph.facebook.com/oauth/access_token?client_id={0}&redirect_uri={1}&client_secret={2}&code={3}",
-                        GetAttributeValue( "AppID" ),
-                        HttpUtility.UrlEncode( redirectUri ),
-                        GetAttributeValue( "AppSecret" ),
-                        request.QueryString["code"] ) );
+                var restClient = new RestClient( string.Format(
+                    "https://graph.facebook.com/oauth/access_token?client_id={0}&redirect_uri={1}&client_secret={2}&code={3}",
+                    GetAttributeValue( "AppID" ),
+                    HttpUtility.UrlEncode( redirectUri ),
+                    GetAttributeValue( "AppSecret" ),
+                    queryString["code"] ) );
                 var restRequest = new RestRequest( Method.GET );
                 var restResponse = restClient.Execute( restRequest );
 
@@ -145,17 +161,16 @@ namespace Rock.Security.ExternalAuthentication
                     if ( restResponse.StatusCode == HttpStatusCode.OK )
                     {
                         FacebookUser facebookUser = JsonConvert.DeserializeObject<FacebookUser>( restResponse.Content );
-                        username = GetFacebookUserName( facebookUser, GetAttributeValue( "SyncFriends" ).AsBoolean(), accessToken );
+                        userName = GetFacebookUserName( facebookUser, GetAttributeValue( "SyncFriends" ).AsBoolean(), accessToken );
                     }
                 }
             }
-
             catch ( Exception ex )
             {
                 ExceptionLogService.LogException( ex, HttpContext.Current );
             }
 
-            return !string.IsNullOrWhiteSpace( username );
+            return !string.IsNullOrWhiteSpace( userName );
         }
 
         /// <summary>
@@ -163,9 +178,9 @@ namespace Rock.Security.ExternalAuthentication
         /// </summary>
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public override String ImageUrl()
+        public override string ImageUrl()
         {
-            return ""; /*~/Assets/Images/facebook-login.png*/
+            return string.Empty; /*~/Assets/Images/facebook-login.png*/
         }
 
         private string GetRedirectUrl( HttpRequest request )
@@ -356,7 +371,6 @@ namespace Rock.Security.ExternalAuthentication
 
             using ( var rockContext = new RockContext() )
             {
-
                 // Query for an existing user
                 var userLoginService = new UserLoginService( rockContext );
                 user = userLoginService.GetByUserName( userName );
@@ -368,8 +382,13 @@ namespace Rock.Security.ExternalAuthentication
                     string lastName = facebookUser.last_name.ToStringSafe();
                     string firstName = facebookUser.first_name.ToStringSafe();
                     string email = string.Empty;
-                    try { email = facebookUser.email.ToStringSafe(); }
-                    catch { }
+                    try
+                    {
+                        email = facebookUser.email.ToStringSafe();
+                    }
+                    catch
+                    {
+                    }
 
                     Person person = null;
 
@@ -411,7 +430,9 @@ namespace Rock.Security.ExternalAuthentication
                                     person.Gender = Gender.Unknown;
                                 }
                             }
-                            catch { }
+                            catch
+                            {
+                            }
 
                             if ( person != null )
                             {
@@ -424,7 +445,6 @@ namespace Rock.Security.ExternalAuthentication
                             int typeId = EntityTypeCache.Get( typeof( Facebook ) ).Id;
                             user = UserLoginService.Create( rockContext, person, AuthenticationServiceType.External, typeId, userName, "fb", true );
                         }
-
                     } );
                 }
 
@@ -521,7 +541,6 @@ namespace Rock.Security.ExternalAuthentication
                                 }
                             }
                         }
-
                     }
                 }
 

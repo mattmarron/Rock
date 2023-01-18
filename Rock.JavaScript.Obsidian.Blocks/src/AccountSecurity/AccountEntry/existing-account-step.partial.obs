@@ -1,0 +1,79 @@
+<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <Alert v-if="options.caption" alertType="warning" v-html="options.caption"></Alert>
+
+    <div class="actions">
+        <RockButton
+            :btnType="btnTypeLink"
+            :disabled="disabled"
+            @click="onPreviousClicked">Previous</RockButton>
+        <RockButton
+            :btnType="btnTypePrimary"
+            class="ml-1"
+            :disabled="disabled"
+            @click="onEmailUsernameClicked">Yes, send it</RockButton>
+        <RockButton
+            :btnType="btnTypePrimary"
+            class="ml-1"
+            :disabled="disabled"
+            @click="onSendToLoginClicked">No, just let me log in</RockButton>
+    </div>
+</template>
+
+<script setup lang="ts">
+    import Alert from "@Obsidian/Controls/alert.obs";
+    import RockButton from "@Obsidian/Controls/rockButton";
+    import { BtnType } from "@Obsidian/Enums/Controls/btnType";
+    import { AccountEntryExistingAccountStepBag } from "@Obsidian/ViewModels/Blocks/AccountSecurity/AccountEntry/accountEntryExistingAccountStepBag";
+    import { PropType } from "vue";
+
+    const props = defineProps({
+        disabled: {
+            type: Boolean as PropType<boolean>,
+            required: false,
+            default: false
+        },
+        options: {
+            type: Object as PropType<AccountEntryExistingAccountStepBag>,
+            required: true
+        }
+    });
+
+    const emit = defineEmits<{
+        (e: "movePrevious"): void,
+        (e: "emailUsername"): void,
+        (e: "sendToLogin"): void
+    }>();
+
+    //#region Values
+
+    const btnTypeLink = BtnType.Link;
+    const btnTypePrimary = BtnType.Primary;
+
+    //#endregion
+
+    //#region Event Handlers
+
+    /**
+     * Event handler for the "Yes, send it" button being clicked.
+     */
+    function onEmailUsernameClicked(): void {
+        emit("emailUsername");
+    }
+
+    /**
+     * Event handler for the previous button being clicked.
+     */
+    function onPreviousClicked(): void {
+        emit("movePrevious");
+    }
+
+    /**
+     * Event handler for the "No, just let me log in" button being clicked.
+     */
+    function onSendToLoginClicked(): void {
+        emit("sendToLogin");
+    }
+
+    //#endregion
+</script>

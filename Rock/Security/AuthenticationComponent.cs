@@ -15,10 +15,11 @@
 // </copyright>
 //
 using System;
+using System.Collections.Specialized;
 using System.Web;
-using Rock.Web.Cache;
 using Rock.Extension;
 using Rock.Model;
+using Rock.Attribute;
 
 namespace Rock.Security
 {
@@ -42,7 +43,7 @@ namespace Rock.Security
         /// <value>
         /// The requires remote authentication.
         /// </value>
-        public abstract Boolean RequiresRemoteAuthentication { get; }
+        public abstract bool RequiresRemoteAuthentication { get; }
 
         /// <summary>
         /// Authenticates the user based on user name and password. If the attempt is a failure,
@@ -90,7 +91,7 @@ namespace Rock.Security
         /// <param name="user">The user.</param>
         /// <param name="password">The password.</param>
         /// <returns></returns>
-        public abstract Boolean Authenticate( UserLogin user, string password );
+        public abstract bool Authenticate( UserLogin user, string password );
 
         /// <summary>
         /// Authenticates the user based on a request from a third-party provider.  Will set the username and returnUrl values.
@@ -99,7 +100,18 @@ namespace Rock.Security
         /// <param name="userName">Name of the user.</param>
         /// <param name="returnUrl">The return URL.</param>
         /// <returns></returns>
-        public abstract Boolean Authenticate( HttpRequest request, out string userName, out string returnUrl );
+        public abstract bool Authenticate( HttpRequest request, out string userName, out string returnUrl );
+
+        /// <summary>
+        /// Authenticates the user based on a request from a third-party provider.  Will set the username and returnUrl values.
+        /// </summary>
+        /// <param name="redirectUri">The redirect URL.</param>
+        /// <param name="queryString">The query string.</param>
+        /// <param name="userName">Name of the user.</param>
+        /// <param name="returnUrl">The return URL.</param>
+        /// <returns></returns>
+        [RockInternal]
+        public abstract bool Authenticate( string redirectUri, NameValueCollection queryString, out string userName, out string returnUrl );
 
         /// <summary>
         /// Encodes the password.
@@ -107,7 +119,7 @@ namespace Rock.Security
         /// <param name="user">The user.</param>
         /// <param name="password">The password.</param>
         /// <returns></returns>
-        public abstract String EncodePassword( UserLogin user, string password );
+        public abstract string EncodePassword( UserLogin user, string password );
 
         /// <summary>
         /// Generates the log in URL.
@@ -117,18 +129,38 @@ namespace Rock.Security
         public abstract Uri GenerateLoginUrl( HttpRequest request );
 
         /// <summary>
+        /// Generates the log in URL.
+        /// </summary>
+        /// <param name="redirectUri">The URI for external auth providers to redirect to to complete authentication.</param>
+        /// <param name="returnUrl">The URL to redirect to after completing authentication.</param>
+        /// <returns></returns>
+        [RockInternal]
+        public abstract Uri GenerateLoginUrl( string redirectUri, string returnUrl );
+
+        /// <summary>
         /// Tests the Http Request to determine if authentication should be tested by this
         /// authentication provider.
         /// </summary>
         /// <param name="request">The request.</param>
         /// <returns></returns>
-        public abstract Boolean IsReturningFromAuthentication( HttpRequest request );
+        public abstract bool IsReturningFromAuthentication( HttpRequest request );
+
+        // Overloading the `IsReturningFromAuthentication` method requires adding a System.Web reference since there is an overload with a parameter of type System.Web.HttpRequest.
+
+        /// <summary>
+        /// Tests the query string of an Http Request to determine if authentication should be tested by this
+        /// authentication provider.
+        /// </summary>
+        /// <param name="queryString">The query string of the request.</param>
+        /// <returns></returns>
+        [RockInternal]
+        public abstract bool IsFromExternalAuthentication( NameValueCollection queryString );
 
         /// <summary>
         /// Gets the URL of an image that should be displayed.
         /// </summary>
         /// <returns></returns>
-        public abstract String ImageUrl();
+        public abstract string ImageUrl();
 
         /// <summary>
         /// Gets a value indicating whether [supports change password].
@@ -136,7 +168,7 @@ namespace Rock.Security
         /// <value>
         /// <c>true</c> if [supports change password]; otherwise, <c>false</c>.
         /// </value>
-        public abstract Boolean SupportsChangePassword { get; }
+        public abstract bool SupportsChangePassword { get; }
 
         /// <summary>
         /// Changes the password.

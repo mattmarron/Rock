@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -15,6 +15,7 @@
 // </copyright>
 
 using System;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.Drawing;
@@ -204,11 +205,16 @@ namespace Rock.Security.ExternalAuthentication
         /// </exception>
         public override bool Authenticate( HttpRequest request, out string userName, out string returnUrl )
         {
+            return Authenticate( GetRedirectUrl( request ), request.QueryString, out userName, out returnUrl );
+        }
+
+        /// <inheritdoc/>
+        public override bool Authenticate( string redirectUri, NameValueCollection queryString, out string userName, out string returnUrl )
+        {
             userName = string.Empty;
             returnUrl = HttpContext.Current.Session[SessionKey.ReturnUrl].ToStringSafe();
-            string redirectUri = GetRedirectUrl( request );
-            var code = request.QueryString[PageParameterKey.Code];
-            var state = request.QueryString[PageParameterKey.State];
+            var code = queryString[PageParameterKey.Code];
+            var state = queryString[PageParameterKey.State];
             var validState = HttpContext.Current.Session[SessionKey.State].ToStringSafe();
 
             if ( validState.IsNullOrWhiteSpace() || !state.Equals( validState ) )
@@ -234,7 +240,6 @@ namespace Rock.Security.ExternalAuthentication
                 HttpContext.Current.Session[SessionKey.ReturnUrl] = string.Empty;
                 HttpContext.Current.Session[SessionKey.State] = string.Empty;
             }
-
             catch ( Exception ex )
             {
                 ExceptionLogService.LogException( ex, HttpContext.Current );
@@ -276,9 +281,12 @@ namespace Rock.Security.ExternalAuthentication
         /// <returns></returns>
         public override Uri GenerateLoginUrl( HttpRequest request )
         {
-            string returnUrl = request.QueryString[PageParameterKey.ReturnUrl];
-            string redirectUri = GetRedirectUrl( request );
+            return GenerateLoginUrl( GetRedirectUrl( request ), request.QueryString[PageParameterKey.ReturnUrl] );
+        }
 
+        /// <inheritdoc/>
+        public override Uri GenerateLoginUrl( string redirectUrl, string returnUrl )
+        {
             var nonce = EncodeBcrypt( System.Guid.NewGuid().ToString() );
             var state = EncodeBcrypt( System.Guid.NewGuid().ToString() );
 
@@ -286,7 +294,7 @@ namespace Rock.Security.ExternalAuthentication
             HttpContext.Current.Session[SessionKey.State] = state;
             HttpContext.Current.Session[SessionKey.ReturnUrl] = returnUrl;
 
-            return new Uri( GetLoginUrl( GetRedirectUrl( request ), nonce, state ) );
+            return new Uri( GetLoginUrl( redirectUrl, nonce, state ) );
         }
 
         /// <summary>
@@ -306,8 +314,14 @@ namespace Rock.Security.ExternalAuthentication
         /// <returns></returns>
         public override bool IsReturningFromAuthentication( HttpRequest request )
         {
-            return !String.IsNullOrWhiteSpace( request.QueryString[PageParameterKey.Code] )
-                    && !String.IsNullOrWhiteSpace( request.QueryString[PageParameterKey.State] );
+            return IsFromExternalAuthentication( request.QueryString );
+        }
+
+        /// <inheritdoc/>
+        public override bool IsFromExternalAuthentication( NameValueCollection queryString )
+        {
+            return !string.IsNullOrWhiteSpace( queryString[PageParameterKey.Code] )
+                    && !string.IsNullOrWhiteSpace( queryString[PageParameterKey.State] );
         }
 
         /// <summary>
@@ -332,7 +346,8 @@ namespace Rock.Security.ExternalAuthentication
 
             var requestUrl = new RequestUrl( config.AuthorizationEndpoint );
 
-            return requestUrl.CreateAuthorizeUrl( GetAttributeValue( AttributeKey.ApplicationId ),
+            return requestUrl.CreateAuthorizeUrl(
+                GetAttributeValue( AttributeKey.ApplicationId ),
                 OidcConstants.ResponseTypes.Code,
                 GetScopes(),
                 $"{redirectUrl}",
@@ -353,6 +368,7 @@ namespace Rock.Security.ExternalAuthentication
             {
                 return "openid";
             }
+
             return $"openid {scopes.Replace( ",", " " )}";
         }
 
@@ -407,7 +423,7 @@ namespace Rock.Security.ExternalAuthentication
             // accessToken is required
             if ( accessToken.IsNullOrWhiteSpace() )
             {
-                //return null;
+                ////return null;
             }
 
             string username = string.Empty;
@@ -418,7 +434,6 @@ namespace Rock.Security.ExternalAuthentication
 
             using ( var rockContext = new RockContext() )
             {
-
                 // Query for an existing user
                 var userLoginService = new UserLoginService( rockContext );
                 user = userLoginService.GetByUserName( userName );
@@ -435,6 +450,7 @@ namespace Rock.Security.ExternalAuthentication
                     {
                         nickName = idToken.GetClaimValue( JwtClaimTypes.Name ).ToStringSafe();
                     }
+
                     if ( nickName.IsNullOrWhiteSpace() )
                     {
                         nickName = idToken.GetClaimValue( JwtClaimTypes.PreferredUserName ).ToStringSafe();
@@ -634,7 +650,7 @@ namespace Rock.Security.ExternalAuthentication
             {
                 extension = phone.Substring( extStartIndex );
                 phone = phone.Replace( extension, string.Empty );
-                extension = PhoneNumber.CleanNumber( extension.Replace( ";ext=", "" ) );
+                extension = PhoneNumber.CleanNumber( extension.Replace( ";ext=", string.Empty ) );
             }
 
             phone = phone.Trim();
@@ -643,7 +659,7 @@ namespace Rock.Security.ExternalAuthentication
             {
                 var phoneParts = phone.Split( new char[] { ' ', '(', ')' }, StringSplitOptions.RemoveEmptyEntries );
                 countryCode = PhoneNumber.CleanNumber( phoneParts[0] );
-                phone = string.Join( "", phoneParts, 1, phoneParts.Length - 1 );
+                phone = string.Join( string.Empty, phoneParts, 1, phoneParts.Length - 1 );
             }
 
             person.PhoneNumbers.Add( new PhoneNumber
@@ -693,6 +709,7 @@ namespace Rock.Security.ExternalAuthentication
             {
                 return "png";
             }
+
             return string.Empty;
         }
 
@@ -722,6 +739,7 @@ namespace Rock.Security.ExternalAuthentication
                 {
                     person.BirthYear = dateParts[0].AsIntegerOrNull();
                 }
+
                 person.BirthMonth = dateParts[1].AsIntegerOrNull();
                 person.BirthDay = dateParts[2].AsIntegerOrNull();
             }

@@ -1,0 +1,73 @@
+<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <div>
+        <template v-if="hasExternalLogins">
+            Log in with social account
+        </template>
+
+        <RockButton
+            v-for="login in externalLogins"
+            :btnType="buttonType.authentication"
+            :class="login.cssClass || ''"
+            :disabled="disabled"
+            @click="onExternalLoginClick(login)">
+            {{ login.text }}
+        </RockButton>
+    </div>
+</template>
+
+<script setup lang="ts">
+    import RockButton from "@Obsidian/Controls/rockButton";
+    import { BtnType } from "@Obsidian/Enums/Controls/btnType";
+    import { ExternalAuthenticationButtonBag } from "@Obsidian/ViewModels/Blocks/AccountSecurity/Login/externalAuthenticationButtonBag";
+    import { computed, PropType } from "vue";
+
+    const props = defineProps({
+        modelValue: {
+            type: Array as PropType<ExternalAuthenticationButtonBag[]>,
+            required: true,
+            default: []
+        },
+        disabled: {
+            type: Boolean as PropType<boolean>,
+            required: false,
+            default: false
+        }
+    });
+
+    const emit = defineEmits<{
+        (e: "login", value: ExternalAuthenticationButtonBag): void
+    }>();
+
+    // #endregion
+
+    //#region Values
+
+    const buttonType = {
+        authentication: BtnType.Authentication
+    };
+
+    //#endregion
+
+    // #region Computed Values
+
+    const externalLogins = computed<ExternalAuthenticationButtonBag[]>(() => {
+        return props.modelValue?.filter(l => !!l.authenticationType) ?? [];
+    });
+
+    const hasExternalLogins = computed<boolean>(() => !!externalLogins.value.length);
+
+    // #endregion
+
+    // #region Event Handlers
+
+    /**
+     * Handles the event when an external login button is clicked.
+     */
+    function onExternalLoginClick(externalLogin: ExternalAuthenticationButtonBag): void {
+        emit("login", externalLogin);
+    }
+
+    // #endregion
+
+</script>

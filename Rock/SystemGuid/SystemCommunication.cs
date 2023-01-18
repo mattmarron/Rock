@@ -226,5 +226,10 @@ namespace Rock.SystemGuid
         /// Gets the template guid for Reminder Notifications.
         /// </summary>
         public const string REMINDER_NOTIFICATION = "7899958C-BC2F-499E-A5CC-11DE1EF8DF20";
+
+        /// <summary>
+        /// Gets the template guid for sending a passwordless sign in code
+        /// </summary>
+        public const string PASSWORDLESS_SIGN_IN_CODE = "A7AD9FD5-A343-4ADA-868D-A3528D650143";
     }
 }

@@ -15,6 +15,7 @@
 // </copyright>
 //
 using System;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.DirectoryServices.AccountManagement;
@@ -155,6 +156,12 @@ namespace Rock.Security.Authentication
             throw new NotImplementedException();
         }
 
+        /// <inheritdoc/>
+        public override bool Authenticate( string redirectUri, NameValueCollection queryString, out string userName, out string returnUrl )
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Generates the log in URL.
         /// </summary>
@@ -162,6 +169,12 @@ namespace Rock.Security.Authentication
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException"></exception>
         public override Uri GenerateLoginUrl( System.Web.HttpRequest request )
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public override Uri GenerateLoginUrl( string redirectUri, string returnUrl )
         {
             throw new NotImplementedException();
         }
@@ -174,6 +187,12 @@ namespace Rock.Security.Authentication
         /// <returns></returns>
         /// <exception cref="System.NotImplementedException"></exception>
         public override bool IsReturningFromAuthentication( System.Web.HttpRequest request )
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public override bool IsFromExternalAuthentication( NameValueCollection queryString )
         {
             throw new NotImplementedException();
         }

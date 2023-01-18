@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -14,6 +14,8 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
 
@@ -79,6 +81,12 @@ namespace Rock.Security.Authentication
             throw new System.NotImplementedException();
         }
 
+        /// <inheritdoc/>
+        public override bool Authenticate( string redirectUri, NameValueCollection queryString, out string userName, out string returnUrl )
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Encodes the password.
         /// </summary>
@@ -103,14 +111,26 @@ namespace Rock.Security.Authentication
             return null;
         }
 
+        /// <inheritdoc/>
+        public override System.Uri GenerateLoginUrl( string redirectUri, string returnUrl )
+        {
+            // return NULL so that a nice error message will be displayed if they happen to configure this as a remote auth type for the Login block
+            return null;
+        }
+
         /// <summary>
         /// Tests the Http Request to determine if authentication should be tested by this
         /// authentication provider.
         /// </summary>
         /// <param name="request">The request.</param>
         /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
         public override bool IsReturningFromAuthentication( System.Web.HttpRequest request )
+        {
+            return false;
+        }
+
+        /// <inheritdoc/>
+        public override bool IsFromExternalAuthentication( NameValueCollection queryString )
         {
             return false;
         }

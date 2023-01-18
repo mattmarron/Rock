@@ -44,6 +44,32 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Blocks\AccountSecurity\AccountEntry\AccountEntryAccountInfoBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\AccountEntry\AccountEntryCompletedStepBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\AccountEntry\AccountEntryConfirmationSentStepBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\AccountEntry\AccountEntryDuplicatePersonItemBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\AccountEntry\AccountEntryDuplicatePersonSelectionStepBag.cs">
+      <ExcludeFromStyleCop>False</ExcludeFromStyleCop>
+    </Compile>
+    <Compile Include="Blocks\AccountSecurity\AccountEntry\AccountEntryExistingAccountStepBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\AccountEntry\AccountEntryInitializationBox.cs" />
+    <Compile Include="Blocks\AccountSecurity\AccountEntry\AccountEntryForgotUsernameRequestBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\AccountEntry\AccountEntryPersonInfoBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\AccountEntry\AccountEntryPhoneNumberBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\AccountEntry\AccountEntryRegisterRequestBox.cs" />
+    <Compile Include="Blocks\AccountSecurity\AccountEntry\AccountEntryRegisterResponseBox.cs" />
+    <Compile Include="Blocks\AccountSecurity\Login\ExternalAuthenticationButtonBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\Login\PasswordlessLoginAutoVerifyOptionsBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\Login\PasswordlessLoginOptionsBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\Login\PasswordlessLoginVerifyOptionsBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\Login\RemoteLoginStartRequestBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\Login\PasswordlessLoginVerifyRequestBag.cs">
+      <ExcludeFromStyleCop>False</ExcludeFromStyleCop>
+    </Compile>
+    <Compile Include="Blocks\AccountSecurity\Login\PasswordlessLoginStartRequestBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\Login\RemoteLoginStartResponseBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\Login\PasswordlessLoginVerifyResponseBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\Login\PasswordlessLoginStartResponseBag.cs" />
     <Compile Include="Blocks\BlockBox.cs" />
     <Compile Include="Blocks\Cms\ContentCollectionDetail\AttributeFilterBag.cs" />
     <Compile Include="Blocks\Cms\ContentCollectionDetail\AvailableContentSourceBag.cs" />
@@ -128,6 +154,9 @@
     <Compile Include="Rest\Controls\LocationListGetLocationsOptionsBag.cs" />
     <Compile Include="Rest\Controls\LocationListSaveNewLocationOptionsBag.cs" />
     <Compile Include="Utility\IValidPropertiesBox.cs" />
+    <Compile Include="Blocks\AccountSecurity\Login\CredentialLoginRequestBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\Login\CredentialLoginResponseBag.cs" />
+    <Compile Include="Blocks\AccountSecurity\Login\LoginInitializationBox.cs" />
     <Compile Include="Blocks\WorkFlow\FormBuilder\CampusSetFrom.cs" />
     <Compile Include="Blocks\WorkFlow\FormBuilder\FormBuilderDetailViewModel.cs" />
     <Compile Include="Blocks\WorkFlow\FormBuilder\FormCompletionActionType.cs" />

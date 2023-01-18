@@ -1,0 +1,310 @@
+﻿<!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
+<template>
+    <RockFormField
+        v-model="internalCode"
+        name="codebox"
+        :rules="rules">
+        <template #default="{uniqueId, field}">
+            <div :class="['form-group rock-code-box', isRequired ? 'required' : '']">
+                <div class="control-wrapper">
+                    <div class="d-flex">
+                        <input
+                            v-for="(charRef, index) in internalCharacters"
+                            v-model="charRef.value"
+                            autocomplete="one-time-code"
+                            :class="`form-control flex-grow-1 flex-sm-grow-0 flex-shrink-1 ${index > 0 ? 'ml-1' : ''} h3`"
+                            :disabled="disabled"
+                            :id="`${uniqueId}-${index}`"
+                            :maxlength="(index === internalCharacters.length - 1) ? 1 : -1"
+                            type="text"
+                            @paste.native="onPaste"
+                            @focus.native="onFocus"
+                            @input.native="onInput"
+                            @keydown.left.exact.prevent="onMovePrevious($event)"
+                            @keydown.right.exact.prevent="onMoveNext($event)"
+                            @keydown.tab.exact.prevent="onMoveNext($event)"
+                            @keydown.shift.tab.exact.prevent="onMovePrevious($event)"
+                            @keydown.home.exact.prevent="onMoveHome($event)"
+                            @keydown.end.exact.prevent="onMoveEnd($event)" />
+                    </div>
+                </div>
+            </div>
+        </template>
+    </RockFormField>
+</template>
+
+<style scoped>
+.rock-code-box input {
+    width: 47px;
+    height: 64px;
+    text-align: center;
+    font-size: 24px;
+}
+</style>
+
+<script setup lang="ts">
+    import RockFormField from "@Obsidian/Controls/rockFormField";
+    import { normalizeRules, rulesPropType } from "@Obsidian/ValidationRules";
+    import { computed, PropType, ref, WritableComputedRef } from "vue";
+
+    type CodeBoxModelModifiers = {
+        capitalize?: unknown
+    };
+
+    type InputSelectionOptions = {
+        start?: boolean;
+        startIndex?: number;
+        end?: boolean;
+        endIndex?: number;
+    };
+
+    const props = defineProps({
+        modelValue: {
+            type: String as PropType<string>,
+            required: true,
+        },
+
+        disabled: {
+            type: Boolean as PropType<boolean>,
+            required: false,
+            default: false
+        },
+
+        maxLength: {
+            type: Number as PropType<number>,
+            required: true
+        },
+
+        modelModifiers: {
+            type: Object as PropType<CodeBoxModelModifiers>,
+            required: false,
+            default: null
+        },
+
+        rules: rulesPropType
+    });
+
+    const emit = defineEmits<{
+        (e: "update:modelValue", value: string): void
+    }>();
+
+    //#region Computed Values
+    const rawCodeRef = ref<string>(props.modelValue);
+
+    // This is where we return a single value of all inputs and make sure modifiers (capitalization, numeric, etc.) are applied.
+    const internalCode = computed<string>({
+        get() {
+            return props.modelValue;
+        },
+        set(newValue: string) {
+            emit("update:modelValue", applyModifiers(newValue));
+        }
+    });
+
+    const internalCharacters = computed<WritableComputedRef<string>[]>(() => {
+        const characters: WritableComputedRef<string>[] = [];
+
+        for (let i= 0; i < props.maxLength; i++) {
+            characters[i] = computed<string>({
+                get() {
+                    const rawCode = rawCodeRef.value;
+                    const modifiedCode = internalCode.value;
+
+                    if (rawCode !== modifiedCode) {
+                        // It's not good practice to perform updates in a getter,
+                        // but we're doing it anyway to fix an issue where a
+                        // code character input will not display modified data if
+                        // the same data is entered twice.
+                        rawCodeRef.value = modifiedCode;
+                    }
+
+                    return modifiedCode.charAt(i);
+                },
+                set(newValue: string) {
+                    const newValueLength = newValue.length;
+                    let previousCode = internalCode.value;
+                    if (previousCode.length < i + newValueLength) {
+                        // Insert spaces in prior inputs if empty.
+                        previousCode = previousCode + " ".repeat(i + newValueLength - previousCode.length);
+                    }
+                    const newCode = (previousCode.substring(0, i) + newValue + previousCode.substring(i + 1)).substring(0, props.maxLength);
+                    rawCodeRef.value = newCode;
+                    internalCode.value = newCode;
+                }
+            });
+        }
+        return characters;
+    });
+
+    /** The internal rules we will be used for calculations. */
+    const internalRules = computed(() => normalizeRules(props.rules));
+
+    /** Determines if this field is marked as required. */
+    const isRequired = computed(() => internalRules.value.includes("required"));
+
+    //#endregion
+
+    //#region Event Handlers
+
+    function onFocus(event: FocusEvent): void {
+        if (isInput(event.target)) {
+            event.target.select();
+        }
+    }
+
+    function onPaste(event: ClipboardEvent): void {
+        event.preventDefault();
+        internalCode.value = event.clipboardData?.getData("text/plain").slice(0, props.maxLength) || " ".repeat(props.maxLength);
+    }
+
+    function onInput(event: Event): void {
+        if (!isInput(event.target)) {
+            return;
+        }
+
+        // Select the next input after entering a value.
+        const length = event.target.value.trim().length;
+        if (length === 1) {
+            moveNext(event.target);
+        }
+        else if (length === 0) {
+            movePrevious(event.target);
+        }
+        else {
+            moveForward(event.target, length);
+        }
+    }
+
+    function onMovePrevious(event: Event): void {
+        if (!isInput(event.target)) {
+            return;
+        }
+
+        return movePrevious(event.target);
+    }
+
+    function onMoveNext(event: Event): void {
+        if (!isInput(event.target)) {
+            return;
+        }
+
+        return moveNext(event.target);
+    }
+
+    function onMoveHome(event: Event): void {
+        if (!isInput(event.target)) {
+            return;
+        }
+
+        return moveHome(event.target);
+    }
+
+    function onMoveEnd(event: Event): void {
+        if (!isInput(event.target)) {
+            return;
+        }
+
+        return moveEnd(event.target);
+    }
+
+    //#endregion
+
+    //#region Functions
+
+    function applyModifiers(value: string): string {
+        if (props.modelModifiers?.capitalize) {
+            return value?.toUpperCase();
+        }
+        return value;
+    }
+
+    function isInput<T>(value: HTMLInputElement | T): value is HTMLInputElement {
+        return !!(value as HTMLInputElement);
+    }
+
+    function moveEnd(input: HTMLInputElement): void {
+        while (input && isInput(input.nextElementSibling)) {
+            input = input.nextElementSibling;
+        }
+
+        if (input) {
+            input.focus();
+        }
+    }
+
+    function moveForward(input: HTMLInputElement, count: number): void {
+        if (!input) {
+            return;
+        }
+
+        while (count-- > 0 && input && isInput(input.nextElementSibling)) {
+            input = input.nextElementSibling;
+        }
+
+        if (input) {
+            input.focus();
+        }
+    }
+
+    function moveHome(input: HTMLInputElement): void {
+        while (input && isInput(input.previousElementSibling)) {
+            input = input.previousElementSibling;
+        }
+
+        if (input) {
+            input.focus();
+        }
+    }
+
+    function moveNext(input: HTMLInputElement, options?: InputSelectionOptions): void {
+        if (!input) {
+            return;
+        }
+
+        if (isInput(input.nextElementSibling)) {
+            input.nextElementSibling.focus();
+            if (options) {
+                select(input.nextElementSibling, options);
+            }
+        }
+    }
+
+    function movePrevious(input: HTMLInputElement, options?: InputSelectionOptions): void {
+        if (!input) {
+            return;
+        }
+
+        if (isInput(input.previousElementSibling)) {
+            input.previousElementSibling.focus();
+            if (options) {
+                select(input.previousElementSibling, options);
+            }
+        }
+    }
+
+    function select(input: HTMLInputElement, options?: InputSelectionOptions): void {
+        if (!input) {
+            return;
+        }
+
+        if (!options) {
+            input.select();
+        }
+        else if (options.start) {
+            input.selectionStart = 0;
+            input.selectionEnd = 0;
+        }
+        else if (options.end) {
+            const maxLength = input.maxLength;
+            input.selectionStart = maxLength;
+            input.selectionEnd = maxLength;
+        }
+        else if (typeof options.startIndex !== "undefined" && options.startIndex > -1
+                    && typeof options.endIndex !== "undefined" && options.endIndex > -1) {
+            input.selectionStart = options.startIndex;
+            input.selectionEnd = options.endIndex;
+        }
+    }
+
+    //#endregion
+</script>
