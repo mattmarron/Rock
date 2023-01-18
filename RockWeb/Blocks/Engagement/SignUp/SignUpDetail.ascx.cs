@@ -39,7 +39,7 @@ namespace RockWeb.Blocks.Engagement.SignUp
     [Rock.SystemGuid.BlockTypeGuid( "69F5C6BD-7A22-42FE-8285-7C8E586E746A" )]
     public partial class SignUpDetail : RockBlock
     {
-        #region Private Keys
+        #region Keys
 
         private static class PageParameterKey
         {

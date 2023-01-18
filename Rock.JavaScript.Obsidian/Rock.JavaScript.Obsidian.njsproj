@@ -570,6 +570,7 @@
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\detailBlockBox.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Engagement\SignUp\Finder\signUpFinderInitializationBox.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Engagement\SignUp\SignUpAttendanceDetail\signUpAttendanceDetailInitializationBox.d.ts" />
+    <TypeScriptCompile Include="Framework\ViewModels\Blocks\Engagement\SignUp\SignUpAttendanceDetail\signUpAttendeeBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Engagement\SignUp\SignUpRegister\signUpRegisterInitializationBox.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Engagement\Steps\flowNodeDiagramEdgeBag.d.ts" />
     <TypeScriptCompile Include="Framework\ViewModels\Blocks\Engagement\Steps\flowNodeDiagramNodeBag.d.ts" />

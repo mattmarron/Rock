@@ -1,6 +1,6 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-
+    <Alert v-if="blockError" alertType="warning" v-html="blockError"></Alert>
 </template>
 
 <!-- Cannot use scoped here otherwise it becomes very difficult to override by custom CSS. -->
@@ -9,5 +9,21 @@
 </style>
 
 <script setup lang="ts">
-    const name = "SignUpAttendanceDetail";
+    import { ref } from "vue";
+    import Alert from "@Obsidian/Controls/alert.obs";
+    import { useConfigurationValues } from "@Obsidian/Utility/block";
+    import { SignUpAttendanceDetailInitializationBox } from "@Obsidian/ViewModels/Blocks/Engagement/SignUp/SignUpAttendanceDetail/signUpAttendanceDetailInitializationBox";
+
+    const config = useConfigurationValues<SignUpAttendanceDetailInitializationBox>();
+
+    // #region Values
+
+    const blockError = ref("");
+
+    // #endregion
+
+    // Handle any initial error conditions.
+    if (config.errorMessage) {
+        blockError.value = config.errorMessage;
+    }
 </script>

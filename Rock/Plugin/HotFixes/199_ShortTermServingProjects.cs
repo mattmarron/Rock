@@ -243,6 +243,7 @@ namespace Rock.Plugin.HotFixes
 
             RockMigrationHelper.UpdateMobileBlockType( "Sign-Up Attendance Detail", "Lists the group members for a specific sign-up group/project occurrence date time and allows selecting if they attended or not.", "Rock.Blocks.Engagement.SignUp.SignUpAttendanceDetail", "Engagement > Sign-Up", "96D160D9-5668-46EF-9941-702BD3A577DB" );
             RockMigrationHelper.UpdateEntityType( "Rock.Blocks.Engagement.SignUp.SignUpAttendanceDetail", "Sign Up Attendance Detail", "Rock.Blocks.Engagement.SignUp.SignUpAttendanceDetail, Rock.Blocks, Version=1.15.0.10, Culture=neutral, PublicKeyToken=null", false, false, "747587A0-87E9-437D-A4ED-75431CED55B3" );
+            RockMigrationHelper.AddOrUpdateBlockTypeAttribute( "96D160D9-5668-46EF-9941-702BD3A577DB", "1D0D3794-C210-48A8-8C68-3FBEC08A6BA5", "Header Lava Template", "HeaderLavaTemplate", "Header Lava Template", "The Lava template to show at the top of the page.", 0, "", "0B3B0549-2353-4B06-A8F6-9C52135AB235" );
         }
 
         /// <summary>
@@ -321,6 +322,7 @@ namespace Rock.Plugin.HotFixes
             RockMigrationHelper.DeleteBlockType( "161587D9-7B74-4D61-BF8E-3CDB38F16A12" );
             RockMigrationHelper.DeleteEntityType( "ED7A31F2-8D4C-469A-B2D8-7E28B8717FB8" );
 
+            RockMigrationHelper.DeleteBlockAttribute( "0B3B0549-2353-4B06-A8F6-9C52135AB235" );
             RockMigrationHelper.DeleteBlockType( "96D160D9-5668-46EF-9941-702BD3A577DB" );
             RockMigrationHelper.DeleteEntityType( "747587A0-87E9-437D-A4ED-75431CED55B3" );
         }

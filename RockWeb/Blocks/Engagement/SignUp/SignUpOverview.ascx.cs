@@ -44,7 +44,7 @@ namespace RockWeb.Blocks.Engagement.SignUp
     [Rock.SystemGuid.BlockTypeGuid( "B539F3B5-01D3-4325-B32A-85AFE2A9D18B" )]
     public partial class SignUpOverview : RockBlock, IPostBackEventHandler
     {
-        #region Private Keys
+        #region Keys
 
         private static class PageParameterKey
         {

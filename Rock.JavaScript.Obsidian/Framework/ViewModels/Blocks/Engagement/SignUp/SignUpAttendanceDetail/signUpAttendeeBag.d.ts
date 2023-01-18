@@ -21,30 +21,13 @@
 // </copyright>
 //
 
-import { SignUpAttendeeBag } from "@Obsidian/ViewModels/Blocks/Engagement/SignUp/SignUpAttendanceDetail/signUpAttendeeBag";
+export type SignUpAttendeeBag = {
+    /** Gets or sets a value indicating whether [did attend]. */
+    didAttend: boolean;
 
-export type SignUpAttendanceDetailInitializationBox = {
-    /** Gets or sets the attendance date. */
-    attendanceDate?: string | null;
+    /** Gets or sets the name. */
+    name?: string | null;
 
-    /** Gets or sets the attendees. */
-    attendees?: SignUpAttendeeBag[] | null;
-
-    /**
-     * Gets or sets the error message. A non-empty value indicates that
-     * an error is preventing the block from being displayed.
-     */
-    errorMessage?: string | null;
-
-    /** Gets or sets the name of the location. */
-    locationName?: string | null;
-
-    /** Gets or sets the navigation urls. */
-    navigationUrls?: Record<string, string> | null;
-
-    /** Gets or sets the name of the schedule. */
-    scheduleName?: string | null;
-
-    /** Gets or sets the security grant token. */
-    securityGrantToken?: string | null;
+    /** Gets or sets the person alias identifier. */
+    personAliasId: number;
 };

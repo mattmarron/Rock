@@ -15,43 +15,32 @@
 // </copyright>
 //
 
-using System;
-using System.Collections.Generic;
-
 namespace Rock.ViewModels.Blocks.Engagement.SignUp.SignUpAttendanceDetail
 {
-    public class SignUpAttendanceDetailInitializationBox : BlockBox
+    public class SignUpAttendeeBag
     {
         /// <summary>
-        /// Gets or sets the attendance date.
+        /// Gets or sets the person alias identifier.
         /// </summary>
         /// <value>
-        /// The attendance date.
+        /// The person alias identifier.
         /// </value>
-        public DateTime AttendanceDate { get; set; }
+        public int PersonAliasId { get; set; }
 
         /// <summary>
-        /// Gets or sets the name of the location.
+        /// Gets or sets the name.
         /// </summary>
         /// <value>
-        /// The name of the location.
+        /// The name.
         /// </value>
-        public string LocationName { get; set; }
+        public string Name { get; set; }
 
         /// <summary>
-        /// Gets or sets the name of the schedule.
+        /// Gets or sets a value indicating whether [did attend].
         /// </summary>
         /// <value>
-        /// The name of the schedule.
+        ///   <c>true</c> if [did attend]; otherwise, <c>false</c>.
         /// </value>
-        public string ScheduleName { get; set; }
-
-        /// <summary>
-        /// Gets or sets the attendees.
-        /// </summary>
-        /// <value>
-        /// The attendees.
-        /// </value>
-        public List<SignUpAttendeeBag> Attendees { get; set; }
+        public bool DidAttend { get; set; }
     }
 }
