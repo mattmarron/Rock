@@ -17,6 +17,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Rock.Data;
@@ -74,19 +75,51 @@ namespace Rock.RealTime.Topics
 
             public string Body { get; set; }
 
-            public List<string> AttachmentUrls { get; set; }
+            public List<SmsAttachment> Attachments { get; set; }
         }
 
-        public static async Task PostSmsMessage( string toNumber, string fromNumber, string body )
+        internal class SmsAttachment
         {
+            public string FileName { get; set; }
+
+            public string Url { get; set; }
+        }
+
+        public static async Task PostSmsMessage( string toNumber, string fromNumber, string body, IEnumerable<BinaryFile> attachments )
+        {
+            var publicAppRoot = Web.Cache.GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" );
+
+            var smsAttachments = attachments
+                .Select( bf =>
+                {
+                    if ( bf.MimeType.StartsWith( "image/", StringComparison.OrdinalIgnoreCase ) )
+                    {
+                        return new SmsAttachment
+                        {
+                            FileName = bf.FileName,
+                            Url = $"{publicAppRoot}GetImage.ashx?Id={bf.Id}"
+                        };
+                    }
+                    else
+                    {
+                        return new SmsAttachment
+                        {
+                            FileName = bf.FileName,
+                            Url = $"{publicAppRoot}GetFile.ashx?Id={bf.Id}"
+                        };
+                    }
+                } )
+                .ToList();
+
             await RealTimeHelper.GetTopicContext<ITestCommunicationTransportTopic>()
                 .Clients
                 .All
                 .SmsMessageSent( new SmsMessage
                 {
-                    FromNumber = fromNumber,
-                    ToNumber = toNumber,
-                    Body = body
+                    FromNumber = fromNumber ?? string.Empty,
+                    ToNumber = toNumber ?? string.Empty,
+                    Body = body ?? string.Empty,
+                    Attachments = smsAttachments
                 } );
         }
     }

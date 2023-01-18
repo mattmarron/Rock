@@ -66,7 +66,7 @@ namespace Rock.Communication.Transport
             var unprocessedRecipientCount = 0;
             var mergeFields = new Dictionary<string, object>();
             Person currentPerson = null;
-            var attachmentMediaUrls = new List<Uri>();
+            var attachments = new List<BinaryFile>();
             var personEntityTypeId = 0;
             var communicationCategoryId = 0;
             var communicationEntityTypeId = 0;
@@ -112,13 +112,12 @@ namespace Rock.Communication.Transport
 
                 if ( smsAttachmentsBinaryFileIdList.Any() )
                 {
-                    attachmentMediaUrls = this.GetAttachmentMediaUrls( new BinaryFileService( rockContext ).GetByIds( smsAttachmentsBinaryFileIdList ) );
+                    attachments = new BinaryFileService( rockContext ).GetByIds( smsAttachmentsBinaryFileIdList ).ToList();
                 }
             }
 
             var globalAttributes = GlobalAttributesCache.Get();
             string publicAppRoot = globalAttributes.GetValue( "PublicApplicationRoot" );
-            var callbackUrl = publicAppRoot + "Webhooks/SmsTest.ashx";
 
             var sendingTask = new List<Task>( unprocessedRecipientCount );
             var maxParallelization = MaxParallelization;
@@ -140,7 +139,7 @@ namespace Rock.Communication.Transport
 
                     await mutex.WaitAsync().ConfigureAwait( false );
 
-                    sendingTask.Add( ThrottleHelper.ThrottledExecute( () => SendToCommunicationRecipient( communication, fromPhone, mergeFields, currentPerson, attachmentMediaUrls, personEntityTypeId, communicationCategoryId, communicationEntityTypeId, publicAppRoot, callbackUrl, recipient ), mutex ) );
+                    sendingTask.Add( ThrottleHelper.ThrottledExecute( () => SendToCommunicationRecipient( communication, fromPhone, mergeFields, currentPerson, attachments, personEntityTypeId, communicationCategoryId, communicationEntityTypeId, publicAppRoot, recipient ), mutex ) );
                 }
 
                 /*
@@ -160,8 +159,7 @@ namespace Rock.Communication.Transport
         {
             var sendMessageResult = new SendMessageResult();
 
-            var smsMessage = rockMessage as RockSMSMessage;
-            if ( smsMessage != null )
+            if ( rockMessage is RockSMSMessage smsMessage )
             {
                 // Validate From Number
                 if ( smsMessage.FromNumber == null )
@@ -177,8 +175,6 @@ namespace Rock.Communication.Transport
                     mergeFields.AddOrReplace( mergeField.Key, mergeField.Value );
                 }
 
-                List<Uri> attachmentMediaUrls = GetAttachmentMediaUrls( rockMessage.Attachments.AsQueryable() );
-
                 var sendingTask = new List<Task<SendMessageResult>>();
 
                 using ( var mutex = new SemaphoreSlim( MaxParallelization ) )
@@ -187,7 +183,7 @@ namespace Rock.Communication.Transport
                     {
                         var startMutexWait = System.Diagnostics.Stopwatch.StartNew();
                         await mutex.WaitAsync().ConfigureAwait( false );
-                        sendingTask.Add( ThrottleHelper.ThrottledExecute( () => SendToRecipientAsync( recipient, mergeFields, smsMessage, attachmentMediaUrls, mediumEntityTypeId, mediumAttributes ), mutex ) );
+                        sendingTask.Add( ThrottleHelper.ThrottledExecute( () => SendToRecipientAsync( recipient, mergeFields, smsMessage, rockMessage.Attachments, mediumEntityTypeId, mediumAttributes ), mutex ) );
                     }
 
                     /*
@@ -210,7 +206,7 @@ namespace Rock.Communication.Transport
             return sendMessageResult;
         }
 
-        private async Task<SendMessageResult> SendToRecipientAsync( RockMessageRecipient recipient, Dictionary<string, object> mergeFields, RockSMSMessage smsMessage, List<Uri> attachmentMediaUrls, int mediumEntityTypeId, Dictionary<string, string> mediumAttributes )
+        private async Task<SendMessageResult> SendToRecipientAsync( RockMessageRecipient recipient, Dictionary<string, object> mergeFields, RockSMSMessage smsMessage, List<BinaryFile> attachments, int mediumEntityTypeId, Dictionary<string, string> mediumAttributes )
         {
             var sendMessageResult = new SendMessageResult();
             try
@@ -260,7 +256,7 @@ namespace Rock.Communication.Transport
 
                         // Since we just created a new communication record, we need to move any attachments from the rockMessage
                         // to the communication's attachments since the Send method below will be handling the delivery.
-                        if ( attachmentMediaUrls.Any() )
+                        if ( attachments.Any() )
                         {
                             foreach ( var attachment in smsMessage.Attachments.AsQueryable() )
                             {
@@ -279,7 +275,7 @@ namespace Rock.Communication.Transport
                     {
                         try
                         {
-                            await SendToApiAsync( smsMessage.FromNumber.Value, null, attachmentMediaUrls, message, recipient.To ).ConfigureAwait( false );
+                            await SendToApiAsync( smsMessage.FromNumber.Value, attachments, message, recipient.To ).ConfigureAwait( false );
 
                             sendMessageResult.MessagesSent += 1;
                         }
@@ -304,7 +300,7 @@ namespace Rock.Communication.Transport
             return sendMessageResult;
         }
 
-        private async Task SendToCommunicationRecipient( Model.Communication communication, string fromPhone, Dictionary<string, object> mergeFields, Person currentPerson, List<Uri> attachmentMediaUrls, int personEntityTypeId, int communicationCategoryId, int communicationEntityTypeId, string publicAppRoot, string callbackUrl, CommunicationRecipient recipient )
+        private async Task SendToCommunicationRecipient( Model.Communication communication, string fromPhone, Dictionary<string, object> mergeFields, Person currentPerson, List<BinaryFile> attachments, int personEntityTypeId, int communicationCategoryId, int communicationEntityTypeId, string publicAppRoot, CommunicationRecipient recipient )
         {
             using ( var rockContext = new RockContext() )
             {
@@ -319,7 +315,7 @@ namespace Rock.Communication.Transport
 
                         string message = ResolveText( communication.SMSMessage, currentPerson, recipient, communication.EnabledLavaCommands, mergeObjects, publicAppRoot );
 
-                        await SendToApiAsync( fromPhone, callbackUrl, attachmentMediaUrls, message, smsNumber ).ConfigureAwait( false );
+                        await SendToApiAsync( fromPhone, attachments, message, smsNumber ).ConfigureAwait( false );
 
                         recipient.Status = CommunicationRecipientStatus.Delivered;
                         recipient.SendDateTime = RockDateTime.Now;
@@ -368,46 +364,12 @@ namespace Rock.Communication.Transport
         /// Sends to the API endpoint.
         /// </summary>
         /// <param name="fromPhone">From phone.</param>
-        /// <param name="callbackUrl">The callback URL.</param>
-        /// <param name="attachmentMediaUrls">The attachment media urls.</param>
+        /// <param name="attachments">The attachment media urls.</param>
         /// <param name="message">The message.</param>
         /// <param name="toNumber">The destination number.</param>
-        private async Task SendToApiAsync( string fromPhone, string callbackUrl, List<Uri> attachmentMediaUrls, string message, string toNumber )
+        private async Task SendToApiAsync( string fromPhone, List<BinaryFile> attachments, string message, string toNumber )
         {
-            await RealTime.Topics.TestCommunicationTransportTopic.PostSmsMessage( toNumber, fromPhone, message );
-        }
-
-        /// <summary>
-        /// Gets the attachment media urls.
-        /// </summary>
-        /// <param name="attachments">The attachments.</param>
-        /// <returns></returns>
-        private List<Uri> GetAttachmentMediaUrls( IQueryable<BinaryFile> attachments )
-        {
-            var binaryFilesInfo = attachments.Select( a => new
-            {
-                a.Id,
-                a.MimeType
-            } ).ToList();
-
-            List<Uri> attachmentMediaUrls = new List<Uri>();
-            if ( binaryFilesInfo.Any() )
-            {
-                string publicAppRoot = GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" );
-                attachmentMediaUrls = binaryFilesInfo.Select( b =>
-                {
-                    if ( b.MimeType.StartsWith( "image/", StringComparison.OrdinalIgnoreCase ) )
-                    {
-                        return new Uri( $"{publicAppRoot}GetImage.ashx?id={b.Id}" );
-                    }
-                    else
-                    {
-                        return new Uri( $"{publicAppRoot}GetFile.ashx?id={b.Id}" );
-                    }
-                } ).ToList();
-            }
-
-            return attachmentMediaUrls;
+            await RealTime.Topics.TestCommunicationTransportTopic.PostSmsMessage( toNumber, fromPhone, message, attachments );
         }
 
         private Rock.Model.CommunicationRecipient GetNextPending( int communicationId, int mediumEntityId, bool isBulkCommunication )
