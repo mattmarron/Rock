@@ -159,11 +159,14 @@ namespace Rock.Blocks.Types.Mobile.Communication
 
                     foreach ( var attachment in attachments )
                     {
+                        var ext = System.IO.Path.GetExtension( attachment.FileName ).ToLower();
+                        var isImage = ext == ".jpg" || ext == ".png";
+
                         bag.Attachments.Add( new ConversationAttachmentBag
                         {
                             FileName = attachment.FileName,
                             Url = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}",
-                            ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}&maxwidth=512&maxheight=512"
+                            ThumbnailUrl = isImage ? $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}&maxwidth=512&maxheight=512" : null
                         } );
                     }
                 }
@@ -243,11 +246,14 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     {
                         foreach ( var attachment in attachments )
                         {
+                            var ext = System.IO.Path.GetExtension( attachment.FileName ).ToLower();
+                            var isImage = ext == ".jpg" || ext == ".png";
+
                             bag.Attachments.Add( new ConversationAttachmentBag
                             {
                                 FileName = attachment.FileName,
                                 Url = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}",
-                                ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}&maxwidth=512&maxheight=512"
+                                ThumbnailUrl = isImage ? $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}&maxwidth=512&maxheight=512" : null
                             } );
                         }
                     }

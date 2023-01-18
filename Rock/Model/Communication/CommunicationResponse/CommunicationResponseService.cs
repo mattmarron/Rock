@@ -516,11 +516,14 @@ namespace Rock.Model
 
             foreach ( var attachment in cr.Attachments )
             {
+                var ext = System.IO.Path.GetExtension( attachment.BinaryFile.FileName ).ToLower();
+                var isImage = ext == ".jpg" || ext == ".png";
+
                 messageBag.Attachments.Add( new ConversationAttachmentBag
                 {
                     FileName = attachment.BinaryFile.FileName,
                     Url = $"{publicUrl}GetFile.ashx?Guid={attachment.BinaryFile.Guid}",
-                    ThumbnailUrl = $"{publicUrl}GetImage.ashx?Guid={attachment.BinaryFile.Guid}&maxwidth=512&maxheight=512"
+                    ThumbnailUrl = isImage ? $"{publicUrl}GetImage.ashx?Guid={attachment.BinaryFile.Guid}&maxwidth=512&maxheight=512" : null
                 } );
             }
 

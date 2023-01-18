@@ -40,5 +40,4 @@ namespace Rock.ViewModels.Communication
         /// <value>The URL.</value>
         public string Url { get; set; }
     }
-
 }
