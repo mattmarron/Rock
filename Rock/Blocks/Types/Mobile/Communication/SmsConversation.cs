@@ -253,14 +253,21 @@ namespace Rock.Blocks.Types.Mobile.Communication
         /// <summary>
         /// Gets all messages for the specified conversation.
         /// </summary>
-        /// <param name="rockPhoneNumberGuid">The unique identifier of the phone number to retrieve conversations for.</param>
-        /// <param name="personGuid">The unique identifier of the person to be communicated with.</param>
+        /// <param name="conversationKey">The conversation key to retrieve messages for.</param>
         /// <param name="beforeDateTime">All returned messages will be before this date. If using the last message date, you should add 1 second to its value and then filter out duplicate messages.</param>
         /// <returns>A collection of message objects or an HTTP error.</returns>
         [BlockAction]
-        public BlockActionResult GetMessages( Guid rockPhoneNumberGuid, Guid? personGuid, DateTimeOffset? beforeDateTime = null )
+        public BlockActionResult GetMessages( string conversationKey, DateTimeOffset? beforeDateTime = null )
         {
-            var rockPhoneNumber = DefinedValueCache.Get( rockPhoneNumberGuid );
+            var rockPhoneNumberGuid = CommunicationService.GetRockPhoneNumberGuidForConversationKey( conversationKey );
+            var personGuid = CommunicationService.GetPersonGuidForConversationKey( conversationKey );
+
+            if ( !rockPhoneNumberGuid.HasValue || !personGuid.HasValue )
+            {
+                return ActionBadRequest( "Invalid conversation." );
+            }
+
+            var rockPhoneNumber = DefinedValueCache.Get( rockPhoneNumberGuid.Value );
             var messageCount = GetAttributeValue( AttributeKey.MessageCount ).AsInteger();
 
             if ( rockPhoneNumber == null )
@@ -280,12 +287,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     rockContext.Database.CommandTimeout = GetAttributeValue( AttributeKey.DatabaseTimeoutSeconds ).AsIntegerOrNull() ?? 180;
 
                     var communicationResponseService = new CommunicationResponseService( rockContext );
-                    int? recipientPersonId = null;
-
-                    if ( personGuid.HasValue )
-                    {
-                        recipientPersonId = new PersonService( rockContext ).GetId( personGuid.Value );
-                    }
+                    var recipientPersonId = new PersonService( rockContext ).GetId( personGuid.Value );
 
                     if ( !recipientPersonId.HasValue )
                     {
@@ -368,15 +370,22 @@ namespace Rock.Blocks.Types.Mobile.Communication
         /// <summary>
         /// Sends a message from the Rock phone number to the specified person.
         /// </summary>
-        /// <param name="rockPhoneNumberGuid">The rock phone number unique identifier that the message will be sent from.</param>
-        /// <param name="personGuid">The person unique identifier to receive the message.</param>
+        /// <param name="conversationKey">The conversation key to send the message to.</param>
         /// <param name="message">The message text to be sent.</param>
         /// <param name="attachments">The list of attachment unique identifiers.</param>
         /// <returns>An instance of <see cref="ConversationMessageBag"/> that identifies the message or an HTTP error.</returns>
         [BlockAction]
-        public BlockActionResult SendMessage( Guid rockPhoneNumberGuid, Guid personGuid, string message, List<Guid> attachments )
+        public BlockActionResult SendMessage( string conversationKey, string message, List<Guid> attachments )
         {
-            var rockPhoneNumber = DefinedValueCache.Get( rockPhoneNumberGuid );
+            var rockPhoneNumberGuid = CommunicationService.GetRockPhoneNumberGuidForConversationKey( conversationKey );
+            var personGuid = CommunicationService.GetPersonGuidForConversationKey( conversationKey );
+
+            if ( !rockPhoneNumberGuid.HasValue || !personGuid.HasValue )
+            {
+                return ActionBadRequest( "Invalid conversation." );
+            }
+
+            var rockPhoneNumber = DefinedValueCache.Get( rockPhoneNumberGuid.Value );
 
             if ( rockPhoneNumber == null )
             {
@@ -407,7 +416,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     var fromPersonAliasId = RequestContext.CurrentPerson.PrimaryAliasId.Value;
 
                     var responseCode = Rock.Communication.Medium.Sms.GenerateResponseCode( rockContext );
-                    var toPrimaryAliasId = new PersonAliasService( rockContext ).GetPrimaryAliasId( personGuid );
+                    var toPrimaryAliasId = new PersonAliasService( rockContext ).GetPrimaryAliasId( personGuid.Value );
 
                     var attachmentFiles = new List<BinaryFile>();
 
