@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.Entity;
 using System.Linq;
+using System.Threading.Tasks;
 
 using Rock.Attribute;
 using Rock.Data;
@@ -223,9 +224,19 @@ namespace Rock.Blocks.Types.Mobile.Communication
                 var messages = responses.ToMessageBags().ToList();
                 var snippets = GetSnippetBags( rockContext );
 
+                Task.Run( () =>
+                {
+                    using ( var taskRockContext = new RockContext() )
+                    {
+                        new CommunicationResponseService( taskRockContext )
+                            .UpdateReadPropertyByFromPersonId( person.Id, rockPhoneNumber.Id );
+                    }
+
+                } );
+
                 var bag = new ConversationDetailBag
                 {
-                    ConversationKey = $"SMS:{rockPhoneNumber.Guid}:{person.PrimaryAlias.Guid}",
+                    ConversationKey = $"SMS:{rockPhoneNumber.Guid}:{person.Guid}",
                     FullName = person.FullName,
                     IsNamelessPerson = person.IsNameless(),
                     Messages = messages,
@@ -372,6 +383,11 @@ namespace Rock.Blocks.Types.Mobile.Communication
                 return ActionNotFound( "Rock phone number was not found." );
             }
 
+            if ( !rockPhoneNumber.IsAuthorized( Rock.Security.Authorization.VIEW, RequestContext.CurrentPerson ) )
+            {
+                return ActionForbidden( "Not authorized to view messages for this phone number." );
+            }
+
             if ( RequestContext.CurrentPerson == null )
             {
                 return ActionBadRequest( "Must be logged in to send messages." );
@@ -435,6 +451,52 @@ namespace Rock.Blocks.Types.Mobile.Communication
 
                     return ActionInternalServerError( "Unexpected error encountered when trying to send message." );
                 }
+            }
+        }
+
+        /// <summary>
+        /// Marks the conversation as read. This will mark all responses in the
+        /// conversation as read.
+        /// </summary>
+        /// <param name="conversationKey">The conversation key to be marked as read.</param>
+        /// <returns>A 204-No Content response if the conversation was marked as read. </returns>
+        [BlockAction]
+        public BlockActionResult MarkConversationAsRead( string conversationKey )
+        {
+            var phoneNumberGuid = CommunicationService.GetRockPhoneNumberGuidForConversationKey( conversationKey );
+            var personGuid = CommunicationService.GetPersonGuidForConversationKey( conversationKey );
+
+            if ( !phoneNumberGuid.HasValue || !personGuid.HasValue )
+            {
+                return ActionBadRequest( "Invalid conversation." );
+            }
+
+            using ( var rockContext = new RockContext() )
+            {
+                var personId = new PersonService( rockContext ).GetId( personGuid.Value );
+                var rockPhoneNumber = DefinedValueCache.Get( phoneNumberGuid.Value );
+
+                if ( rockPhoneNumber == null || !personId.HasValue )
+                {
+                    return ActionBadRequest( "Invalid message." );
+                }
+
+                if ( !rockPhoneNumber.IsAuthorized( Rock.Security.Authorization.VIEW, RequestContext.CurrentPerson ) )
+                {
+                    return ActionForbidden( "Not authorized to view messages for this phone number." );
+                }
+
+                Task.Run( () =>
+                {
+                    using ( var taskRockContext = new RockContext() )
+                    {
+                        new CommunicationResponseService( taskRockContext )
+                            .UpdateReadPropertyByFromPersonId( personId.Value, rockPhoneNumber.Id );
+                    }
+
+                } );
+
+                return ActionStatusCode( System.Net.HttpStatusCode.NoContent );
             }
         }
 
