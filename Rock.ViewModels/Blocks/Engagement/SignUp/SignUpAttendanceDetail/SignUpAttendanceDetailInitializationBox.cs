@@ -23,28 +23,12 @@ namespace Rock.ViewModels.Blocks.Engagement.SignUp.SignUpAttendanceDetail
     public class SignUpAttendanceDetailInitializationBox : BlockBox
     {
         /// <summary>
-        /// Gets or sets the attendance date.
+        /// Gets or sets the header HTML.
         /// </summary>
         /// <value>
-        /// The attendance date.
+        /// The header HTML.
         /// </value>
-        public DateTime AttendanceDate { get; set; }
-
-        /// <summary>
-        /// Gets or sets the name of the location.
-        /// </summary>
-        /// <value>
-        /// The name of the location.
-        /// </value>
-        public string LocationName { get; set; }
-
-        /// <summary>
-        /// Gets or sets the name of the schedule.
-        /// </summary>
-        /// <value>
-        /// The name of the schedule.
-        /// </value>
-        public string ScheduleName { get; set; }
+        public string HeaderHtml { get; set; }
 
         /// <summary>
         /// Gets or sets the attendees.

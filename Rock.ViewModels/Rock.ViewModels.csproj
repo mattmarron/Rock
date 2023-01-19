@@ -82,6 +82,7 @@
     <Compile Include="Blocks\DetailBlockBox.cs" />
     <Compile Include="Blocks\Engagement\SignUp\SignUpAttendanceDetail\SignUpAttendanceDetailInitializationBox.cs" />
     <Compile Include="Blocks\Engagement\SignUp\SignUpAttendanceDetail\SignUpAttendeeBag.cs" />
+    <Compile Include="Blocks\Engagement\SignUp\SignUpAttendanceDetail\SignUpAttendanceBag.cs" />
     <Compile Include="Blocks\Engagement\SignUp\SignUpFinder\SignUpFinderInitializationBox.cs" />
     <Compile Include="Blocks\Engagement\SignUp\SignUpRegister\SignUpRegisterInitializationBox.cs" />
     <Compile Include="Blocks\Engagement\StepFlowBox.cs" />

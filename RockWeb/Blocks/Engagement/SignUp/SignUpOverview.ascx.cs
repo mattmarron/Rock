@@ -838,7 +838,7 @@ namespace RockWeb.Blocks.Engagement.SignUp
             var parentGroupId = gpParentGroup.SelectedValueAsId();
             if ( parentGroupId.HasValue )
             {
-                qryGroupLocationSchedules = qryGroupLocationSchedules.Where( gls => gls.Group.ParentGroupId == parentGroupId.Value );
+                qryGroupLocationSchedules = qryGroupLocationSchedules.Where( gls => gls.Group.Id == parentGroupId.Value );
             }
 
             // Get all attendees for all current opportunities; we'll hook them up to their respective opportunities below.

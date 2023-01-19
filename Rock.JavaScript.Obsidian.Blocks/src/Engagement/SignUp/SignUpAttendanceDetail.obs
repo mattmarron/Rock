@@ -1,29 +1,116 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-    <Alert v-if="blockError" alertType="warning" v-html="blockError"></Alert>
+    <Alert v-if="blockErrorMessage" alertType="warning">
+        {{ blockErrorMessage }}
+    </Alert>
+
+    <Alert v-if="errorMessage" alertType="danger">
+        {{ errorMessage }}
+    </Alert>
+
+    <Alert v-if="successMessage" alertType="success" :dismissible="true" @dismiss="successMessage = ''">
+        {{ successMessage }}
+    </Alert>
+
+    <div v-if="!blockErrorMessage">
+        <div ref="headerElement"></div>
+        <hr />
+        <RockForm @submit="onSaveAttendance">
+            <CheckboxList v-model="selectedAttendees" label="Attendees" :items="attendees" @update:modelValue="onAttendeesUpdated" />
+            <RockButton type="submit">Save</RockButton>
+        </RockForm>
+    </div>
 </template>
 
-<!-- Cannot use scoped here otherwise it becomes very difficult to override by custom CSS. -->
-<style>
-
-</style>
-
 <script setup lang="ts">
-    import { ref } from "vue";
+    import { computed, onMounted, ref } from "vue";
     import Alert from "@Obsidian/Controls/alert.obs";
-    import { useConfigurationValues } from "@Obsidian/Utility/block";
+    import CheckboxList from "@Obsidian/Controls/checkBoxList";
+    import RockButton from "@Obsidian/Controls/rockButton";
+    import RockForm from "@Obsidian/Controls/rockForm";
+    import { HttpResult } from "@Obsidian/Types/Utility/http";
+    import { useConfigurationValues, useReloadBlock, onConfigurationValuesChanged, useInvokeBlockAction } from "@Obsidian/Utility/block";
+    import { SignUpAttendanceBag } from "@Obsidian/ViewModels/Blocks/Engagement/SignUp/SignUpAttendanceDetail/signUpAttendanceBag";
     import { SignUpAttendanceDetailInitializationBox } from "@Obsidian/ViewModels/Blocks/Engagement/SignUp/SignUpAttendanceDetail/signUpAttendanceDetailInitializationBox";
+    import { SignUpAttendeeBag } from "@Obsidian/ViewModels/Blocks/Engagement/SignUp/SignUpAttendanceDetail/signUpAttendeeBag";
+    import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 
     const config = useConfigurationValues<SignUpAttendanceDetailInitializationBox>();
+    const invokeBlockAction = useInvokeBlockAction();
 
     // #region Values
 
-    const blockError = ref("");
+    const errorMessage = ref("");
+    const successMessage = ref("");
+    const headerElement = ref<HTMLElement | null>(null);
+    const selectedAttendees = ref<string[]>([]);
 
     // #endregion
 
-    // Handle any initial error conditions.
-    if (config.errorMessage) {
-        blockError.value = config.errorMessage;
+    // #region Computed Values
+
+    const blockErrorMessage = computed((): string | undefined | null => {
+        return config.errorMessage;
+    });
+
+    const attendees = computed((): ListItemBag[] => {
+        var listItemBag: ListItemBag[] = config.attendees?.map(a => ({
+                text: a.name,
+                value: a.personAliasId.toString()
+            })) ?? [];
+
+        return listItemBag;
+    });
+
+    // #endregion
+
+    // #region Functions
+
+    /**
+     * Handles the `update:modelValue` event of the Attendees `CheckBoxList`.
+     */
+    function onAttendeesUpdated(): void {
+        if (!config.attendees?.length) {
+            return;
+        }
+
+        config.attendees.forEach((a: SignUpAttendeeBag) => a.didAttend = selectedAttendees.value.includes(a.personAliasId.toString()));
     }
+
+    /**
+     * Saves attendance records.
+     */
+    async function onSaveAttendance(): Promise<void> {
+        errorMessage.value = "";
+        successMessage.value = "";
+
+        const bag: SignUpAttendanceBag = {
+            attendees: config.attendees
+        };
+
+        const result: HttpResult<void> = await invokeBlockAction("SaveAttendance", { bag });
+
+        if (!result.isSuccess) {
+            errorMessage.value = result.errorMessage ?? "Unknown error when trying to enter attendance.";
+            return;
+        }
+
+        successMessage.value = "Successfully entered attendance.";
+    }
+
+    // #endregion
+
+    onConfigurationValuesChanged(useReloadBlock());
+
+    if (config.attendees?.length) {
+        config.attendees
+            .filter((a: SignUpAttendeeBag) => a.didAttend)
+            .forEach((a: SignUpAttendeeBag) => selectedAttendees.value.push(a.personAliasId.toString()));
+    }
+
+    onMounted(() => {
+        if (headerElement.value && config.headerHtml) {
+            headerElement.value.innerHTML = config.headerHtml;
+        }
+    });
 </script>

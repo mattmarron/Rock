@@ -23,22 +23,7 @@
 
 import { SignUpAttendeeBag } from "@Obsidian/ViewModels/Blocks/Engagement/SignUp/SignUpAttendanceDetail/signUpAttendeeBag";
 
-export type SignUpAttendanceDetailInitializationBox = {
+export type SignUpAttendanceBag = {
     /** Gets or sets the attendees. */
     attendees?: SignUpAttendeeBag[] | null;
-
-    /**
-     * Gets or sets the error message. A non-empty value indicates that
-     * an error is preventing the block from being displayed.
-     */
-    errorMessage?: string | null;
-
-    /** Gets or sets the header HTML. */
-    headerHtml?: string | null;
-
-    /** Gets or sets the navigation urls. */
-    navigationUrls?: Record<string, string> | null;
-
-    /** Gets or sets the security grant token. */
-    securityGrantToken?: string | null;
 };

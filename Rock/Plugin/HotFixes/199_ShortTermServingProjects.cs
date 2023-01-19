@@ -74,8 +74,9 @@ namespace Rock.Plugin.HotFixes
             Sql( $"UPDATE [GroupType] SET [AllowedScheduleTypes] = 6 WHERE [Guid] = '{SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP}'" );
             Sql( $"UPDATE [GroupType] SET [EnableGroupHistory] = 1 WHERE [Guid] = '{SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP}'" );
 
-            RockMigrationHelper.AddGroupTypeRole( SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP, "Leader", "Indicates the person is a leader in the group.", 0, null, null, SystemGuid.GroupRole.GROUPROLE_SIGNUP_GROUP_LEADER, true, true, false );
-            RockMigrationHelper.AddGroupTypeRole( SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP, "Member", "Indicates the person is a member in the group.", 1, null, null, SystemGuid.GroupRole.GROUPROLE_SIGNUP_GROUP_MEMBER, true, false, true );
+            RockMigrationHelper.UpdateGroupTypeRole( SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP, "Leader", "Indicates the person is a leader in the group.", 0, null, null, SystemGuid.GroupRole.GROUPROLE_SIGNUP_GROUP_LEADER, true, true, false );
+            Sql( $"UPDATE [GroupTypeRole] SET [CanEdit] = 1, [CanManageMembers] = 1 WHERE [Guid] = '{SystemGuid.GroupRole.GROUPROLE_SIGNUP_GROUP_LEADER}';" );
+            RockMigrationHelper.UpdateGroupTypeRole( SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP, "Member", "Indicates the person is a member in the group.", 1, null, null, SystemGuid.GroupRole.GROUPROLE_SIGNUP_GROUP_MEMBER, true, false, true );
 
             RockMigrationHelper.AddGroupTypeAssociation( SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP, SystemGuid.GroupType.GROUPTYPE_SIGNUP_GROUP );
 
@@ -243,7 +244,17 @@ namespace Rock.Plugin.HotFixes
 
             RockMigrationHelper.UpdateMobileBlockType( "Sign-Up Attendance Detail", "Lists the group members for a specific sign-up group/project occurrence date time and allows selecting if they attended or not.", "Rock.Blocks.Engagement.SignUp.SignUpAttendanceDetail", "Engagement > Sign-Up", "96D160D9-5668-46EF-9941-702BD3A577DB" );
             RockMigrationHelper.UpdateEntityType( "Rock.Blocks.Engagement.SignUp.SignUpAttendanceDetail", "Sign Up Attendance Detail", "Rock.Blocks.Engagement.SignUp.SignUpAttendanceDetail, Rock.Blocks, Version=1.15.0.10, Culture=neutral, PublicKeyToken=null", false, false, "747587A0-87E9-437D-A4ED-75431CED55B3" );
-            RockMigrationHelper.AddOrUpdateBlockTypeAttribute( "96D160D9-5668-46EF-9941-702BD3A577DB", "1D0D3794-C210-48A8-8C68-3FBEC08A6BA5", "Header Lava Template", "HeaderLavaTemplate", "Header Lava Template", "The Lava template to show at the top of the page.", 0, "", "0B3B0549-2353-4B06-A8F6-9C52135AB235" );
+            RockMigrationHelper.AddOrUpdateBlockTypeAttribute( "96D160D9-5668-46EF-9941-702BD3A577DB", "1D0D3794-C210-48A8-8C68-3FBEC08A6BA5", "Header Lava Template", "HeaderLavaTemplate", "Header Lava Template", "The Lava template to show at the top of the page.", 0, @"<h3>{{ Group.Name }}</h3>
+<div>
+    Please enter attendance for the project below.
+    <br />Date: {{ AttendanceOccurrenceDate | Date:'dddd MMM d' }}
+    {% if WasScheduleParamProvided %}
+        <br />Schedule: {{ ScheduleName }}
+    {% endif %}
+    {% if WasLocationParamProvided %}
+        <br />Location: {{ LocationName }}
+    {% endif %}
+</div>", "0B3B0549-2353-4B06-A8F6-9C52135AB235" );
         }
 
         /// <summary>
