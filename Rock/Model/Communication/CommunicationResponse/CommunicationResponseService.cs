@@ -172,13 +172,6 @@ namespace Rock.Model
                     CommunicationRecipient = cr,
                     PersonAlias = pa
                 } )
-                // Join to the primary person alias.
-                .Join( personAliasQuery, j => j.PersonAlias.PersonId, ppa => ppa.AliasPersonId, (j, ppa) => new
-                {
-                    j.CommunicationRecipient,
-                    j.PersonAlias,
-                    PrimaryPersonAlias = ppa
-                } )
                 .Select( j => new
                 {
                     Guid = j.CommunicationRecipient.Guid,
@@ -191,8 +184,7 @@ namespace Rock.Model
                     CommunicationSMSMessage = j.CommunicationRecipient.Communication.SMSMessage,
                     SentMessage = j.CommunicationRecipient.SentMessage,
                     PersonAliasId = j.CommunicationRecipient.PersonAliasId,
-                    PersonAliasGuid = j.CommunicationRecipient.PersonAlias.Guid,
-                    PrimaryPersonAliasGuid = j.PrimaryPersonAlias.Guid
+                    PersonAliasGuid = j.CommunicationRecipient.PersonAlias.Guid
                 } );
 
             var mostRecentCommunicationRecipientQuery = communicationRecipientJoinQuery
@@ -209,20 +201,13 @@ namespace Rock.Model
                         s.Communication,
                         s.SentMessage,
                         s.PersonAliasId,
-                        s.PersonAliasGuid,
-                        s.PrimaryPersonAliasGuid
+                        s.PersonAliasGuid
                     } ).OrderByDescending( s => s.CreatedDateTime ).FirstOrDefault()
                 );
 
             var mostRecentCommunicationResponseList = mostRecentCommunicationResponseQuery
                 .Include( a => a.FromPersonAlias.Person )
                 .AsNoTracking()
-                // Join to the primary person alias.
-                .Join( personAliasQuery, cr => cr.FromPersonAlias.PersonId, ppa => ppa.AliasPersonId, ( cr, ppa ) => new
-                {
-                    CommunicationResponse = cr,
-                    PrimaryPersonAliasGuid = ppa.Guid
-                } )
                 .Take( maxCount )
                 .ToList();
 
@@ -230,23 +215,23 @@ namespace Rock.Model
 
             foreach ( var mostRecentResponse in mostRecentCommunicationResponseList )
             {
-                var relatedSmsFromDefinedValue = DefinedValueCache.Get( mostRecentResponse.CommunicationResponse.RelatedSmsFromDefinedValueId.Value );
+                var relatedSmsFromDefinedValue = DefinedValueCache.Get( mostRecentResponse.RelatedSmsFromDefinedValueId.Value );
                 var communicationRecipientResponse = new CommunicationRecipientResponse
                 {
-                    CreatedDateTime = mostRecentResponse.CommunicationResponse.CreatedDateTime,
-                    PersonId = mostRecentResponse.CommunicationResponse.FromPersonAlias.PersonId,
-                    RecordTypeValueId = mostRecentResponse.CommunicationResponse.FromPersonAlias.Person.RecordTypeValueId,
-                    FullName = mostRecentResponse.CommunicationResponse.FromPersonAlias.Person.FullName,
-                    PhotoId = mostRecentResponse.CommunicationResponse.FromPersonAlias.Person.PhotoId,
-                    IsRead = mostRecentResponse.CommunicationResponse.IsRead,
-                    ConversationKey = $"SMS:{relatedSmsFromDefinedValue.Guid}:{mostRecentResponse.PrimaryPersonAliasGuid}",
-                    MessageKey = $"R:{mostRecentResponse.CommunicationResponse.Guid}",
-                    ContactKey = mostRecentResponse.CommunicationResponse.MessageKey,
+                    CreatedDateTime = mostRecentResponse.CreatedDateTime,
+                    PersonId = mostRecentResponse.FromPersonAlias.PersonId,
+                    RecordTypeValueId = mostRecentResponse.FromPersonAlias.Person.RecordTypeValueId,
+                    FullName = mostRecentResponse.FromPersonAlias.Person.FullName,
+                    PhotoId = mostRecentResponse.FromPersonAlias.Person.PhotoId,
+                    IsRead = mostRecentResponse.IsRead,
+                    ConversationKey = $"SMS:{relatedSmsFromDefinedValue.Guid}:{mostRecentResponse.FromPersonAlias.Person.Guid}",
+                    MessageKey = $"R:{mostRecentResponse.Guid}",
+                    ContactKey = mostRecentResponse.MessageKey,
                     IsOutbound = false,
-                    RecipientPersonAliasId = mostRecentResponse.CommunicationResponse.FromPersonAliasId,
-                    RecipientPersonAliasGuid = mostRecentResponse.CommunicationResponse.FromPersonAlias.Guid,
-                    SMSMessage = mostRecentResponse.CommunicationResponse.Response,
-                    CommunicationResponseId = mostRecentResponse.CommunicationResponse.Id
+                    RecipientPersonAliasId = mostRecentResponse.FromPersonAliasId,
+                    RecipientPersonAliasGuid = mostRecentResponse.FromPersonAlias.Guid,
+                    SMSMessage = mostRecentResponse.Response,
+                    CommunicationResponseId = mostRecentResponse.Id
                 };
 
                 communicationRecipientResponseList.Add( communicationRecipientResponse );
@@ -267,7 +252,7 @@ namespace Rock.Model
                     PhotoId = mostRecentCommunicationRecipient.Person.PhotoId,
                     IsOutbound = true,
                     IsRead = true,
-                    ConversationKey = $"SMS:{relatedSmsFromDefinedValue.Guid}:{mostRecentCommunicationRecipient.PrimaryPersonAliasGuid}",
+                    ConversationKey = $"SMS:{relatedSmsFromDefinedValue.Guid}:{mostRecentCommunicationRecipient.Person.Guid}",
                     MessageKey = $"C:{mostRecentCommunicationRecipient.Guid}",
                     RecipientPersonAliasId = mostRecentCommunicationRecipient.PersonAliasId,
                     RecipientPersonAliasGuid = mostRecentCommunicationRecipient.PersonAliasGuid,
@@ -342,13 +327,7 @@ namespace Rock.Model
                         && r.RelatedSmsFromDefinedValueId == relatedSmsFromDefinedValueId
                         && r.FromPersonAliasId.HasValue
                         && personAliasIdQuery.Contains( r.FromPersonAliasId.Value )
-                         )
-                // Join to the primary person alias.
-                .Join( personAliasQuery, cr => cr.FromPersonAlias.PersonId, ppa => ppa.AliasPersonId, ( cr, ppa ) => new
-                {
-                    CommunicationResponse = cr,
-                    PrimaryPersonAliasGuid = ppa.Guid
-                } );
+                         );
 
             var communicationResponseList = communicationResponseQuery.ToList();
 
@@ -356,20 +335,20 @@ namespace Rock.Model
             {
                 var communicationRecipientResponse = new CommunicationRecipientResponse
                 {
-                    CreatedDateTime = communicationResponse.CommunicationResponse.CreatedDateTime,
-                    PersonId = communicationResponse.CommunicationResponse.FromPersonAlias?.PersonId,
-                    FullName = communicationResponse.CommunicationResponse.FromPersonAlias?.Person.FullName,
-                    PhotoId = communicationResponse.CommunicationResponse.FromPersonAlias?.Person.PhotoId,
-                    IsRead = communicationResponse.CommunicationResponse.IsRead,
-                    ConversationKey = $"SMS:{relatedSmsFromDefinedValue.Guid}:{communicationResponse.PrimaryPersonAliasGuid}",
-                    MessageKey = $"R:{communicationResponse.CommunicationResponse.Guid}",
-                    ContactKey = communicationResponse.CommunicationResponse.MessageKey,
+                    CreatedDateTime = communicationResponse.CreatedDateTime,
+                    PersonId = communicationResponse.FromPersonAlias?.PersonId,
+                    FullName = communicationResponse.FromPersonAlias?.Person.FullName,
+                    PhotoId = communicationResponse.FromPersonAlias?.Person.PhotoId,
+                    IsRead = communicationResponse.IsRead,
+                    ConversationKey = $"SMS:{relatedSmsFromDefinedValue.Guid}:{communicationResponse.FromPersonAlias.Person.Guid}",
+                    MessageKey = $"R:{communicationResponse.Guid}",
+                    ContactKey = communicationResponse.MessageKey,
                     IsOutbound = false,
-                    RecipientPersonAliasId = communicationResponse.CommunicationResponse.FromPersonAliasId,
-                    RecipientPersonAliasGuid = communicationResponse.CommunicationResponse.FromPersonAlias.Guid,
-                    SMSMessage = communicationResponse.CommunicationResponse.Response,
+                    RecipientPersonAliasId = communicationResponse.FromPersonAliasId,
+                    RecipientPersonAliasGuid = communicationResponse.FromPersonAlias.Guid,
+                    SMSMessage = communicationResponse.Response,
                     MessageStatus = CommunicationRecipientStatus.Delivered, // We are just going to call these delivered because we have them. Setting this will tell the UI to not display the status.
-                    CommunicationResponseId = communicationResponse.CommunicationResponse.Id,
+                    CommunicationResponseId = communicationResponse.Id,
                 };
 
                 communicationRecipientResponseList.Add( communicationRecipientResponse );
@@ -384,8 +363,7 @@ namespace Rock.Model
                 .Where( r => r.Status == CommunicationRecipientStatus.Delivered || r.Status == CommunicationRecipientStatus.Pending );
 
             var communicationRecipientList = communicationRecipientQuery.Include( a => a.PersonAlias.Person.PhoneNumbers )
-                // Join to the primary person alias.
-                .Join( personAliasQuery, cr => cr.PersonAlias.PersonId, ppa => ppa.AliasPersonId, ( cr, ppa ) => new
+                .Select( cr => new
                 {
                     cr.Guid,
                     cr.CreatedDateTime,
@@ -394,7 +372,6 @@ namespace Rock.Model
                     cr.PersonAliasId,
                     cr.PersonAlias.Person,
                     PersonAliasGuid = cr.PersonAlias.Guid,
-                    PrimaryPersonAliasGuid = ppa.Guid,
                     cr.SentMessage,
                     cr.Status
                 } )
@@ -411,7 +388,7 @@ namespace Rock.Model
                     PhotoId = communicationRecipient.Person?.Photo?.Id,
                     IsRead = true,
                     IsOutbound = true,
-                    ConversationKey = $"SMS:{relatedSmsFromDefinedValue.Guid}:{communicationRecipient.PrimaryPersonAliasGuid}",
+                    ConversationKey = $"SMS:{relatedSmsFromDefinedValue.Guid}:{communicationRecipient.Person.Guid}",
                     MessageKey = $"C:{communicationRecipient.Guid}",
                     RecipientPersonAliasId = communicationRecipient.PersonAliasId,
                     RecipientPersonAliasGuid = communicationRecipient.PersonAliasGuid,
@@ -495,7 +472,7 @@ namespace Rock.Model
 
             var messageBag = new ConversationMessageBag
             {
-                ConversationKey = $"SMS:{rockPhoneNumber.Guid}:{cr.FromPersonAlias.Person.PrimaryAlias.Guid}",
+                ConversationKey = $"SMS:{rockPhoneNumber.Guid}:{cr.FromPersonAlias.Person.Guid}",
                 MessageKey = $"R:{cr.Guid}",
                 RockContactKey = rockPhoneNumber.Guid.ToString(),
                 MessageDateTime = cr.CreatedDateTime,

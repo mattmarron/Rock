@@ -76,7 +76,7 @@ namespace Rock.Model
 
             var bag = new ConversationMessageBag
             {
-                ConversationKey = $"SMS:{rockPhoneNumber.Guid}:{recipient.PersonAlias.Person.PrimaryAlias.Guid}",
+                ConversationKey = $"SMS:{rockPhoneNumber.Guid}:{recipient.PersonAlias.Person.Guid}",
                 MessageKey = $"C:{recipient.Guid}",
                 RockContactKey = rockPhoneNumber.Guid.ToString(),
                 ContactKey = recipient.PersonAlias.Person.IsNameless() ? recipient.PersonAlias.Person.PhoneNumbers.FirstOrDefault()?.Number : null,

@@ -569,6 +569,52 @@ namespace Rock.Model
         }
 
         /// <summary>
+        /// Gets the rock phone number unique identifier for the conversation key.
+        /// </summary>
+        /// <param name="conversationKey">The conversation key.</param>
+        /// <returns>The unique identifier of the Rock phone number that is part of the conversation or <c>null</c> if the conversation key was not valid.</returns>
+        internal static Guid? GetRockPhoneNumberGuidForConversationKey( string conversationKey )
+        {
+            if ( conversationKey == null )
+            {
+                return null;
+            }
+
+            var segments = conversationKey.Split( ':' );
+
+            if ( segments.Length != 3 || segments[0] != "SMS" )
+            {
+                return null;
+            }
+
+            return segments[1].AsGuidOrNull();
+        }
+
+        /// <summary>
+        /// Gets the person unique identifier for the conversation key. This is
+        /// the person being sent a message from Rock, and the person who is
+        /// sending messages to Rock.
+        /// </summary>
+        /// <param name="conversationKey">The conversation key.</param>
+        /// <returns>The unique identifier of the Person outside of Rock that is part of the conversation or <c>null</c> if the conversation key was not valid.</returns>
+        internal static Guid? GetPersonGuidForConversationKey( string conversationKey )
+        {
+            if ( conversationKey == null )
+            {
+                return null;
+            }
+
+            var segments = conversationKey.Split( ':' );
+
+            if ( segments.Length != 3 || segments[0] != "SMS" )
+            {
+                return null;
+            }
+
+            return segments[2].AsGuidOrNull();
+        }
+
+        /// <summary>
         /// Copies the specified communication identifier.
         /// </summary>
         /// <param name="communicationId">The communication identifier.</param>
