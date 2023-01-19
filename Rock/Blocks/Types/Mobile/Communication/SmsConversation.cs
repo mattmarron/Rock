@@ -49,12 +49,19 @@ namespace Rock.Blocks.Types.Mobile.Communication
         Key = AttributeKey.SnippetType,
         Order = 0 )]
 
+    [IntegerField( "Message Count",
+        Description = "The number of messages to be returned each time more messages are requested.",
+        IsRequired = true,
+        DefaultIntegerValue = 50,
+        Key = AttributeKey.MessageCount,
+        Order = 2 )]
+
     [IntegerField( "Database Timeout",
         Description = "The number of seconds to wait before reporting a database timeout.",
         IsRequired = false,
         DefaultIntegerValue = 180,
         Key = AttributeKey.DatabaseTimeoutSeconds,
-        Order = 5 )]
+        Order = 2 )]
 
     #endregion
 
@@ -70,6 +77,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
         private static class AttributeKey
         {
             public const string DatabaseTimeoutSeconds = "DatabaseTimeoutSeconds";
+            public const string MessageCount = "MessageCount";
             public const string SnippetType = "SnippetType";
         }
 
@@ -303,6 +311,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
         public BlockActionResult GetConversationDetails( Guid rockPhoneNumberGuid, Guid? personGuid = null, Guid? personAliasGuid = null )
         {
             var rockPhoneNumber = DefinedValueCache.Get( rockPhoneNumberGuid );
+            var messageCount = GetAttributeValue( AttributeKey.MessageCount ).AsInteger();
 
             if ( rockPhoneNumber == null )
             {
@@ -349,7 +358,11 @@ namespace Rock.Blocks.Types.Mobile.Communication
                 }
 
                 var responses = new CommunicationResponseService( rockContext )
-                    .GetCommunicationConversationForPerson( person.Id, rockPhoneNumber.Id );
+                    .GetCommunicationConversationForPerson( person.Id, rockPhoneNumber.Id )
+                    .Where( r => r.CreatedDateTime.HasValue )
+                    .OrderByDescending( r => r.CreatedDateTime.Value )
+                    .Take( messageCount )
+                    .ToList();
 
                 var messages = ToMessageBags( responses );
                 var snippets = GetSnippetBags( rockContext );
@@ -375,12 +388,13 @@ namespace Rock.Blocks.Types.Mobile.Communication
         /// </summary>
         /// <param name="rockPhoneNumberGuid">The unique identifier of the phone number to retrieve conversations for.</param>
         /// <param name="personGuid">The unique identifier of the person to be communicated with.</param>
-        /// <param name="personAliasGuid">The unique identifier of the person alias to be communicated with.</param>
+        /// <param name="beforeDateTime">All returned messages will be before this date. If using the last message date, you should add 1 second to its value and then filter out duplicate messages.</param>
         /// <returns>A collection of message objects or an HTTP error.</returns>
         [BlockAction]
-        public BlockActionResult GetMessages( Guid rockPhoneNumberGuid, Guid? personGuid, Guid? personAliasGuid )
+        public BlockActionResult GetMessages( Guid rockPhoneNumberGuid, Guid? personGuid, DateTimeOffset? beforeDateTime = null )
         {
             var rockPhoneNumber = DefinedValueCache.Get( rockPhoneNumberGuid );
+            var messageCount = GetAttributeValue( AttributeKey.MessageCount ).AsInteger();
 
             if ( rockPhoneNumber == null )
             {
@@ -405,10 +419,6 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     {
                         recipientPersonId = new PersonService( rockContext ).GetId( personGuid.Value );
                     }
-                    else if ( personAliasGuid.HasValue )
-                    {
-                        recipientPersonId = new PersonAliasService( rockContext ).GetPersonId( personAliasGuid.Value );
-                    }
 
                     if ( !recipientPersonId.HasValue )
                     {
@@ -416,7 +426,11 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     }
 
                     var responses = communicationResponseService
-                        .GetCommunicationConversationForPerson( recipientPersonId.Value, rockPhoneNumber.Id );
+                        .GetCommunicationConversationForPerson( recipientPersonId.Value, rockPhoneNumber.Id )
+                        .Where( r => r.CreatedDateTime.HasValue
+                            && ( !beforeDateTime.HasValue || r.CreatedDateTime.Value < beforeDateTime.Value ) )
+                        .Take( messageCount )
+                        .ToList();
 
                     var messages = ToMessageBags( responses );
 
@@ -484,6 +498,14 @@ namespace Rock.Blocks.Types.Mobile.Communication
             }
         }
 
+        /// <summary>
+        /// Sends a message from the Rock phone number to the specified person.
+        /// </summary>
+        /// <param name="rockPhoneNumberGuid">The rock phone number unique identifier that the message will be sent from.</param>
+        /// <param name="personGuid">The person unique identifier to receive the message.</param>
+        /// <param name="message">The message text to be sent.</param>
+        /// <param name="attachments">The list of attachment unique identifiers.</param>
+        /// <returns>An instance of <see cref="ConversationMessageBag"/> that identifies the message or an HTTP error.</returns>
         [BlockAction]
         public BlockActionResult SendMessage( Guid rockPhoneNumberGuid, Guid personGuid, string message, List<Guid> attachments )
         {
