@@ -25,14 +25,10 @@ using Rock.Model;
 
 namespace Rock.RealTime.Topics
 {
-    internal interface ITestCommunicationTransportTopic
-    {
-        Task SmsMessageSent( TestCommunicationTransportTopic.SmsMessage message );
-    }
-
     [RealTimeTopic]
     internal class TestCommunicationTransportTopic : Topic<ITestCommunicationTransportTopic>
     {
+        /// <inheritdoc/>
         public override Task OnConnectedAsync()
         {
             using ( var rockContext = new RockContext() )
@@ -46,6 +42,8 @@ namespace Rock.RealTime.Topics
 
                 var currentPerson = new PersonService( rockContext ).Get( Context.CurrentPersonId ?? 0 );
 
+                // Only let them connect to the topic if they have Administrate
+                // access to the transport.
                 if ( !transport.IsAuthorized( Security.Authorization.ADMINISTRATE, currentPerson ) )
                 {
                     throw new RealTimeException( "Not authorized to access test SMS transport." );
@@ -55,6 +53,11 @@ namespace Rock.RealTime.Topics
             return base.OnConnectedAsync();
         }
 
+        /// <summary>
+        /// Called by clients to simulate the reception of a new message
+        /// into the transport.
+        /// </summary>
+        /// <param name="message">The message details.</param>
         public Task MessageReceived( SmsMessage message )
         {
             new Rock.Communication.Medium.Sms().ProcessResponse( message.ToNumber, message.FromNumber, message.Body, out var errorMessage );
@@ -66,6 +69,47 @@ namespace Rock.RealTime.Topics
 
             return Task.CompletedTask;
         }
+
+        /// <summary>
+        /// Called by the test transport when a message has been sent out of the
+        /// transport. Notify all connected clients of the message.
+        /// </summary>
+        /// <param name="toNumber">To number the message was sent to.</param>
+        /// <param name="fromNumber">The Rock phone number the message was sent from.</param>
+        /// <param name="message">The body text of the message.</param>
+        /// <param name="attachments">The attachments that should be included with the message.</param>
+        public static async Task PostSmsMessage( string toNumber, string fromNumber, string message, IEnumerable<BinaryFile> attachments )
+        {
+            var publicAppRoot = Web.Cache.GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" );
+
+            var smsAttachments = attachments
+                .Select( bf =>
+                {
+                    var isImage = bf.MimeType.StartsWith( "image/", StringComparison.OrdinalIgnoreCase );
+
+                    return new SmsAttachment
+                    {
+                        FileName = bf.FileName,
+                        Url = isImage
+                            ? $"{publicAppRoot}GetImage.ashx?Id={bf.Id}"
+                            : $"{publicAppRoot}GetFile.ashx?Id={bf.Id}"
+                    };
+                } )
+                .ToList();
+
+            await RealTimeHelper.GetTopicContext<ITestCommunicationTransportTopic>()
+                .Clients
+                .All
+                .SmsMessageSent( new SmsMessage
+                {
+                    FromNumber = fromNumber ?? string.Empty,
+                    ToNumber = toNumber ?? string.Empty,
+                    Body = message ?? string.Empty,
+                    Attachments = smsAttachments
+                } );
+        }
+
+        #region Support Classes
 
         internal class SmsMessage
         {
@@ -85,42 +129,6 @@ namespace Rock.RealTime.Topics
             public string Url { get; set; }
         }
 
-        public static async Task PostSmsMessage( string toNumber, string fromNumber, string body, IEnumerable<BinaryFile> attachments )
-        {
-            var publicAppRoot = Web.Cache.GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" );
-
-            var smsAttachments = attachments
-                .Select( bf =>
-                {
-                    if ( bf.MimeType.StartsWith( "image/", StringComparison.OrdinalIgnoreCase ) )
-                    {
-                        return new SmsAttachment
-                        {
-                            FileName = bf.FileName,
-                            Url = $"{publicAppRoot}GetImage.ashx?Id={bf.Id}"
-                        };
-                    }
-                    else
-                    {
-                        return new SmsAttachment
-                        {
-                            FileName = bf.FileName,
-                            Url = $"{publicAppRoot}GetFile.ashx?Id={bf.Id}"
-                        };
-                    }
-                } )
-                .ToList();
-
-            await RealTimeHelper.GetTopicContext<ITestCommunicationTransportTopic>()
-                .Clients
-                .All
-                .SmsMessageSent( new SmsMessage
-                {
-                    FromNumber = fromNumber ?? string.Empty,
-                    ToNumber = toNumber ?? string.Empty,
-                    Body = body ?? string.Empty,
-                    Attachments = smsAttachments
-                } );
-        }
+        #endregion
     }
 }

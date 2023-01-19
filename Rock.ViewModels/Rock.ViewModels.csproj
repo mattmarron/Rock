@@ -106,8 +106,8 @@
     <Compile Include="Blocks\Groups\GroupScheduleUnavailability\ContentBag.cs" />
     <Compile Include="Blocks\Groups\LandingPageContentBag.cs" />
     <Compile Include="Blocks\Groups\GroupSchedulePreference\PreferencePageContentBag.cs" />
+    <Compile Include="Blocks\Mobile\Communication\SmsConversation\ConversationDetailBag.cs" />
     <Compile Include="Communication\ConversationAttachmentBag.cs" />
-    <Compile Include="Communication\ConversationDetailBag.cs" />
     <Compile Include="Communication\ConversationMessageBag.cs" />
     <Compile Include="Entities\SnippetBag.cs" />
     <Compile Include="Entities\SnippetTypeBag.cs" />

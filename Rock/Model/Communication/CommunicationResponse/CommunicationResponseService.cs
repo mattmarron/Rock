@@ -517,7 +517,7 @@ namespace Rock.Model
             foreach ( var attachment in cr.Attachments )
             {
                 var ext = System.IO.Path.GetExtension( attachment.BinaryFile.FileName ).ToLower();
-                var isImage = ext == ".jpg" || ext == ".png";
+                var isImage = attachment.BinaryFile.MimeType.StartsWith( "image/", StringComparison.OrdinalIgnoreCase ) == true;
 
                 messageBag.Attachments.Add( new ConversationAttachmentBag
                 {

@@ -24,6 +24,7 @@ using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
 using Rock.Reporting;
+using Rock.ViewModels.Blocks.Mobile.Communication.SmsConversation;
 using Rock.ViewModels.Communication;
 using Rock.ViewModels.Utility;
 using Rock.Web.Cache;
@@ -118,159 +119,6 @@ namespace Rock.Blocks.Types.Mobile.Communication
 
         #region Methods
 
-        internal static ConversationMessageBag ToMessageBag( CommunicationRecipientResponse response, bool loadAttachments )
-        {
-            var publicUrl = GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" );
-
-            var bag = new ConversationMessageBag
-            {
-                ConversationKey = response.ConversationKey,
-                MessageKey = response.MessageKey,
-                ContactKey = response.ContactKey,
-                MessageDateTime = response.CreatedDateTime,
-                Message = response.SMSMessage,
-                IsRead = response.IsRead,
-                PersonAliasGuid = response.RecipientPersonAliasGuid.Value,
-                FullName = response.FullName,
-                IsNamelessPerson = response.IsNamelessPerson,
-                IsOutbound = response.IsOutbound,
-                OutboundSenderFullName = response.OutboundSenderFullName,
-                Attachments = new List<ConversationAttachmentBag>()
-            };
-
-            if ( response.PhotoId.HasValue )
-            {
-                bag.PhotoUrl = $"{publicUrl}GetImage.ashx?Id={response.PhotoId}&maxwidth=256&maxheight=256";
-            }
-
-            if ( loadAttachments )
-            {
-                using ( var rockContext = new RockContext() )
-                {
-                    var attachments = response.CommunicationId.HasValue
-                        ? new CommunicationAttachmentService( rockContext ).Queryable()
-                            .Where( ca => ca.CommunicationId == response.CommunicationId.Value )
-                            .Select( ca => new
-                            {
-                                ca.BinaryFile.Guid,
-                                ca.BinaryFile.FileName
-                            } )
-                            .ToList()
-                        : new CommunicationResponseAttachmentService( rockContext ).Queryable()
-                            .Where( cra => cra.CommunicationResponseId == response.CommunicationResponseId.Value )
-                            .Select( cra => new
-                            {
-                                cra.BinaryFile.Guid,
-                                cra.BinaryFile.FileName
-                            } )
-                            .ToList();
-
-                    foreach ( var attachment in attachments )
-                    {
-                        var ext = System.IO.Path.GetExtension( attachment.FileName ).ToLower();
-                        var isImage = ext == ".jpg" || ext == ".png";
-
-                        bag.Attachments.Add( new ConversationAttachmentBag
-                        {
-                            FileName = attachment.FileName,
-                            Url = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}",
-                            ThumbnailUrl = isImage ? $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}&maxwidth=512&maxheight=512" : null
-                        } );
-                    }
-                }
-            }
-
-            return bag;
-        }
-
-        internal static List<ConversationMessageBag> ToMessageBags( ICollection<CommunicationRecipientResponse> responses )
-        {
-            var publicUrl = GlobalAttributesCache.Get().GetValue( "PublicApplicationRoot" );
-            var attachmentsLookup = new Dictionary<string, List<(Guid Guid, string FileName)>>();
-
-            // Load the attachments for all responses in two queries rather
-            // than executing a query for every single response.
-            using ( var rockContext = new RockContext() )
-            {
-                var communicationIdMap = responses
-                    .Where( r => r.CommunicationId.HasValue )
-                    .ToDictionary( r => r.CommunicationId.Value, r => r.MessageKey );
-
-                var communicationResponseIdMap = responses
-                    .Where( r => !r.CommunicationId.HasValue && r.CommunicationResponseId.HasValue )
-                    .ToDictionary( r => r.CommunicationResponseId.Value, r => r.MessageKey );
-
-                if ( communicationIdMap.Count > 0 )
-                {
-                    var communicationIds = communicationIdMap.Keys.ToList();
-
-                    var results = new CommunicationAttachmentService( rockContext )
-                        .Queryable()
-                        .Where( ca => communicationIds.Contains( ca.CommunicationId ) )
-                        .Select( ca => new
-                        {
-                            ca.CommunicationId,
-                            ca.BinaryFile.Guid,
-                            ca.BinaryFile.FileName
-                        } )
-                        .ToList()
-                        .GroupBy( ca => ca.CommunicationId );
-
-                    foreach ( var result in results )
-                    {
-                        attachmentsLookup.AddOrReplace( communicationIdMap[result.Key], result.Select( r => (r.Guid, r.FileName) ).ToList() );
-                    }
-                }
-
-                if ( communicationResponseIdMap.Count > 0 )
-                {
-                    var communicationResponseIds = communicationResponseIdMap.Keys.ToList();
-
-                    var results = new CommunicationResponseAttachmentService( rockContext )
-                        .Queryable()
-                        .Where( cra => communicationResponseIds.Contains( cra.CommunicationResponseId ) )
-                        .Select( cra => new
-                        {
-                            cra.CommunicationResponseId,
-                            cra.BinaryFile.Guid,
-                            cra.BinaryFile.FileName
-                        } )
-                        .ToList()
-                        .GroupBy( cra => cra.CommunicationResponseId );
-
-                    foreach ( var result in results )
-                    {
-                        attachmentsLookup.AddOrReplace( communicationResponseIdMap[result.Key], result.Select( r => (r.Guid, r.FileName ) ).ToList() );
-                    }
-                }
-            }
-
-            return responses
-                .Select( response =>
-                {
-                    var bag = ToMessageBag( response, false );
-
-                    if ( attachmentsLookup.TryGetValue( bag.MessageKey, out var attachments ) )
-                    {
-                        foreach ( var attachment in attachments )
-                        {
-                            var ext = System.IO.Path.GetExtension( attachment.FileName ).ToLower();
-                            var isImage = ext == ".jpg" || ext == ".png";
-
-                            bag.Attachments.Add( new ConversationAttachmentBag
-                            {
-                                FileName = attachment.FileName,
-                                Url = $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}",
-                                ThumbnailUrl = isImage ? $"{publicUrl}GetImage.ashx?Guid={attachment.Guid}&maxwidth=512&maxheight=512" : null
-                            } );
-                        }
-                    }
-
-                    return bag;
-                } )
-                .ToList();
-        }
-
         /// <summary>
         /// Gets the list item bags that represent the snippets which can be
         /// used by the individual.
@@ -307,6 +155,14 @@ namespace Rock.Blocks.Types.Mobile.Communication
 
         #region Action Methods
 
+        /// <summary>
+        /// Gets the conversation details between a Rock phone number and the
+        /// specified individual.
+        /// </summary>
+        /// <param name="rockPhoneNumberGuid">The rock phone number unique identifier.</param>
+        /// <param name="personGuid">The person unique identifier.</param>
+        /// <param name="personAliasGuid">The person alias unique identifier.</param>
+        /// <returns>An instance of <see cref="ConversationDetailBag"/> that describes the conversation or an HTTP error.</returns>
         [BlockAction]
         public BlockActionResult GetConversationDetails( Guid rockPhoneNumberGuid, Guid? personGuid = null, Guid? personAliasGuid = null )
         {
@@ -364,7 +220,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     .Take( messageCount )
                     .ToList();
 
-                var messages = ToMessageBags( responses );
+                var messages = responses.ToMessageBags().ToList();
                 var snippets = GetSnippetBags( rockContext );
 
                 var bag = new ConversationDetailBag
@@ -432,7 +288,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
                         .Take( messageCount )
                         .ToList();
 
-                    var messages = ToMessageBags( responses );
+                    var messages = responses.ToMessageBags();
 
                     return ActionOk( messages );
                 }
@@ -580,64 +436,6 @@ namespace Rock.Blocks.Types.Mobile.Communication
                     return ActionInternalServerError( "Unexpected error encountered when trying to send message." );
                 }
             }
-        }
-
-        #endregion
-
-        #region Support Classes
-
-        private class ConversationDetailBag
-        {
-            /// <summary>
-            /// Gets or sets the conversation key.
-            /// </summary>
-            /// <value>The conversation key.</value>
-            public string ConversationKey { get; set; }
-
-            /// <summary>
-            /// Gets or sets the person unique identifier.
-            /// </summary>
-            /// <value>The person unique identifier.</value>
-            public Guid PersonGuid { get; set; }
-
-            /// <summary>
-            /// Gets or sets the full name of the person being communicated with.
-            /// </summary>
-            /// <value>
-            /// The full name of the person being communicated with.
-            /// </value>
-            public string FullName { get; set; }
-
-            /// <summary>
-            /// Gets or sets the photo URL for the person. Value will be <c>null</c>
-            /// if no photo is available.
-            /// </summary>
-            /// <value>The photo URL of the person.</value>
-            public string PhotoUrl { get; set; }
-
-            /// <summary>
-            /// Gets or sets the phone number for the person.
-            /// </summary>
-            /// <value>The phone number for the person.</value>
-            public string PhoneNumber { get; set; }
-
-            /// <summary>
-            /// Gets or sets a value indicating whether the recipient is a nameless person.
-            /// </summary>
-            /// <value><c>true</c> if the recipient is a nameless person; otherwise, <c>false</c>.</value>
-            public bool IsNamelessPerson { get; set; }
-
-            /// <summary>
-            /// Gets or sets the initial messages to be displayed.
-            /// </summary>
-            /// <value>The initial messages to be displayed.</value>
-            public List<ConversationMessageBag> Messages { get; set; }
-
-            /// <summary>
-            /// Gets or sets the snippets available to use when sending a message.
-            /// </summary>
-            /// <value>The snippets available to use when sending a message.</value>
-            public List<ListItemBag> Snippets { get; set; }
         }
 
         #endregion

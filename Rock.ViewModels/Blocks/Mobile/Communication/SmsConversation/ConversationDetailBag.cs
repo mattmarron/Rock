@@ -15,12 +15,31 @@
 // </copyright>
 //
 
+using System;
 using System.Collections.Generic;
 
-namespace Rock.ViewModels.Communication
+using Rock.ViewModels.Communication;
+using Rock.ViewModels.Utility;
+
+namespace Rock.ViewModels.Blocks.Mobile.Communication.SmsConversation
 {
+    /// <summary>
+    /// Details about a conversation between Rock and another individual.
+    /// </summary>
     public class ConversationDetailBag
     {
+        /// <summary>
+        /// Gets or sets the conversation key.
+        /// </summary>
+        /// <value>The conversation key.</value>
+        public string ConversationKey { get; set; }
+
+        /// <summary>
+        /// Gets or sets the person unique identifier.
+        /// </summary>
+        /// <value>The person unique identifier.</value>
+        public Guid PersonGuid { get; set; }
+
         /// <summary>
         /// Gets or sets the full name of the person being communicated with.
         /// </summary>
@@ -53,6 +72,11 @@ namespace Rock.ViewModels.Communication
         /// </summary>
         /// <value>The initial messages to be displayed.</value>
         public List<ConversationMessageBag> Messages { get; set; }
-    }
 
+        /// <summary>
+        /// Gets or sets the snippets available to use when sending a message.
+        /// </summary>
+        /// <value>The snippets available to use when sending a message.</value>
+        public List<ListItemBag> Snippets { get; set; }
+    }
 }
