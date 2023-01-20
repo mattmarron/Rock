@@ -90,17 +90,19 @@ namespace Rock.RealTime.Topics
         /// <summary>
         /// Gets the channel name that should be used to send the message.
         /// </summary>
-        /// <param name="message">The message to be sent.</param>
+        /// <param name="conversationKey">The conversation key representing the conversation to be communicated with..</param>
         /// <returns>A string that represents the RealTime channel name.</returns>
-        public static string GetChannelForMessage( ConversationMessageBag message )
+        public static string GetChannelForConversationKey( string conversationKey )
         {
-            if ( message.ConversationKey.StartsWith( "SMS" ) )
+            var guid = CommunicationService.GetRockPhoneNumberGuidForConversationKey( conversationKey );
+
+            if ( guid.HasValue )
             {
-                return $"sms:{message.RockContactKey}";
+                return $"sms:{guid}";
             }
             else
             {
-                throw new Exception( "Message bag is not setup for use by the RealTime system." );
+                throw new Exception( "Conversation key is not valid." );
             }
         }
 

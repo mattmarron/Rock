@@ -24,5 +24,7 @@ namespace Rock.RealTime.Topics
     internal interface IConversationParticipant
     {
         Task NewSmsMessage( ConversationMessageBag message );
+
+        Task ConversationMarkedAsRead( string conversationKey );
     }
 }

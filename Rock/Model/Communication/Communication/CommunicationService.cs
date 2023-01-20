@@ -538,7 +538,7 @@ namespace Rock.Model
                 var messageBag = new CommunicationRecipientService( rockContext )
                     .GetConversationMessageBag( communicationRecipientId );
 
-                var channelName = RealTime.Topics.ConversationParticipantTopic.GetChannelForMessage( messageBag );
+                var channelName = RealTime.Topics.ConversationParticipantTopic.GetChannelForConversationKey( messageBag.ConversationKey );
 
                 await RealTime.RealTimeHelper.GetTopicContext<RealTime.Topics.IConversationParticipant>()
                     .Clients
@@ -559,13 +559,40 @@ namespace Rock.Model
                 var messageBag = new CommunicationResponseService( rockContext )
                     .GetConversationMessageBag( communicationResponseId );
 
-                var channelName = RealTime.Topics.ConversationParticipantTopic.GetChannelForMessage( messageBag );
+                var channelName = RealTime.Topics.ConversationParticipantTopic.GetChannelForConversationKey( messageBag.ConversationKey );
 
                 await RealTime.RealTimeHelper.GetTopicContext<RealTime.Topics.IConversationParticipant>()
                     .Clients
                     .Channel( channelName )
                     .NewSmsMessage( messageBag );
             }
+        }
+
+        /// <summary>
+        /// Send all real time notifications for a conversation that has been marked as read.
+        /// </summary>
+        /// <param name="conversationKey">The key that identifies the conversation that was read.</param>
+        /// <returns>A Task representing the asynchronous operation.</returns>
+        internal static async Task SendConversationReadSmsRealTimeNotificationsAsync( string conversationKey )
+        {
+            var channelName = RealTime.Topics.ConversationParticipantTopic.GetChannelForConversationKey( conversationKey );
+
+            await RealTime.RealTimeHelper.GetTopicContext<RealTime.Topics.IConversationParticipant>()
+                .Clients
+                .Channel( channelName )
+                .ConversationMarkedAsRead( conversationKey );
+        }
+
+        /// <summary>
+        /// Gets the conversation key used for an SMS conversation between a Rock
+        /// phone number and a Person.
+        /// </summary>
+        /// <param name="rockPhoneNumberGuid">The rock phone number unique identifier.</param>
+        /// <param name="personGuid">The person unique identifier.</param>
+        /// <returns>A string that represents the unique conversation key.</returns>
+        internal static string GetSmsConversationKey( Guid rockPhoneNumberGuid, Guid personGuid )
+        {
+            return $"SMS:{rockPhoneNumberGuid}:{personGuid}";
         }
 
         /// <summary>

@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Entity;
 using System.Linq;
+using System.Threading.Tasks;
 
 using Rock.Data;
 using Rock.Enums.Communication;
@@ -224,7 +225,7 @@ namespace Rock.Model
                     FullName = mostRecentResponse.FromPersonAlias.Person.FullName,
                     PhotoId = mostRecentResponse.FromPersonAlias.Person.PhotoId,
                     IsRead = mostRecentResponse.IsRead,
-                    ConversationKey = $"SMS:{relatedSmsFromDefinedValue.Guid}:{mostRecentResponse.FromPersonAlias.Person.Guid}",
+                    ConversationKey = CommunicationService.GetSmsConversationKey( relatedSmsFromDefinedValue.Guid, mostRecentResponse.FromPersonAlias.Person.Guid ),
                     MessageKey = $"R:{mostRecentResponse.Guid}",
                     ContactKey = mostRecentResponse.MessageKey,
                     IsOutbound = false,
@@ -252,7 +253,7 @@ namespace Rock.Model
                     PhotoId = mostRecentCommunicationRecipient.Person.PhotoId,
                     IsOutbound = true,
                     IsRead = true,
-                    ConversationKey = $"SMS:{relatedSmsFromDefinedValue.Guid}:{mostRecentCommunicationRecipient.Person.Guid}",
+                    ConversationKey = CommunicationService.GetSmsConversationKey( relatedSmsFromDefinedValue.Guid, mostRecentCommunicationRecipient.Person.Guid ),
                     MessageKey = $"C:{mostRecentCommunicationRecipient.Guid}",
                     RecipientPersonAliasId = mostRecentCommunicationRecipient.PersonAliasId,
                     RecipientPersonAliasGuid = mostRecentCommunicationRecipient.PersonAliasGuid,
@@ -340,7 +341,7 @@ namespace Rock.Model
                     FullName = communicationResponse.FromPersonAlias?.Person.FullName,
                     PhotoId = communicationResponse.FromPersonAlias?.Person.PhotoId,
                     IsRead = communicationResponse.IsRead,
-                    ConversationKey = $"SMS:{relatedSmsFromDefinedValue.Guid}:{communicationResponse.FromPersonAlias.Person.Guid}",
+                    ConversationKey = CommunicationService.GetSmsConversationKey( relatedSmsFromDefinedValue.Guid, communicationResponse.FromPersonAlias.Person.Guid ),
                     MessageKey = $"R:{communicationResponse.Guid}",
                     ContactKey = communicationResponse.MessageKey,
                     IsOutbound = false,
@@ -388,7 +389,7 @@ namespace Rock.Model
                     PhotoId = communicationRecipient.Person?.Photo?.Id,
                     IsRead = true,
                     IsOutbound = true,
-                    ConversationKey = $"SMS:{relatedSmsFromDefinedValue.Guid}:{communicationRecipient.Person.Guid}",
+                    ConversationKey = CommunicationService.GetSmsConversationKey( relatedSmsFromDefinedValue.Guid, communicationRecipient.Person.Guid ),
                     MessageKey = $"C:{communicationRecipient.Guid}",
                     RecipientPersonAliasId = communicationRecipient.PersonAliasId,
                     RecipientPersonAliasGuid = communicationRecipient.PersonAliasGuid,
@@ -437,10 +438,31 @@ namespace Rock.Model
         /// <param name="relatedSmsFromDefinedValueId">The defined value ID of the from SMS phone number.</param>
         public void UpdateReadPropertyByFromPersonId( int fromPersonId, int relatedSmsFromDefinedValueId )
         {
-            var personAliasIdQuery = new PersonAliasService( this.Context as RockContext ).Queryable().Where( a => a.PersonId == fromPersonId ).Select( a => a.Id );
-            var communicationResponsesToUpdate = Queryable().Where( a => a.FromPersonAliasId.HasValue && personAliasIdQuery.Contains( a.FromPersonAliasId.Value ) && a.RelatedSmsFromDefinedValueId == relatedSmsFromDefinedValueId && a.IsRead == false );
+            var personAliasIdQuery = new PersonAliasService( this.Context as RockContext )
+                .Queryable()
+                .Where( a => a.PersonId == fromPersonId )
+                .Select( a => a.Id );
 
-            this.Context.BulkUpdate( communicationResponsesToUpdate, a => new CommunicationResponse { IsRead = true } );
+            var communicationResponsesToUpdateQueryable = Queryable()
+                .Where( a => a.FromPersonAliasId.HasValue
+                    && personAliasIdQuery.Contains( a.FromPersonAliasId.Value )
+                    && a.RelatedSmsFromDefinedValueId == relatedSmsFromDefinedValueId
+                    && a.IsRead == false );
+
+            this.Context.BulkUpdate( communicationResponsesToUpdateQueryable, a => new CommunicationResponse { IsRead = true } );
+
+            var personGuid = new PersonService( Context as RockContext ).GetGuid( fromPersonId );
+            var rockPhoneNumber = DefinedValueCache.Get( relatedSmsFromDefinedValueId );
+
+            if ( personGuid.HasValue && rockPhoneNumber != null )
+            {
+                var conversationKey = CommunicationService.GetSmsConversationKey( rockPhoneNumber.Guid, personGuid.Value );
+
+                Task.Run( async () =>
+                {
+                    await CommunicationService.SendConversationReadSmsRealTimeNotificationsAsync( conversationKey );
+                } );
+            }
         }
 
         /// <summary>
@@ -472,7 +494,7 @@ namespace Rock.Model
 
             var messageBag = new ConversationMessageBag
             {
-                ConversationKey = $"SMS:{rockPhoneNumber.Guid}:{cr.FromPersonAlias.Person.Guid}",
+                ConversationKey = CommunicationService.GetSmsConversationKey( rockPhoneNumber.Guid, cr.FromPersonAlias.Person.Guid ),
                 MessageKey = $"R:{cr.Guid}",
                 RockContactKey = rockPhoneNumber.Guid.ToString(),
                 MessageDateTime = cr.CreatedDateTime,
