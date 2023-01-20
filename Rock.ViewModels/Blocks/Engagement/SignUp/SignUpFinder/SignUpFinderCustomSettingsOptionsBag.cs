@@ -15,6 +15,10 @@
 // </copyright>
 //
 
+using System;
+using System.Collections.Generic;
+using Rock.ViewModels.Utility;
+
 namespace Rock.ViewModels.Blocks.Engagement.SignUp.SignUpFinder
 {
     /// <summary>
@@ -22,5 +26,20 @@ namespace Rock.ViewModels.Blocks.Engagement.SignUp.SignUpFinder
     /// </summary>
     public class SignUpFinderCustomSettingsOptionsBag
     {
+        /// <summary>
+        /// Gets or sets the available sign-up project group type guids for an individual to filter the results by.
+        /// </summary>
+        /// <value>
+        /// The available sign-up project group type guids for an individual to filter the results by.
+        /// </value>
+        public List<Guid> AvailableProjectTypeGuids { get; set; }
+
+        /// <summary>
+        /// Gets or sets the available group attributes for an individual to filter the results by.
+        /// </summary>
+        /// <value>
+        /// The available group attributes for an individual to filter the results by.
+        /// </value>
+        public List<ListItemBag> AvailableDisplayAttributeFilters { get; set; }
     }
 }

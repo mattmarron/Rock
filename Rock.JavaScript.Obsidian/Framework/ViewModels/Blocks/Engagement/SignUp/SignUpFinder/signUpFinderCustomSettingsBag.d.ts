@@ -21,6 +21,77 @@
 // </copyright>
 //
 
+import { PageRouteValueBag } from "@Obsidian/ViewModels/Rest/Controls/pageRouteValueBag";
+import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
+
 /** The settings that will be edited in the custom settings panel for the Sign-Up Finder block. */
 export type SignUpFinderCustomSettingsBag = {
+    /** Gets or sets the statuses of the campuses to include in the campus list. */
+    campusStatuses?: ListItemBag[] | null;
+
+    /** Gets or sets the types of campuses to include in the campus list. */
+    campusTypes?: ListItemBag[] | null;
+
+    /** Gets or sets the group attributes that should be available for an individual to filter the results by. */
+    displayAttributeFilters?: string[] | null;
+
+    /** Gets or sets whether the campus filter should be shown. */
+    displayCampusFilter: boolean;
+
+    /** Gets or sets whether to allow individuals to filter the results by projects occurring inside a provided date range. */
+    displayDateRange: boolean;
+
+    /** Gets or sets whether a filter will be shown to limit results to a specified number of miles from the location selected or their mailing address if logged in. */
+    displayLocationRangeFilter: boolean;
+
+    /** Gets or sets whether the location sort field should be shown. */
+    displayLocationSort: boolean;
+
+    /** Gets or sets whether a list of named schedules will be show as a filter. */
+    displayNamedScheduleFilter: boolean;
+
+    /** Gets or sets whether the project filters should be show as checkboxes or multi-select dropdowns. */
+    displayProjectFiltersAs?: string | null;
+
+    /** Gets or sets whether to allow the individual to find projects with "at least" or "no more than" the provided spots available. */
+    displaySlotsAvailableFilter: boolean;
+
+    /** Gets or sets whether the page's campus context (if available) should be used as a filter. */
+    enableCampusContext: boolean;
+
+    /** Gets or sets the number of columns the filters should be displayed as. */
+    filterColumns: number;
+
+    /** Gets or sets whether projects that are full should be shown. */
+    hideOvercapacityProjects: boolean;
+
+    /** Gets or sets whether the group finder will load with all configured groups (no filters enabled). */
+    loadResultsOnInitialPageLoad: boolean;
+
+    /** Gets or sets the label to use for the location sort filter. */
+    locationSortLabel?: string | null;
+
+    /** Gets or sets the label to use for the named schedule filter. */
+    namedScheduleFilterLabel?: string | null;
+
+    /** Gets or sets the page reference to pass to the Lava template for the details of the project. */
+    projectDetailPage?: PageRouteValueBag | null;
+
+    /** Gets or sets the label to use for the project type filter. */
+    projectTypeFilterLabel?: string | null;
+
+    /** Gets or sets the sign-up project group types that should be considered for the search. */
+    projectTypes?: ListItemBag[] | null;
+
+    /** Gets or sets the page reference to pass to the Lava template for the registration page. */
+    registrationPage?: PageRouteValueBag | null;
+
+    /** Gets or sets the Lava Template to use to show the results header. */
+    resultsHeaderLavaTemplate?: string | null;
+
+    /** Gets or sets the Lava template to show with the results of the search. */
+    resultsLavaTemplate?: string | null;
+
+    /** Gets or sets the root named schedule to be used for the named schedule filter. */
+    rootNamedSchedule?: ListItemBag | null;
 };
