@@ -23,6 +23,7 @@
 
 import { SignUpAttendeeBag } from "@Obsidian/ViewModels/Blocks/Engagement/SignUp/SignUpAttendanceDetail/signUpAttendeeBag";
 
+/** The box that contains all the initialization information for the Sign-Up Attendance Detail block. */
 export type SignUpAttendanceDetailInitializationBox = {
     /** Gets or sets the attendees. */
     attendees?: SignUpAttendeeBag[] | null;

@@ -1,13 +1,8 @@
 <!-- Copyright by the Spark Development Network; Licensed under the Rock Community License -->
 <template>
-
+    Hello from signUpRegister!
 </template>
 
-<!-- Cannot use scoped here otherwise it becomes very difficult to override by custom CSS. -->
-<style>
-
-</style>
-
 <script setup lang="ts">
-    const name = "SignUpRegister";
+    const name = "signUpRegister";
 </script>

@@ -18,10 +18,9 @@
 namespace Rock.ViewModels.Blocks.Engagement.SignUp.SignUpFinder
 {
     /// <summary>
-    /// The box that contains all the initialization information for the Sign-Up Finder block.
+    /// The additional information required to build the custom settings UI for the Sign-Up Finder block.
     /// </summary>
-    public class SignUpFinderInitializationBox : BlockBox
+    public class SignUpFinderCustomSettingsOptionsBag
     {
-        
     }
 }

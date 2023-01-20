@@ -21,18 +21,6 @@
 // </copyright>
 //
 
-export type SignUpFinderInitializationBox = {
-    /**
-     * Gets or sets the error message. A non-empty value indicates that
-     * an error is preventing the block from being displayed.
-     */
-    errorMessage?: string | null;
-
-    helloWorld?: string | null;
-
-    /** Gets or sets the navigation urls. */
-    navigationUrls?: Record<string, string> | null;
-
-    /** Gets or sets the security grant token. */
-    securityGrantToken?: string | null;
+/** The settings that will be edited in the custom settings panel for the Sign-Up Finder block. */
+export type SignUpFinderCustomSettingsBag = {
 };

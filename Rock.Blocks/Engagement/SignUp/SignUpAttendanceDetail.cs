@@ -1,4 +1,21 @@
-﻿using System;
+﻿// <copyright>
+// Copyright by the Spark Development Network
+//
+// Licensed under the Rock Community License (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.rockrms.com/license
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// </copyright>
+//
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.Entity;
@@ -13,6 +30,11 @@ using Rock.Web.UI.Controls;
 
 namespace Rock.Blocks.Engagement.SignUp
 {
+    /// <summary>
+    /// Lists the group members for a specific sign-up group/project occurrence date time and allows selecting if they attended or not.
+    /// </summary>
+    /// <seealso cref="Rock.Blocks.RockObsidianBlockType" />
+
     [DisplayName( "Sign-Up Attendance Detail" )]
     [Category( "Engagement > Sign-Up" )]
     [Description( "Lists the group members for a specific sign-up group/project occurrence date time and allows selecting if they attended or not." )]
@@ -25,8 +47,8 @@ namespace Rock.Blocks.Engagement.SignUp
         Description = "The Lava template to show at the top of the page.",
         EditorMode = CodeEditorMode.Lava,
         EditorHeight = 400,
-        IsRequired = true,
         DefaultValue = AttributeDefault.HeaderLavaTemplate,
+        IsRequired = false,
         Order = 0 )]
 
     #endregion
@@ -237,7 +259,7 @@ namespace Rock.Blocks.Engagement.SignUp
             var date = attendanceOccurrenceDate.Value.Date;
             if ( !schedule.GetScheduledStartTimes( date.StartOfDay(), date.EndOfDay() ).Any() )
             {
-                occurrenceData.ErrorMessage = $"The attendance date of {date.ToMonthDayString()} does not match the schedule of the project.";
+                occurrenceData.ErrorMessage = $"The attendance date of {date:dddd MMM d} does not match the schedule of the project.";
                 return false;
             }
 
@@ -268,6 +290,9 @@ namespace Rock.Blocks.Engagement.SignUp
                     && gma.LocationId == occurrenceData.Location.Id
                     && gma.ScheduleId == occurrenceData.Schedule.Id
                 )
+                .OrderBy( gma => gma.GroupMember.Person.LastName )
+                .ThenBy( gma => gma.GroupMember.Person.AgeClassification )
+                .ThenBy( gma => gma.GroupMember.Person.Gender )
                 .Select( gma => gma.GroupMember )
                 .ToList();
 

@@ -21,14 +21,13 @@
 // </copyright>
 //
 
+/** The box that contains all the initialization information for the Sign-Up Register block. */
 export type SignUpRegisterInitializationBox = {
     /**
      * Gets or sets the error message. A non-empty value indicates that
      * an error is preventing the block from being displayed.
      */
     errorMessage?: string | null;
-
-    helloWorld?: string | null;
 
     /** Gets or sets the navigation urls. */
     navigationUrls?: Record<string, string> | null;

@@ -1,9 +1,31 @@
-﻿using System.ComponentModel;
+﻿// <copyright>
+// Copyright by the Spark Development Network
+//
+// Licensed under the Rock Community License (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.rockrms.com/license
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// </copyright>
+//
+
+using System.ComponentModel;
 using Rock.Attribute;
 using Rock.ViewModels.Blocks.Engagement.SignUp.SignUpRegister;
 
 namespace Rock.Blocks.Engagement.SignUp
 {
+    /// <summary>
+    /// Block used to register for a sign-up group/project occurrence date time.
+    /// </summary>
+    /// <seealso cref="Rock.Blocks.RockObsidianBlockType" />
+
     [DisplayName( "Sign-Up Register" )]
     [Category( "Engagement > Sign-Up" )]
     [Description( "Block used to register for a sign-up group/project occurrence date time." )]
@@ -43,7 +65,5 @@ namespace Rock.Blocks.Engagement.SignUp
         }
 
         #endregion
-
-
     }
 }

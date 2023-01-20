@@ -17,8 +17,11 @@
 
 namespace Rock.ViewModels.Blocks.Engagement.SignUp.SignUpRegister
 {
+    /// <summary>
+    /// The box that contains all the initialization information for the Sign-Up Register block.
+    /// </summary>
     public class SignUpRegisterInitializationBox : BlockBox
     {
-        public string HelloWorld { get; set; } = $"Hello from {nameof( SignUpRegisterInitializationBox )}!";
+        
     }
 }

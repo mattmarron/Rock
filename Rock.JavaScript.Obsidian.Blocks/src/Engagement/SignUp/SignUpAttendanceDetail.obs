@@ -17,7 +17,7 @@
         <hr />
         <RockForm @submit="onSaveAttendance">
             <CheckboxList v-model="selectedAttendees" label="Attendees" :items="attendees" @update:modelValue="onAttendeesUpdated" />
-            <RockButton type="submit">Save</RockButton>
+            <RockButton type="submit" :disabled="isSaving">Save</RockButton>
         </RockForm>
     </div>
 </template>
@@ -44,6 +44,7 @@
     const successMessage = ref("");
     const headerElement = ref<HTMLElement | null>(null);
     const selectedAttendees = ref<string[]>([]);
+    const isSaving = ref(false);
 
     // #endregion
 
@@ -55,9 +56,9 @@
 
     const attendees = computed((): ListItemBag[] => {
         var listItemBag: ListItemBag[] = config.attendees?.map(a => ({
-                text: a.name,
-                value: a.personAliasId.toString()
-            })) ?? [];
+            text: a.name,
+            value: a.personAliasId.toString()
+        })) ?? [];
 
         return listItemBag;
     });
@@ -81,6 +82,7 @@
      * Saves attendance records.
      */
     async function onSaveAttendance(): Promise<void> {
+        isSaving.value = true;
         errorMessage.value = "";
         successMessage.value = "";
 
@@ -89,6 +91,7 @@
         };
 
         const result: HttpResult<void> = await invokeBlockAction("SaveAttendance", { bag });
+        isSaving.value = false;
 
         if (!result.isSuccess) {
             errorMessage.value = result.errorMessage ?? "Unknown error when trying to enter attendance.";

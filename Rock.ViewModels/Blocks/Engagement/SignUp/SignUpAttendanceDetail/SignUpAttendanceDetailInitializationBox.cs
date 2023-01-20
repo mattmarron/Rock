@@ -15,11 +15,13 @@
 // </copyright>
 //
 
-using System;
 using System.Collections.Generic;
 
 namespace Rock.ViewModels.Blocks.Engagement.SignUp.SignUpAttendanceDetail
 {
+    /// <summary>
+    /// The box that contains all the initialization information for the Sign-Up Attendance Detail block.
+    /// </summary>
     public class SignUpAttendanceDetailInitializationBox : BlockBox
     {
         /// <summary>

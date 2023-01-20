@@ -23,6 +23,7 @@
 
 import { SignUpAttendeeBag } from "@Obsidian/ViewModels/Blocks/Engagement/SignUp/SignUpAttendanceDetail/signUpAttendeeBag";
 
+/** The information to be saved when taking attendance for a sign-up project occurrence. */
 export type SignUpAttendanceBag = {
     /** Gets or sets the attendees. */
     attendees?: SignUpAttendeeBag[] | null;

@@ -17,6 +17,9 @@
 
 namespace Rock.ViewModels.Blocks.Engagement.SignUp.SignUpAttendanceDetail
 {
+    /// <summary>
+    /// Information about an attendee, including whether they attended a given sign-up project occurrence.
+    /// </summary>
     public class SignUpAttendeeBag
     {
         /// <summary>

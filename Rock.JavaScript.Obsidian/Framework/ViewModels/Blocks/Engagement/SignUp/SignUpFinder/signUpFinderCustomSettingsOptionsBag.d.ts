@@ -21,14 +21,6 @@
 // </copyright>
 //
 
-/** Information about an attendee, including whether they attended a given sign-up project occurrence. */
-export type SignUpAttendeeBag = {
-    /** Gets or sets a value indicating whether [did attend]. */
-    didAttend: boolean;
-
-    /** Gets or sets the name. */
-    name?: string | null;
-
-    /** Gets or sets the person alias identifier. */
-    personAliasId: number;
+/** The additional information required to build the custom settings UI for the Sign-Up Finder block. */
+export type SignUpFinderCustomSettingsOptionsBag = {
 };

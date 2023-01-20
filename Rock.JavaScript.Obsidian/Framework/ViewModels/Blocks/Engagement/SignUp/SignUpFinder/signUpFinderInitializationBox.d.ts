@@ -21,14 +21,17 @@
 // </copyright>
 //
 
-/** Information about an attendee, including whether they attended a given sign-up project occurrence. */
-export type SignUpAttendeeBag = {
-    /** Gets or sets a value indicating whether [did attend]. */
-    didAttend: boolean;
+/** The box that contains all the initialization information for the Sign-Up Finder block. */
+export type SignUpFinderInitializationBox = {
+    /**
+     * Gets or sets the error message. A non-empty value indicates that
+     * an error is preventing the block from being displayed.
+     */
+    errorMessage?: string | null;
 
-    /** Gets or sets the name. */
-    name?: string | null;
+    /** Gets or sets the navigation urls. */
+    navigationUrls?: Record<string, string> | null;
 
-    /** Gets or sets the person alias identifier. */
-    personAliasId: number;
+    /** Gets or sets the security grant token. */
+    securityGrantToken?: string | null;
 };
