@@ -261,8 +261,6 @@ namespace RockWeb.Blocks.Security
         {
             using ( var rockContext = new RockContext() )
             {
-                HideErrorMessage();
-
                 if ( IsVerificationCodeValid( rockContext ) )
                 {
                     var personId = e.CommandArgument.ToString().AsInteger();
@@ -454,44 +452,52 @@ namespace RockWeb.Blocks.Security
             ScriptManager.RegisterStartupScript( pnlVerificationCodeEntry, pnlVerificationCodeEntry.GetType(), "verificationCode", script, true );
         }
 
-        private void ShowPhoneNumberEntryPage()
-        {
-            pnlPhoneNumberEntry.Visible = true;
-            pnlPersonChooser.Visible = false;
-            pnlNotFound.Visible = false;
-            pnlVerificationCodeEntry.Visible = false;
-        }
-
-        private void ShowVerificationPage()
+        private void HideAllPanels()
         {
             pnlPhoneNumberEntry.Visible = false;
             pnlPersonChooser.Visible = false;
             pnlNotFound.Visible = false;
+            pnlVerificationCodeEntry.Visible = false;
+            pnlLockedOut.Visible = false;
+        }
+
+        private void ShowPhoneNumberEntryPage()
+        {
+            HideAllPanels();
+            pnlPhoneNumberEntry.Visible = true;
+        }
+
+        private void ShowVerificationPage()
+        {
+            HideAllPanels();
             pnlVerificationCodeEntry.Visible = true;
             RegisterVerificationCodeScript();
         }
 
         private void ShowPersonNotFound()
         {
-            pnlPhoneNumberEntry.Visible = false;
-            pnlPersonChooser.Visible = false;
+            HideAllPanels();
             pnlNotFound.Visible = true;
-            pnlVerificationCodeEntry.Visible = false;
         }
 
         private void ShowPersonChooser( List<int> personIds )
         {
-            HideErrorMessage();
-
-            pnlPhoneNumberEntry.Visible = false;
+            HideAllPanels();
             pnlPersonChooser.Visible = true;
-            pnlNotFound.Visible = false;
-            pnlVerificationCodeEntry.Visible = false;
 
             var personService = new PersonService( new RockContext() );
             var people = personService.Queryable().Where( p => personIds.Contains( p.Id ) );
             rptPeople.DataSource = people.ToList();
             rptPeople.DataBind();
+        }
+
+        private void ShowLockedOutError()
+        {
+            HideAllPanels();
+            pnlLockedOut.Visible = true;
+
+            const string LockedOutCaption = @"{%- assign phone = Global' | Attribute:'OrganizationPhone' | Trim -%} Sorry, your account has been locked.  Please {% if phone != '' %}contact our office at {{ 'Global' | Attribute:'OrganizationPhone' }} or email{% else %}email us at{% endif %} <a href='mailto:{{ 'Global' | Attribute:'OrganizationEmail' }}'>{{ 'Global' | Attribute:'OrganizationEmail' }}</a> for help. Thank you.";
+            nbErrorMessage.Text = LockedOutCaption.ResolveMergeFields( LavaHelper.GetCommonMergeFields( RockPage ) );
         }
 
         private void AuthenticatePerson( int personId )
@@ -570,23 +576,6 @@ namespace RockWeb.Blocks.Security
             litIndividualSelectionInstructions.Text = GetAttributeValue( AttributeKey.IndividualSelectionInstructions ).ResolveMergeFields( mergeFields );
             litNotFoundInstructions.Text = GetAttributeValue( AttributeKey.PhoneNumberNotFoundMessage ).ResolveMergeFields( mergeFields );
             litVerificationInstructions.Text = GetAttributeValue( AttributeKey.VerificationInstructions ).ResolveMergeFields( mergeFields );
-        }
-
-        private void ShowLockedOutError()
-        {
-            const string LockedOutCaption = @"{%- assign phone = Global' | Attribute:'OrganizationPhone' | Trim -%} Sorry, your account has been locked.  Please {% if phone != '' %}contact our office at {{ 'Global' | Attribute:'OrganizationPhone' }} or email{% else %}email us at{% endif %} <a href='mailto:{{ 'Global' | Attribute:'OrganizationEmail' }}'>{{ 'Global' | Attribute:'OrganizationEmail' }}</a> for help. Thank you.";
-            ShowErrorMessage( LockedOutCaption.ResolveMergeFields( LavaHelper.GetCommonMergeFields( RockPage ) ) );
-        }
-
-        private void ShowErrorMessage( string message )
-        {
-            nbErrorMessage.Text = message;
-            nbErrorMessage.Visible = true;
-        }
-
-        private void HideErrorMessage()
-        {
-            nbErrorMessage.Visible = false;
         }
 
         #endregion
