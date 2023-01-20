@@ -261,6 +261,8 @@ namespace RockWeb.Blocks.Security
         {
             using ( var rockContext = new RockContext() )
             {
+                HideErrorMessage();
+
                 if ( IsVerificationCodeValid( rockContext ) )
                 {
                     var personId = e.CommandArgument.ToString().AsInteger();
@@ -479,6 +481,8 @@ namespace RockWeb.Blocks.Security
 
         private void ShowPersonChooser( List<int> personIds )
         {
+            HideErrorMessage();
+
             pnlPhoneNumberEntry.Visible = false;
             pnlPersonChooser.Visible = true;
             pnlNotFound.Visible = false;
@@ -495,6 +499,13 @@ namespace RockWeb.Blocks.Security
             var authenticationLevel = GetAttributeValue( AttributeKey.AuthenticationLevel ).AsInteger();
             var person = new PersonService( new RockContext() ).Get( personId );
             var user = person.Users.FirstOrDefault();
+
+            if ( user?.IsLockedOut == true )
+            {
+                ShowLockedOutError();
+                return;
+            }
+
             var qryParams = string.Empty;
 
             switch ( authenticationLevel )
@@ -560,6 +571,24 @@ namespace RockWeb.Blocks.Security
             litNotFoundInstructions.Text = GetAttributeValue( AttributeKey.PhoneNumberNotFoundMessage ).ResolveMergeFields( mergeFields );
             litVerificationInstructions.Text = GetAttributeValue( AttributeKey.VerificationInstructions ).ResolveMergeFields( mergeFields );
         }
+
+        private void ShowLockedOutError()
+        {
+            const string LockedOutCaption = @"{%- assign phone = Global' | Attribute:'OrganizationPhone' | Trim -%} Sorry, your account has been locked.  Please {% if phone != '' %}contact our office at {{ 'Global' | Attribute:'OrganizationPhone' }} or email{% else %}email us at{% endif %} <a href='mailto:{{ 'Global' | Attribute:'OrganizationEmail' }}'>{{ 'Global' | Attribute:'OrganizationEmail' }}</a> for help. Thank you.";
+            ShowErrorMessage( LockedOutCaption.ResolveMergeFields( LavaHelper.GetCommonMergeFields( RockPage ) ) );
+        }
+
+        private void ShowErrorMessage( string message )
+        {
+            nbErrorMessage.Text = message;
+            nbErrorMessage.Visible = true;
+        }
+
+        private void HideErrorMessage()
+        {
+            nbErrorMessage.Visible = false;
+        }
+
         #endregion
     }
 }
