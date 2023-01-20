@@ -15,7 +15,7 @@
 // </copyright>
 //
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 
@@ -24,6 +24,7 @@ using Rock.Data;
 using Rock.Enums.Communication;
 using Rock.Model;
 using Rock.Reporting;
+using Rock.ViewModels.Blocks.Mobile.Communication.SmsConversationList;
 using Rock.Web.Cache;
 
 namespace Rock.Blocks.Types.Mobile.Communication
@@ -150,7 +151,7 @@ namespace Rock.Blocks.Types.Mobile.Communication
         /// Loads the phone numbers that the current person is allowed to access.
         /// </summary>
         /// <returns>A collection of objects representing the SMS phone numbers.</returns>
-        private IEnumerable LoadPhoneNumbers()
+        private IEnumerable<PhoneNumberBag> LoadPhoneNumbers()
         {
             // First load up all of the available numbers
             var smsNumbers = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.COMMUNICATION_SMS_FROM.AsGuid() )
@@ -176,11 +177,12 @@ namespace Rock.Blocks.Types.Mobile.Communication
             }
 
             return smsNumbers
-                .Select( n => new
+                .Select( n => new PhoneNumberBag
                 {
-                    n.Guid,
+                    Guid = n.Guid,
+                    ContactKey = n.Guid.ToString(),
                     PhoneNumber = n.Value,
-                    n.Description
+                    Description = n.Description
                 } )
                 .ToList();
         }
